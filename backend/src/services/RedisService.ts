@@ -455,6 +455,78 @@ export class RedisService {
       return false
     }
   }
+
+  /**
+   * Increment a numeric value
+   */
+  async incr(key: string): Promise<number> {
+    try {
+      return await this.client.incr(key)
+    } catch (error) {
+      logger.error('Redis INCR error:', error)
+      return 0
+    }
+  }
+
+  /**
+   * Add member to set
+   */
+  async sadd(key: string, ...members: string[]): Promise<number> {
+    try {
+      return await this.client.sAdd(key, members)
+    } catch (error) {
+      logger.error('Redis SADD error:', error)
+      return 0
+    }
+  }
+
+  /**
+   * Get all members of a set
+   */
+  async smembers(key: string): Promise<string[]> {
+    try {
+      return await this.client.sMembers(key)
+    } catch (error) {
+      logger.error('Redis SMEMBERS error:', error)
+      return []
+    }
+  }
+
+  /**
+   * Get keys matching a pattern (use with caution on large datasets)
+   */
+  async keys(pattern: string): Promise<string[]> {
+    try {
+      return await this.client.keys(pattern)
+    } catch (error) {
+      logger.error('Redis KEYS error:', error)
+      return []
+    }
+  }
+
+  /**
+   * Scan for keys matching a pattern (preferred over KEYS for production)
+   */
+  async scan(pattern: string, count: number = 100): Promise<string[]> {
+    try {
+      const keys: string[] = []
+      let cursor = 0
+      
+      do {
+        const result = await this.client.scan(cursor, {
+          MATCH: pattern,
+          COUNT: count
+        })
+        cursor = result.cursor
+        keys.push(...result.keys)
+      } while (cursor !== 0)
+      
+      return keys
+    } catch (error) {
+      logger.error('Redis SCAN error:', error)
+      return []
+    }
+  }
 }
 
 // Export singleton instance

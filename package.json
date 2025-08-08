@@ -50,10 +50,6 @@
     "monitoring:up": "docker-compose -f docker-compose.prod.yml up -d prometheus grafana loki",
     "monitoring:down": "docker-compose -f docker-compose.prod.yml down",
 
-    "// Deployment": "# Deployment commands",
-    "deploy:staging": "bash scripts/deployment/deploy-staging.sh",
-    "deploy:production": "bash scripts/deployment/deploy-production.sh",
-
     "// Utility": "# Utility and maintenance commands",
     "start": "turbo run start",
     "lint": "turbo run lint",

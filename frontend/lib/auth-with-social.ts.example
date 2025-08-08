@@ -1,0 +1,35 @@
+// Example: Adding GitHub social provider to your auth configuration
+// Uncomment and configure when you have GitHub OAuth credentials
+
+import { betterAuth } from "better-auth"
+import { prismaAdapter } from "better-auth/adapters/prisma"
+import { PrismaClient } from "../../backend/node_modules/@prisma/client"
+
+const prisma = new PrismaClient({
+  datasourceUrl: process.env.DATABASE_URL,
+})
+
+export const auth = betterAuth({
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  secret: process.env.BETTER_AUTH_SECRET!,
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
+  emailAndPassword: {
+    enabled: true,
+    autoSignIn: true, // automatically sign in after successful sign up
+  },
+  // Uncomment to enable social providers
+  // socialProviders: {
+  //   github: {
+  //     clientId: process.env.GITHUB_CLIENT_ID!,
+  //     clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+  //   },
+  //   google: {
+  //     clientId: process.env.GOOGLE_CLIENT_ID!,
+  //     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+  //   }
+  // },
+})
+
+export type Session = typeof auth.$Infer.Session

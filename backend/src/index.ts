@@ -14,6 +14,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import { rateLimiter } from './middleware/rateLimiter';
 import { authMiddleware } from './middleware/auth';
+import { setupErrorTracking } from './middleware/errorTracking';
 
 // Import route handlers
 import authRoutes from './routes/auth';
@@ -27,11 +28,21 @@ import loanRoutes from './routes/loans';
 import reportRoutes from './routes/reports';
 import settingRoutes from './routes/settings';
 import pricingRoutes from './routes/pricing.routes';
+import jwtTestRoutes from './routes/jwt-test';
+import simpleJwtTestRoutes from './routes/simple-jwt-test';
+import enhancedAuthRoutes from './routes/enhancedAuth';
+import databaseMonitoringRoutes from './routes/database-monitoring';
+import errorTrackingRoutes from './routes/error-tracking';
+
+// Import Better Auth
+import { auth } from './lib/auth';
 
 // Import services
 import { DatabaseService } from './services/DatabaseService';
+import { DatabasePoolService } from './services/DatabasePoolService';
 import { RedisService } from './services/RedisService';
 import { WebSocketService } from './services/WebSocketService';
+import { ErrorTrackingService } from './services/ErrorTrackingService';
 import { logger } from './utils/logger';
 
 // Create Express app
@@ -40,7 +51,9 @@ const server = createServer(app);
 
 // Initialize services
 const databaseService = new DatabaseService();
+const databasePoolService = DatabasePoolService.getInstance();
 const redisService = new RedisService();
+const errorTracker = ErrorTrackingService.getInstance();
 const io = new Server(server, {
   cors: {
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
@@ -48,10 +61,11 @@ const io = new Server(server, {
   }
 });
 const webSocketService = new WebSocketService(io);
-logger.info('WebSocket service initialized');
+logger.info('Services initialized: Database, Redis, Error Tracking, WebSocket');
 
-// Make webSocketService available globally for route handlers
+// Make webSocketService and redisService available globally for route handlers
 (global as any).webSocketService = webSocketService;
+(global as any).redisService = redisService;
 
 // Security middleware
 app.use(helmet({
@@ -122,6 +136,17 @@ app.get('/health', async (_req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+// Better Auth routes
+app.all('/api/better-auth/*', async (req, _res) => {
+  const response = await auth.handler(req as any);
+  return response;
+});
+// Enhanced Authentication routes (enterprise security features)
+app.use('/api/enhanced-auth', enhancedAuthRoutes);
+// Database monitoring routes (admin only)
+app.use('/api/database', databaseMonitoringRoutes);
+// Error tracking routes (admin only)
+app.use('/api/errors', errorTrackingRoutes);
 app.use('/api/users', authMiddleware, userRoutes);
 app.use('/api/products', authMiddleware, productRoutes);
 app.use('/api/categories', authMiddleware, categoryRoutes);
@@ -132,6 +157,8 @@ app.use('/api/loans', authMiddleware, loanRoutes);
 app.use('/api/reports', authMiddleware, reportRoutes);
 app.use('/api/settings', authMiddleware, settingRoutes);
 app.use('/api/pricing', authMiddleware, pricingRoutes);
+app.use('/api/jwt-test', jwtTestRoutes);
+app.use('/api/simple-jwt-test', simpleJwtTestRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -145,6 +172,9 @@ app.use('*', (req, res) => {
 // Global error handler
 app.use(errorHandler);
 
+// Setup comprehensive error tracking
+setupErrorTracking(app);
+
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
@@ -152,7 +182,9 @@ process.on('SIGTERM', async () => {
   server.close(async () => {
     try {
       await databaseService.disconnect();
+      await databasePoolService.disconnect();
       await redisService.disconnect();
+      await ErrorTrackingService.getInstance().cleanup();
       logger.info('Server closed successfully');
       process.exit(0);
     } catch (error) {
@@ -168,7 +200,17 @@ process.on('SIGINT', async () => {
   server.close(async () => {
     try {
       await databaseService.disconnect();
+      await databasePoolService.disconnect();
       await redisService.disconnect();
+      await ErrorTrackingService.getInstance().cleanup();
+      logger.info('Server closed successfully');
+      process.exit(0);
+    } catch (error) {
+      logger.error('Error during shutdown:', error);
+      process.exit(1);
+    }
+  });
+});
       logger.info('Server closed successfully');
       process.exit(0);
     } catch (error) {
@@ -187,6 +229,10 @@ const startServer = async () => {
     await databaseService.connect();
     logger.info('Database connected successfully');
     
+    // Initialize database pool and warm up connections
+    await databasePoolService.warmUp();
+    logger.info('Database pool warmed up successfully');
+    
     // Initialize Redis connection
     await redisService.connect();
     logger.info('Redis connected successfully');
@@ -196,6 +242,7 @@ const startServer = async () => {
       logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`📝 API Documentation: http://localhost:${PORT}/docs`);
       logger.info(`🔍 Health Check: http://localhost:${PORT}/health`);
+      logger.info(`📊 Database Monitoring: http://localhost:${PORT}/api/database/metrics`);
       logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     });
     
