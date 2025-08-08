@@ -12,7 +12,7 @@ const path = require('path');
 
 // Configuration from .env file
 const MOMO_BASE_URL = "https://sandbox.momodeveloper.mtn.co.rw";
-const SUBSCRIPTION_KEY = "fdb37d46a3594198bd75ae6f5da36a5c";
+const SUBSCRIPTION_KEY = process.env.MOMO_SUBSCRIPTION_KEY || "your-subscription-key-here";
 
 class MTNSetup {
   constructor() {

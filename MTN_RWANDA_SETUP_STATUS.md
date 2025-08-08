@@ -10,8 +10,8 @@
   - Product: Collection Widget (Active)
 
 - **Subscription Keys**: ✅ Available
-  - Primary Key: `fdb37d46a3594198bd75ae6f5da36a5c`
-  - Secondary Key: `f007a3e266834b3b9eda9a834af6f193`
+  - Primary Key: `[CONFIGURED IN .ENV]`
+  - Secondary Key: `[CONFIGURED IN .ENV]`
 
 - **Environment Configuration**: ✅ Complete
   - `.env` file updated with all credentials
