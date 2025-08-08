@@ -10,28 +10,29 @@ import { Server } from 'socket.io';
 dotenv.config();
 
 // Import middleware and routes
-import { errorHandler } from './middleware/errorHandler';
-import { requestLogger } from './middleware/requestLogger';
-import { rateLimiter } from './middleware/rateLimiter';
-import { authMiddleware } from './middleware/auth';
+import { errorHandler } from './middleware/errorHandler.js';
+import { requestLogger } from './middleware/requestLogger.js';
+import { rateLimiter } from './middleware/rateLimiter.js';
+import { authMiddleware } from './middleware/auth.js';
 
 // Import route handlers
-import authRoutes from './routes/auth';
-import userRoutes from './routes/users';
-import productRoutes from './routes/products';
-import categoryRoutes from './routes/categories';
-import saleRoutes from './routes/sales';
-import customerRoutes from './routes/customers';
-import supplierRoutes from './routes/suppliers';
-import loanRoutes from './routes/loans';
-import reportRoutes from './routes/reports';
-import settingRoutes from './routes/settings';
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import productRoutes from './routes/products.js';
+import categoryRoutes from './routes/categories.js';
+import saleRoutes from './routes/sales.js';
+import customerRoutes from './routes/customers.js';
+import supplierRoutes from './routes/suppliers.js';
+import loanRoutes from './routes/loans.js';
+import reportRoutes from './routes/reports.js';
+import settingRoutes from './routes/settings.js';
+import pricingRoutes from './routes/pricing.routes.js';
 
 // Import services
-import { DatabaseService } from './services/DatabaseService';
-import { RedisService } from './services/RedisService';
-import { WebSocketService } from './services/WebSocketService';
-import { logger } from './utils/logger';
+import { DatabaseService } from './services/DatabaseService.js';
+import { RedisService } from './services/RedisService.js';
+import { WebSocketService } from './services/WebSocketService.js';
+import { logger } from './utils/logger.js';
 
 // Create Express app
 const app = express();
@@ -98,6 +99,7 @@ app.use('/api/suppliers', authMiddleware, supplierRoutes);
 app.use('/api/loans', authMiddleware, loanRoutes);
 app.use('/api/reports', authMiddleware, reportRoutes);
 app.use('/api/settings', authMiddleware, settingRoutes);
+app.use('/api/pricing', authMiddleware, pricingRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthService } from '../services/AuthService.js';
-import { logger } from '../utils/logger.js';
+import { AuthService } from '../services/AuthService';
+import { logger } from '../utils/logger';
 
 export class AuthController {
   private authService: AuthService;
@@ -9,7 +9,7 @@ export class AuthController {
     this.authService = AuthService.getInstance();
   }
 
-  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  login = async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
     try {
       const { email, password } = req.body;
 
@@ -21,13 +21,9 @@ export class AuthController {
         return;
       }
 
-      const credentials = {
-        email,
-        password,
-        ip_address: req.ip
-      };
-
       // For now, we'll use a simple mock response
+      // TODO: Implement actual authentication logic
+      logger.info(`Login attempt for email: ${email} from IP: ${req.ip}`);
       const token = this.authService.generateToken({
         email,
         role: 'cashier'
@@ -55,7 +51,7 @@ export class AuthController {
     }
   };
 
-  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  register = async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
     try {
       const { first_name, last_name, email, password, role } = req.body;
 
@@ -70,7 +66,8 @@ export class AuthController {
       const hashedPassword = await this.authService.hashPassword(password);
       const employeeId = this.authService.generateEmployeeId();
 
-      // Mock successful registration
+      // TODO: Save user to database with hashedPassword
+      logger.info(`User registration - Email: ${email}, EmployeeId: ${employeeId}, HashedPassword: ${hashedPassword.substring(0, 10)}...`);
       const token = this.authService.generateToken({
         email,
         role: role || 'cashier'
@@ -101,7 +98,7 @@ export class AuthController {
     }
   };
 
-  logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  logout = async (_req: Request, res: Response, _next: NextFunction): Promise<void> => {
     try {
       // For now, just return success
       res.json({
@@ -118,7 +115,7 @@ export class AuthController {
     }
   };
 
-  refreshToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  refreshToken = async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
     try {
       const { refreshToken } = req.body;
 
@@ -159,7 +156,7 @@ export class AuthController {
     }
   };
 
-  verify = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  verify = async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
     try {
       const token = req.headers.authorization?.replace('Bearer ', '');
 

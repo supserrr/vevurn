@@ -22,14 +22,21 @@ model User {
   role      UserRole @default(CASHIER)
   isActive  Boolean  @default(true)
   
+  // Discount permissions for flexible pricing
+  maxDiscountAllowed  Float   @default(5.0)   // Maximum discount percentage this staff can give
+  canSellBelowMin     Boolean @default(false) // Can sell below minimum price without approval
+  
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   // Relations
-  sales          Sale[]
-  auditLogs      AuditLog[]
-  stockMovements StockMovement[]
+  sales                        Sale[]
+  auditLogs                   AuditLog[]
+  stockMovements              StockMovement[]
+  approvedDiscounts           SaleItem[] @relation("ApprovedBy")
+  requestedDiscounts          DiscountApproval[] @relation("RequestedDiscounts")
+  approvedDiscountRequests    DiscountApproval[] @relation("ApprovedDiscountRequests")
   
   @@map("users")
 }
@@ -71,8 +78,24 @@ model Product {
   model       String?
   color       String?
   
-  // Pricing (in RWF, USD, EUR)
-  priceRwf Float
+  // Flexible Pricing System (RWF - Primary Currency)
+  basePriceRwf         Float   // Standard selling price
+  minPriceRwf          Float   // Minimum allowed selling price
+  maxDiscountPercent   Float   @default(0) // Maximum discount allowed on this product
+  wholesalePriceRwf    Float?  // Price for consignment/wholesale
+  
+  // Multi-currency support (USD)
+  basePriceUsd         Float?
+  minPriceUsd          Float?
+  wholesalePriceUsd    Float?
+  
+  // Multi-currency support (EUR)
+  basePriceEur         Float?
+  minPriceEur          Float?
+  wholesalePriceEur    Float?
+  
+  // Legacy pricing (will be migrated to basePriceRwf)
+  priceRwf Float?
   priceUsd Float?
   priceEur Float?
   costPrice Float?
@@ -209,9 +232,22 @@ model SaleItem {
   product  Product @relation(fields: [productId], references: [id])
   productId String
   
-  quantity    Int
-  unitPrice   Float
-  totalPrice  Float
+  quantity         Int
+  basePrice        Float  // Original base price at time of sale
+  negotiatedPrice  Float  // Final price after negotiation
+  totalPrice       Float  // negotiatedPrice * quantity
+  
+  // Discount tracking
+  discountAmount      Float  @default(0) // basePrice - negotiatedPrice
+  discountPercentage  Float  @default(0) // Calculated percentage
+  discountReason      String @default("none") // Reason for discount
+  
+  // Approval tracking for below-minimum sales
+  approvedBy    String? // User ID who approved below-minimum sale
+  approver      User?   @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  approvalNotes String?
+  
+  // Legacy discount field (will be deprecated)
   discount    Float @default(0)
   
   // Product snapshot at time of sale
@@ -220,6 +256,8 @@ model SaleItem {
   
   createdAt DateTime @default(now())
   
+  @@index([saleId])
+  @@index([productId])
   @@map("sale_items")
 }
 
@@ -256,6 +294,52 @@ model Payment {
 // =============================================
 // CUSTOMER & LOAN MANAGEMENT
 // =============================================
+
+model DiscountApproval {
+  id            String         @id @default(cuid())
+  
+  // Request details
+  requestedBy   User           @relation("RequestedDiscounts", fields: [requestedById], references: [id])
+  requestedById String
+  
+  // Sale information
+  saleId        String?        // If part of a sale
+  productId     String
+  productName   String
+  productSku    String
+  
+  // Pricing details
+  basePrice         Float
+  requestedPrice    Float
+  minimumPrice      Float
+  discountAmount    Float
+  discountPercent   Float
+  
+  // Request details
+  reason            String
+  customerContext   String?
+  businessCase      String?
+  
+  // Approval workflow
+  status            ApprovalStatus @default(PENDING)
+  approvedBy        String?
+  approver          User?          @relation("ApprovedDiscountRequests", fields: [approvedBy], references: [id])
+  approvalNotes     String?
+  approvedAt        DateTime?
+  
+  // Metadata
+  currency          Currency       @default(RWF)
+  quantity          Int            @default(1)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([status])
+  @@index([requestedById])
+  @@index([approvedBy])
+  @@index([createdAt])
+  @@map("discount_approvals")
+}
 
 model Customer {
   id      String  @id @default(cuid())
@@ -484,4 +568,11 @@ enum AlertSeverity {
   WARNING
   ERROR
   CRITICAL
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
 }

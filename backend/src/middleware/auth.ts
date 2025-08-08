@@ -72,14 +72,15 @@ export const authMiddleware = async (
       select: {
         id: true,
         email: true,
-        username: true,
+        clerkId: true,
         firstName: true,
         lastName: true,
         role: true,
-        permissions: true,
         isActive: true,
-        isVerified: true,
-        lastLogin: true
+        maxDiscountAllowed: true,
+        canSellBelowMin: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
@@ -89,10 +90,6 @@ export const authMiddleware = async (
 
     if (!user.isActive) {
       throw new AppError('Account is deactivated', 401, 'ACCOUNT_DEACTIVATED');
-    }
-
-    if (!user.isVerified) {
-      throw new AppError('Account is not verified', 401, 'ACCOUNT_NOT_VERIFIED');
     }
 
     // Attach user to request object
@@ -111,21 +108,23 @@ export const authMiddleware = async (
       }, 3600); // 1 hour TTL
     }
 
-    // Log user activity (optional)
-    await prisma.userActivity.create({
-      data: {
-        userId: user.id,
-        action: 'API_ACCESS',
-        resource: `${req.method} ${req.path}`,
-        metadata: {
-          ip: req.ip,
-          userAgent: req.get('User-Agent'),
-          timestamp: new Date().toISOString()
-        },
-        ipAddress: req.ip || null,
-        userAgent: req.get('User-Agent') || null
-      }
-    });
+    // Log user activity in audit log instead
+    try {
+      await prisma.auditLog.create({
+        data: {
+          userId: user.id,
+          action: 'API_ACCESS',
+          resource: `${req.method} ${req.path}`,
+          details: {
+            ip: req.ip,
+            userAgent: req.get('User-Agent')
+          }
+        }
+      });
+    } catch (error) {
+      // Don't fail request if audit logging fails
+      console.warn('Failed to log user activity:', error);
+    }
 
     next();
   } catch (error) {
@@ -166,17 +165,17 @@ export const optionalAuthMiddleware = async (
       select: {
         id: true,
         email: true,
-        username: true,
+        clerkId: true,
         firstName: true,
         lastName: true,
         role: true,
-        permissions: true,
         isActive: true,
-        isVerified: true
+        maxDiscountAllowed: true,
+        canSellBelowMin: true
       }
     });
 
-    if (user && user.isActive && user.isVerified) {
+    if (user && user.isActive) {
       req.user = {
         ...user,
         role: user.role as string
