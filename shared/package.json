@@ -1,0 +1,22 @@
+{
+  "name": "@vevurn/shared",
+  "version": "1.0.0",
+  "description": "Shared types, constants, and utilities for Vevurn POS System",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "jest",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.0.15"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.0.5",
+    "typescript": "^5.3.3"
+  }
+}
