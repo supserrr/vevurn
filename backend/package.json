@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "dev:demo": "tsx watch src/demo-server.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
+    "start": "npm run migrate:deploy && node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "lint": "eslint src --ext .ts",
@@ -15,10 +15,14 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "tsx src/scripts/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.863.0",
+    "@aws-sdk/lib-storage": "^3.863.0",
+    "@aws-sdk/s3-request-presigner": "^3.863.0",
     "@prisma/client": "^6.13.0",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.1",
@@ -62,6 +66,6 @@
     "typescript": "^5.3.2"
   },
   "prisma": {
-    "schema": "src/prisma/schema.prisma"
+    "schema": "prisma/schema.prisma"
   }
 }

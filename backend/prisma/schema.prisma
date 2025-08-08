@@ -10,17 +10,20 @@ datasource db {
 }
 
 // =============================================
-// AUTHENTICATION & USER MANAGEMENT
+// AUTHENTICATION & USER MANAGEMENT (Better Auth Compatible)
 // =============================================
 
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String   @unique
-  email     String   @unique
-  firstName String?
-  lastName  String?
-  role      UserRole @default(CASHIER)
-  isActive  Boolean  @default(true)
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  name          String?
+  image         String?
+  firstName     String?
+  lastName      String?
+  role          String   @default("cashier") // Changed from enum to string for better-auth compatibility
+  isActive      Boolean  @default(true)
+  employeeId    String?  @unique
   
   // Discount permissions for flexible pricing
   maxDiscountAllowed  Float   @default(5.0)   // Maximum discount percentage this staff can give
@@ -30,7 +33,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  // Relations
+  // Better-auth relations
+  sessions              Session[]
+  accounts              Account[]
+  
+  // POS system relations
   sales                        Sale[]
   auditLogs                   AuditLog[]
   stockMovements              StockMovement[]
@@ -41,6 +48,56 @@ model User {
   @@map("users")
 }
 
+// Better-auth required models
+model Session {
+  id             String    @id @default(cuid())
+  userId         String
+  expiresAt      DateTime
+  token          String    @unique
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?   // For admin impersonation
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model Account {
+  id                     String    @id @default(cuid())
+  userId                 String
+  accountId              String
+  providerId             String
+  accessToken            String?
+  refreshToken           String?
+  idToken                String?
+  accessTokenExpiresAt   DateTime?
+  refreshTokenExpiresAt  DateTime?
+  scope                  String?
+  password               String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([providerId, accountId])
+  @@map("accounts")
+}
+
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+  
+  @@map("verifications")
+}
+
+// Legacy UserRole enum - kept for reference but not used in User model anymore
 enum UserRole {
   ADMIN
   MANAGER

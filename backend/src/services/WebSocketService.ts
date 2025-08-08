@@ -188,7 +188,7 @@ export class WebSocketService {
         await this.redis.set(
           `notification:ack:${data.notificationId}:${socket.userId}`,
           'acknowledged',
-          3600 // 1 hour TTL
+          { ttl: 3600 } // 1 hour TTL
         );
       } catch (error) {
         logger.error('Error handling notification acknowledgment:', error);

@@ -10,29 +10,29 @@ import { Server } from 'socket.io';
 dotenv.config();
 
 // Import middleware and routes
-import { errorHandler } from './middleware/errorHandler.js';
-import { requestLogger } from './middleware/requestLogger.js';
-import { rateLimiter } from './middleware/rateLimiter.js';
-import { authMiddleware } from './middleware/auth.js';
+import { errorHandler } from './middleware/errorHandler';
+import { requestLogger } from './middleware/requestLogger';
+import { rateLimiter } from './middleware/rateLimiter';
+import { authMiddleware } from './middleware/auth';
 
 // Import route handlers
-import authRoutes from './routes/auth.js';
-import userRoutes from './routes/users.js';
-import productRoutes from './routes/products.js';
-import categoryRoutes from './routes/categories.js';
-import saleRoutes from './routes/sales.js';
-import customerRoutes from './routes/customers.js';
-import supplierRoutes from './routes/suppliers.js';
-import loanRoutes from './routes/loans.js';
-import reportRoutes from './routes/reports.js';
-import settingRoutes from './routes/settings.js';
-import pricingRoutes from './routes/pricing.routes.js';
+import authRoutes from './routes/auth';
+import userRoutes from './routes/users';
+import productRoutes from './routes/products';
+import categoryRoutes from './routes/categories';
+import saleRoutes from './routes/sales';
+import customerRoutes from './routes/customers';
+import supplierRoutes from './routes/suppliers';
+import loanRoutes from './routes/loans';
+import reportRoutes from './routes/reports';
+import settingRoutes from './routes/settings';
+import pricingRoutes from './routes/pricing.routes';
 
 // Import services
-import { DatabaseService } from './services/DatabaseService.js';
-import { RedisService } from './services/RedisService.js';
-import { WebSocketService } from './services/WebSocketService.js';
-import { logger } from './utils/logger.js';
+import { DatabaseService } from './services/DatabaseService';
+import { RedisService } from './services/RedisService';
+import { WebSocketService } from './services/WebSocketService';
+import { logger } from './utils/logger';
 
 // Create Express app
 const app = express();
@@ -67,7 +67,7 @@ app.use(cors({
 }));
 
 // Body parsing middleware
-app.use(compression());
+app.use(compression() as unknown as express.RequestHandler);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -78,14 +78,46 @@ app.use(requestLogger);
 app.use('/api', rateLimiter);
 
 // Health check endpoint
-app.get('/health', (_req, res) => {
-  res.json({
+app.get('/health', async (_req, res) => {
+  const healthCheck = {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
-    version: process.env.npm_package_version || '1.0.0'
-  });
+    version: process.env.npm_package_version || '1.0.0',
+    services: {
+      database: 'checking',
+      redis: 'checking'
+    }
+  };
+
+  try {
+    // Check database connectivity
+    const dbHealthy = await databaseService.healthCheck();
+    healthCheck.services.database = dbHealthy ? 'healthy' : 'unhealthy';
+
+    // Check Redis connectivity
+    const redisHealthy = await redisService.healthCheck();
+    healthCheck.services.redis = redisHealthy ? 'healthy' : 'unhealthy';
+
+    // Determine overall status
+    const allServicesHealthy = dbHealthy && redisHealthy;
+    healthCheck.status = allServicesHealthy ? 'ok' : 'degraded';
+
+    const statusCode = allServicesHealthy ? 200 : 503;
+    res.status(statusCode).json(healthCheck);
+  } catch (error) {
+    logger.error('Health check failed:', error);
+    res.status(503).json({
+      ...healthCheck,
+      status: 'error',
+      error: 'Health check failed',
+      services: {
+        database: 'unknown',
+        redis: 'unknown'
+      }
+    });
+  }
 });
 
 // API routes
@@ -147,7 +179,7 @@ process.on('SIGINT', async () => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8000;
 
 const startServer = async () => {
   try {

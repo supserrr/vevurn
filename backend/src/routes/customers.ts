@@ -1,17 +1,43 @@
-import { Router } from 'express';
-import { Request, Response } from 'express';
+import { Router } from 'express'
+import { CustomerController } from '../controllers/CustomerController'
+import { authMiddleware } from '../middleware/auth'
+import { roleMiddleware } from '../middleware/roleMiddleware'
 
-const router = Router();
+const router = Router()
 
-router.get('/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', service: 'customers' });
-});
+// Health check
+router.get('/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'customers' })
+})
 
-router.get('/', async (_req: Request, res: Response) => {
-  res.json({ 
-    success: true, 
-    message: 'Customers endpoint - Implementation pending'
-  });
-});
+// Public routes (search for POS interface)
+router.get('/search', CustomerController.searchCustomers)
 
-export default router;
+// All other routes require authentication
+router.use(authMiddleware)
+
+// Basic CRUD operations
+router.get('/', CustomerController.getCustomers)
+router.get('/analytics', 
+  roleMiddleware(['supervisor', 'manager', 'admin']), 
+  CustomerController.getCustomerAnalytics
+)
+router.get('/export', 
+  roleMiddleware(['manager', 'admin']), 
+  CustomerController.exportCustomers
+)
+router.get('/:id', CustomerController.getCustomerById)
+
+// Create customer (all authenticated users can create customers)
+router.post('/', CustomerController.createCustomer)
+
+// Update customer (all authenticated users can update customers)
+router.put('/:id', CustomerController.updateCustomer)
+
+// Delete customer (requires manager/admin role)
+router.delete('/:id', 
+  roleMiddleware(['manager', 'admin']), 
+  CustomerController.deleteCustomer
+)
+
+export default router

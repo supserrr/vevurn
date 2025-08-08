@@ -42,8 +42,8 @@ class RateLimiter {
         const redisKey = `rate_limit:${key}:${windowStart}`;
 
         // Get current count
-        const current = await redis.get(redisKey);
-        const count = current ? parseInt(current) : 0;
+        const currentVal = await redis.get(redisKey);
+        let count = currentVal ? parseInt(currentVal) : 0;
 
         // Check if limit exceeded
         if (count >= maxRequests) {
@@ -69,16 +69,14 @@ class RateLimiter {
           return;
         }
 
-        // Increment counter
-        const multi = redis.getClient().multi();
-        multi.incr(redisKey);
-        multi.expire(redisKey, Math.ceil(windowMs / 1000));
-        await multi.exec();
+        // Increment counter using the RedisService method
+        count = count + 1;
+        await redis.set(redisKey, count.toString(), { ttl: Math.ceil(windowMs / 1000) });
 
         // Set rate limit headers
         res.set({
           'RateLimit-Limit': maxRequests.toString(),
-          'RateLimit-Remaining': (maxRequests - count - 1).toString(),
+          'RateLimit-Remaining': (maxRequests - count).toString(),
           'RateLimit-Reset': (windowStart + windowMs).toString()
         });
 
@@ -88,7 +86,15 @@ class RateLimiter {
             if (res.statusCode < 400) {
               // Decrement counter for successful requests
               try {
-                await redis.getClient().decr(redisKey);
+                const currentCount = await redis.get(redisKey);
+                if (currentCount && parseInt(currentCount) > 0) {
+                  const newCount = parseInt(currentCount) - 1;
+                  if (newCount > 0) {
+                    await redis.set(redisKey, newCount.toString(), { ttl: Math.ceil(windowMs / 1000) });
+                  } else {
+                    await redis.del(redisKey);
+                  }
+                }
               } catch (error) {
                 logger.error('Error decrementing rate limit counter:', error);
               }

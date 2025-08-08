@@ -1,17 +1,50 @@
-import { Router } from 'express';
-import { Request, Response } from 'express';
+import { Router } from 'express'
+import { ReportsController } from '../controllers/ReportsController'
+import { authMiddleware } from '../middleware/auth'
+import { roleMiddleware } from '../middleware/roleMiddleware'
 
-const router = Router();
+const router = Router()
 
-router.get('/health', (_req: Request, res: Response) => {
-  res.json({ status: 'ok', service: 'reports' });
-});
+// Health check
+router.get('/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'reports' })
+})
 
-router.get('/', async (_req: Request, res: Response) => {
-  res.json({ 
-    success: true, 
-    message: 'Reports endpoint - Implementation pending'
-  });
-});
+// All routes require authentication and supervisor+ role
+router.use(authMiddleware)
+router.use(roleMiddleware(['supervisor', 'manager', 'admin']))
 
-export default router;
+// Dashboard summary (lighter permissions)
+router.get('/dashboard', ReportsController.getDashboardSummary)
+
+// Detailed reports
+router.get('/sales', ReportsController.getSalesReport)
+router.get('/inventory', ReportsController.getInventoryReport)
+router.get('/staff', 
+  roleMiddleware(['manager', 'admin']), 
+  ReportsController.getStaffReport
+)
+router.get('/financial', 
+  roleMiddleware(['manager', 'admin']), 
+  ReportsController.getFinancialSummary
+)
+
+// Export reports
+router.get('/export', 
+  roleMiddleware(['manager', 'admin']), 
+  ReportsController.exportReportCSV
+)
+
+// Custom reports
+router.post('/custom', 
+  roleMiddleware(['manager', 'admin']), 
+  ReportsController.getCustomReport
+)
+
+// Cache management
+router.delete('/cache', 
+  roleMiddleware(['admin']), 
+  ReportsController.clearReportCache
+)
+
+export default router

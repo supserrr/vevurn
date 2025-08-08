@@ -6,6 +6,13 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
+// Import our route handlers
+import categoryRoutes from './routes/categories';
+import supplierRoutes from './routes/suppliers';
+import userRoutes from './routes/users';
+import loanRoutes from './routes/loans';
+import settingRoutes from './routes/settings';
+
 // Load environment variables
 dotenv.config();
 
@@ -22,12 +29,13 @@ const PORT = process.env.PORT || 8000;
 
 // Middleware
 app.use(helmet());
-app.use(compression());
+app.use(compression() as unknown as express.RequestHandler);
 app.use(cors({
   origin: process.env.FRONTEND_URL || "http://localhost:3001",
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Health check endpoint
@@ -49,6 +57,13 @@ app.get('/api/health', (_req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+// Mount our route handlers
+app.use('/api/categories', categoryRoutes);
+app.use('/api/suppliers', supplierRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/loans', loanRoutes);
+app.use('/api/settings', settingRoutes);
 
 // Mock authentication endpoint
 app.post('/api/auth/login', (req, res) => {

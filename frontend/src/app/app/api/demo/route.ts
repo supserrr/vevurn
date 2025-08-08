@@ -79,7 +79,7 @@ export async function GET() {
     return NextResponse.json({
       success: false,
       error: 'Failed to load demo data',
-      message: error.message
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
     }, { status: 500 })
   }
 }

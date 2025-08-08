@@ -349,7 +349,7 @@ export class PricingService {
     return this.prisma.discountApproval.create({
       data: {
         requestedById: options.requestedById,
-        saleId: options.saleId,
+        saleId: options.saleId || null,
         productId: options.productId,
         productName: product.name,
         productSku: product.sku,
@@ -359,8 +359,8 @@ export class PricingService {
         discountAmount,
         discountPercent,
         reason: options.reason,
-        customerContext: options.customerContext,
-        businessCase: options.businessCase,
+        customerContext: options.customerContext || null,
+        businessCase: options.businessCase || null,
         currency: options.currency,
         quantity: options.quantity
       },
@@ -437,7 +437,7 @@ export class PricingService {
       data: {
         status: decision,
         approvedBy: approverId,
-        approvalNotes: notes,
+        approvalNotes: notes || null,
         approvedAt: new Date()
       },
       include: {

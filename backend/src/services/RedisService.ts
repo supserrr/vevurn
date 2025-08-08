@@ -1,243 +1,464 @@
-import Redis from 'ioredis';
-import { logger } from '../utils/logger';
+import { createClient, RedisClientType } from 'redis'
+import { logger } from '../utils/logger'
+
+interface CacheOptions {
+  ttl?: number // Time to live in seconds
+  nx?: boolean // Set only if key doesn't exist
+  xx?: boolean // Set only if key exists
+}
+
+interface SessionData {
+  userId: string
+  email: string
+  role: string
+  createdAt: string
+  lastActivity: string
+  ip?: string
+  userAgent?: string
+}
 
 export class RedisService {
-  private client: Redis | null = null;
-  private isConnected: boolean = false;
+  private client: RedisClientType
+  private isConnected: boolean = false
 
   constructor() {
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379'
     
-    this.client = new Redis(redisUrl, {
-      maxRetriesPerRequest: 3,
-      lazyConnect: true,
-    });
+    this.client = createClient({
+      url: redisUrl,
+      socket: {
+        connectTimeout: 10000,
+      },
+    })
 
-    this.setupEventHandlers();
-  }
-
-  private setupEventHandlers(): void {
-    if (!this.client) return;
+    // Event listeners
+    this.client.on('error', (err) => {
+      logger.error('Redis Client Error:', err)
+    })
 
     this.client.on('connect', () => {
-      this.isConnected = true;
-      logger.info('Redis connection established');
-    });
+      logger.info('Redis client connected')
+    })
 
     this.client.on('ready', () => {
-      logger.info('Redis client ready');
-    });
+      logger.info('Redis client ready')
+      this.isConnected = true
+    })
 
-    this.client.on('error', (error) => {
-      logger.error('Redis connection error:', error);
-      this.isConnected = false;
-    });
-
-    this.client.on('close', () => {
-      logger.info('Redis connection closed');
-      this.isConnected = false;
-    });
-
-    this.client.on('reconnecting', () => {
-      logger.info('Redis reconnecting...');
-    });
+    this.client.on('end', () => {
+      logger.info('Redis client disconnected')
+      this.isConnected = false
+    })
   }
 
+  /**
+   * Connect to Redis
+   */
   async connect(): Promise<void> {
-    if (!this.client) {
-      throw new Error('Redis client not initialized');
-    }
 
     try {
-      await this.client.connect();
-      logger.info('Redis connected successfully');
-    } catch (error) {
-      logger.error('Failed to connect to Redis:', error);
-      throw error;
-    }
-  }
-
-  async disconnect(): Promise<void> {
-    if (this.client) {
-      try {
-        await this.client.quit();
-        this.isConnected = false;
-        logger.info('Redis disconnected successfully');
-      } catch (error) {
-        logger.error('Error disconnecting from Redis:', error);
-        throw error;
+      if (!this.isConnected) {
+        await this.client.connect()
+        logger.info('Redis connection established')
       }
+    } catch (error) {
+      logger.error('Failed to connect to Redis:', error)
+      throw error
     }
   }
 
-  getClient(): Redis {
-    if (!this.client || !this.isConnected) {
-      throw new Error('Redis not connected. Call connect() first.');
+  /**
+   * Disconnect from Redis
+   */
+  async disconnect(): Promise<void> {
+    try {
+      if (this.isConnected) {
+        await this.client.disconnect()
+        logger.info('Redis connection closed')
+      }
+    } catch (error) {
+      logger.error('Error disconnecting from Redis:', error)
+      throw error
     }
-    return this.client;
   }
 
+  /**
+   * Check if Redis is connected
+   */
+  isRedisConnected(): boolean {
+    return this.isConnected
+  }
+
+  /**
+   * Health check
+   */
   async healthCheck(): Promise<boolean> {
     try {
-      if (!this.client) return false;
-      const result = await this.client.ping();
-      return result === 'PONG';
+      const response = await this.client.ping()
+      return response === 'PONG'
     } catch {
-      return false;
+      return false
     }
   }
 
-  // Cache operations
+  // ==========================================
+  // BASIC KEY-VALUE OPERATIONS
+  // ==========================================
+
+  /**
+   * Set a string value
+   */
+  async set(key: string, value: string, options: CacheOptions = {}): Promise<boolean> {
+    try {
+      const { ttl, nx, xx } = options
+
+      if (nx) {
+        // Check if key doesn't exist first
+        const exists = await this.client.exists(key)
+        if (exists > 0) return false
+      }
+
+      if (xx) {
+        // Check if key exists first
+        const exists = await this.client.exists(key)
+        if (exists === 0) return false
+      }
+
+      let result: string | null
+      if (ttl) {
+        result = await this.client.setEx(key, ttl, value)
+      } else {
+        result = await this.client.set(key, value)
+      }
+      
+      return result === 'OK'
+    } catch (error) {
+      logger.error('Redis SET error:', error)
+      return false
+    }
+  }
+
+  /**
+   * Get a string value
+   */
   async get(key: string): Promise<string | null> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.get(key);
-  }
-
-  async set(key: string, value: string, ttlSeconds?: number): Promise<'OK' | null> {
-    if (!this.client) throw new Error('Redis not connected');
-    
-    if (ttlSeconds) {
-      return this.client.setex(key, ttlSeconds, value);
+    try {
+      return await this.client.get(key)
+    } catch (error) {
+      logger.error('Redis GET error:', error)
+      return null
     }
-    return this.client.set(key, value);
   }
 
-  async del(key: string): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.del(key);
+  /**
+   * Delete a key
+   */
+  async del(key: string): Promise<boolean> {
+    try {
+      const result = await this.client.del(key)
+      return result > 0
+    } catch (error) {
+      logger.error('Redis DEL error:', error)
+      return false
+    }
   }
 
-  async exists(key: string): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.exists(key);
+  /**
+   * Check if key exists
+   */
+  async exists(key: string): Promise<boolean> {
+    try {
+      const result = await this.client.exists(key)
+      return result === 1
+    } catch (error) {
+      logger.error('Redis EXISTS error:', error)
+      return false
+    }
   }
 
-  async expire(key: string, seconds: number): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.expire(key, seconds);
+  /**
+   * Set expiration time
+   */
+  async expire(key: string, seconds: number): Promise<boolean> {
+    try {
+      const result = await this.client.expire(key, seconds)
+      return result === 1
+    } catch (error) {
+      logger.error('Redis EXPIRE error:', error)
+      return false
+    }
   }
 
+  /**
+   * Get time to live
+   */
   async ttl(key: string): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.ttl(key);
+    try {
+      return await this.client.ttl(key)
+    } catch (error) {
+      logger.error('Redis TTL error:', error)
+      return -1
+    }
   }
 
-  // JSON operations
-  async getJSON<T>(key: string): Promise<T | null> {
-    const value = await this.get(key);
-    return value ? JSON.parse(value) : null;
+  // ==========================================
+  // JSON OPERATIONS (for complex data)
+  // ==========================================
+
+  /**
+   * Set JSON data
+   */
+  async setJSON(key: string, data: any, ttl?: number): Promise<boolean> {
+    try {
+      const jsonString = JSON.stringify(data)
+      if (ttl !== undefined) {
+        return await this.set(key, jsonString, { ttl })
+      }
+      return await this.set(key, jsonString)
+    } catch (error) {
+      logger.error('Redis setJSON error:', error)
+      return false
+    }
   }
 
-  async setJSON<T>(key: string, value: T, ttlSeconds?: number): Promise<'OK' | null> {
-    return this.set(key, JSON.stringify(value), ttlSeconds);
+  /**
+   * Get JSON data
+   */
+  async getJSON<T = any>(key: string): Promise<T | null> {
+    try {
+      const jsonString = await this.get(key)
+      if (!jsonString) return null
+      return JSON.parse(jsonString) as T
+    } catch (error) {
+      logger.error('Redis getJSON error:', error)
+      return null
+    }
   }
 
-  // Hash operations
-  async hget(key: string, field: string): Promise<string | null> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.hget(key, field);
+  // ==========================================
+  // HASH OPERATIONS
+  // ==========================================
+
+  /**
+   * Set hash field
+   */
+  async hSet(key: string, field: string, value: string): Promise<boolean> {
+    try {
+      const result = await this.client.hSet(key, field, value)
+      return result >= 0
+    } catch (error) {
+      logger.error('Redis HSET error:', error)
+      return false
+    }
   }
 
-  async hset(key: string, field: string, value: string): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.hset(key, field, value);
+  /**
+   * Get hash field
+   */
+  async hGet(key: string, field: string): Promise<string | null> {
+    try {
+      return await this.client.hGet(key, field)
+    } catch (error) {
+      logger.error('Redis HGET error:', error)
+      return null
+    }
   }
 
-  async hgetall(key: string): Promise<Record<string, string>> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.hgetall(key);
+  /**
+   * Get all hash fields
+   */
+  async hGetAll(key: string): Promise<Record<string, string> | null> {
+    try {
+      return await this.client.hGetAll(key)
+    } catch (error) {
+      logger.error('Redis HGETALL error:', error)
+      return null
+    }
   }
 
-  async hdel(key: string, ...fields: string[]): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.hdel(key, ...fields);
+  /**
+   * Delete hash field
+   */
+  async hDel(key: string, field: string): Promise<boolean> {
+    try {
+      const result = await this.client.hDel(key, field)
+      return result > 0
+    } catch (error) {
+      logger.error('Redis HDEL error:', error)
+      return false
+    }
   }
 
-  // List operations
-  async lpush(key: string, ...values: string[]): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.lpush(key, ...values);
+  // ==========================================
+  // SESSION MANAGEMENT
+  // ==========================================
+
+  /**
+   * Create user session
+   */
+  async createSession(userId: string, sessionData: SessionData, ttl: number = 3600): Promise<boolean> {
+    const sessionKey = `session:${userId}`
+    return await this.setJSON(sessionKey, sessionData, ttl)
   }
 
-  async rpush(key: string, ...values: string[]): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.rpush(key, ...values);
+  /**
+   * Get user session
+   */
+  async getSession(userId: string): Promise<SessionData | null> {
+    const sessionKey = `session:${userId}`
+    return await this.getJSON<SessionData>(sessionKey)
   }
 
-  async lpop(key: string): Promise<string | null> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.lpop(key);
-  }
-
-  async rpop(key: string): Promise<string | null> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.rpop(key);
-  }
-
-  async lrange(key: string, start: number, stop: number): Promise<string[]> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.lrange(key, start, stop);
-  }
-
-  // Set operations
-  async sadd(key: string, ...members: string[]): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.sadd(key, ...members);
-  }
-
-  async srem(key: string, ...members: string[]): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.srem(key, ...members);
-  }
-
-  async smembers(key: string): Promise<string[]> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.smembers(key);
-  }
-
-  async sismember(key: string, member: string): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    return this.client.sismember(key, member);
-  }
-
-  // Session management helpers
-  async setSession(sessionId: string, data: any, ttlSeconds: number = 3600): Promise<void> {
-    const key = `session:${sessionId}`;
-    await this.setJSON(key, data, ttlSeconds);
-  }
-
-  async getSession<T>(sessionId: string): Promise<T | null> {
-    const key = `session:${sessionId}`;
-    return this.getJSON<T>(key);
-  }
-
-  async deleteSession(sessionId: string): Promise<void> {
-    const key = `session:${sessionId}`;
-    await this.del(key);
-  }
-
-  // Rate limiting helpers
-  async incrementCounter(key: string, ttlSeconds: number = 60): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
+  /**
+   * Update session activity
+   */
+  async updateSessionActivity(userId: string): Promise<boolean> {
+    const sessionKey = `session:${userId}`
+    const session = await this.getSession(userId)
     
-    const multi = this.client.multi();
-    multi.incr(key);
-    multi.expire(key, ttlSeconds);
+    if (session) {
+      session.lastActivity = new Date().toISOString()
+      return await this.setJSON(sessionKey, session, 3600)
+    }
     
-    const results = await multi.exec();
-    return results ? results[0][1] as number : 0;
+    return false
   }
 
-  // Cache invalidation patterns
-  async deletePattern(pattern: string): Promise<number> {
-    if (!this.client) throw new Error('Redis not connected');
-    
-    const keys = await this.client.keys(pattern);
-    if (keys.length === 0) return 0;
-    
-    return this.client.del(...keys);
+  /**
+   * Destroy user session
+   */
+  async destroySession(userId: string): Promise<boolean> {
+    const sessionKey = `session:${userId}`
+    return await this.del(sessionKey)
+  }
+
+  // ==========================================
+  // RATE LIMITING
+  // ==========================================
+
+  /**
+   * Rate limiting check
+   */
+  async checkRateLimit(
+    identifier: string,
+    windowSizeInSeconds: number,
+    maxRequests: number
+  ): Promise<{ allowed: boolean; remaining: number; resetTime: number }> {
+    try {
+      const key = `rate_limit:${identifier}`
+      const now = Math.floor(Date.now() / 1000)
+      const windowStart = now - windowSizeInSeconds
+      
+      // Remove old entries
+      await this.client.zRemRangeByScore(key, 0, windowStart)
+      
+      // Count current requests
+      const currentRequests = await this.client.zCard(key)
+      
+      if (currentRequests >= maxRequests) {
+        return {
+          allowed: false,
+          remaining: 0,
+          resetTime: windowStart + windowSizeInSeconds,
+        }
+      }
+      
+      // Add current request
+      await this.client.zAdd(key, { score: now, value: `${now}-${Math.random()}` })
+      await this.client.expire(key, windowSizeInSeconds)
+      
+      return {
+        allowed: true,
+        remaining: maxRequests - currentRequests - 1,
+        resetTime: windowStart + windowSizeInSeconds,
+      }
+    } catch (error) {
+      logger.error('Rate limit check error:', error)
+      // Allow request on error
+      return { allowed: true, remaining: maxRequests - 1, resetTime: 0 }
+    }
+  }
+
+  // ==========================================
+  // CACHE MANAGEMENT
+  // ==========================================
+
+  /**
+   * Cache with automatic JSON serialization
+   */
+  async cache<T>(
+    key: string,
+    dataFetcher: () => Promise<T>,
+    ttl: number = 3600
+  ): Promise<T> {
+    try {
+      // Try to get from cache first
+      const cached = await this.getJSON<T>(key)
+      if (cached !== null) {
+        return cached
+      }
+
+      // Fetch fresh data
+      const data = await dataFetcher()
+      
+      // Cache the result
+      await this.setJSON(key, data, ttl)
+      
+      return data
+    } catch (error) {
+      logger.error('Cache operation error:', error)
+      // Fallback to direct data fetching
+      return await dataFetcher()
+    }
+  }
+
+  /**
+   * Invalidate cache pattern
+   */
+  async invalidatePattern(pattern: string): Promise<number> {
+    try {
+      const keys = await this.client.keys(pattern)
+      if (keys.length === 0) return 0
+      
+      return await this.client.del(keys)
+    } catch (error) {
+      logger.error('Cache invalidation error:', error)
+      return 0
+    }
+  }
+
+  // ==========================================
+  // UTILITY METHODS
+  // ==========================================
+
+  /**
+   * Get Redis info
+   */
+  async getInfo(): Promise<string> {
+    try {
+      return await this.client.info()
+    } catch (error) {
+      logger.error('Redis INFO error:', error)
+      return ''
+    }
+  }
+
+  /**
+   * Flush all data (use with caution!)
+   */
+  async flushAll(): Promise<boolean> {
+    try {
+      const result = await this.client.flushAll()
+      return result === 'OK'
+    } catch (error) {
+      logger.error('Redis FLUSHALL error:', error)
+      return false
+    }
   }
 }
+
+// Export singleton instance
+export const redisService = new RedisService()
 
 // Export singleton instance
 export const redis = new RedisService();

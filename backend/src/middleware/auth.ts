@@ -20,13 +20,12 @@ interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
     email: string;
-    username?: string | null;
-    firstName: string;
-    lastName: string;
+    firstName: string | null;
+    lastName: string | null;
     role: string;
-    permissions: string[];
     isActive: boolean;
-    isVerified: boolean;
+    maxDiscountAllowed: number;
+    canSellBelowMin: boolean;
   };
 }
 
@@ -72,7 +71,6 @@ export const authMiddleware = async (
       select: {
         id: true,
         email: true,
-        clerkId: true,
         firstName: true,
         lastName: true,
         role: true,
@@ -94,8 +92,14 @@ export const authMiddleware = async (
 
     // Attach user to request object
     req.user = {
-      ...user,
-      role: user.role as string
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+      maxDiscountAllowed: user.maxDiscountAllowed,
+      canSellBelowMin: user.canSellBelowMin
     };
 
     // Update last activity in session
@@ -114,8 +118,11 @@ export const authMiddleware = async (
         data: {
           userId: user.id,
           action: 'API_ACCESS',
-          resource: `${req.method} ${req.path}`,
-          details: {
+          entity: 'API',
+          entityId: req.path,
+          newValues: {
+            method: req.method,
+            path: req.path,
             ip: req.ip,
             userAgent: req.get('User-Agent')
           }
@@ -165,7 +172,6 @@ export const optionalAuthMiddleware = async (
       select: {
         id: true,
         email: true,
-        clerkId: true,
         firstName: true,
         lastName: true,
         role: true,
@@ -177,8 +183,14 @@ export const optionalAuthMiddleware = async (
 
     if (user && user.isActive) {
       req.user = {
-        ...user,
-        role: user.role as string
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isActive: user.isActive,
+        maxDiscountAllowed: user.maxDiscountAllowed,
+        canSellBelowMin: user.canSellBelowMin
       };
     }
 
@@ -215,23 +227,20 @@ export const authorize = (...allowedRoles: string[]) => {
   };
 };
 
-// Permission-based authorization middleware
-export const requirePermission = (...requiredPermissions: string[]) => {
+// Permission-based authorization middleware (simplified for string roles)
+export const requirePermission = (...requiredRoles: string[]) => {
   return (req: AuthenticatedRequest, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       throw new AppError('Authentication required', 401, 'AUTH_REQUIRED');
     }
 
-    const userPermissions = req.user.permissions || [];
-    const hasPermission = requiredPermissions.every(permission => 
-      userPermissions.includes(permission)
-    );
+    const hasPermission = requiredRoles.includes(req.user.role);
 
     if (!hasPermission) {
       logger.warn(`Permission denied for user ${req.user.id}`, {
         userId: req.user.id,
-        userPermissions,
-        requiredPermissions,
+        userRole: req.user.role,
+        requiredRoles,
         path: req.path,
         method: req.method
       });
@@ -244,10 +253,10 @@ export const requirePermission = (...requiredPermissions: string[]) => {
 };
 
 // Admin-only middleware
-export const adminOnly = authorize('SUPER_ADMIN', 'ADMIN');
+export const adminOnly = authorize('admin');
 
 // Manager and above middleware
-export const managerOrAbove = authorize('SUPER_ADMIN', 'ADMIN', 'MANAGER');
+export const managerOrAbove = authorize('admin', 'manager');
 
 // Staff and above middleware (everyone except guests)
 export const staffOrAbove = authorize('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'STAFF', 'CASHIER');
@@ -315,7 +324,7 @@ export const tokenUtils = {
       if (decoded && decoded.exp) {
         const ttl = decoded.exp - Math.floor(Date.now() / 1000);
         if (ttl > 0) {
-          await redis.set(`blacklist:token:${token}`, 'true', ttl);
+          await redis.set(`blacklist:token:${token}`, 'true', { ttl });
         }
       }
     } catch (error) {

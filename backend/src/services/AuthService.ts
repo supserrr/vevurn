@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 export class AuthService {
   private static instance: AuthService;
