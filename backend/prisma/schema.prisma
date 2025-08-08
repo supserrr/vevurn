@@ -681,3 +681,24 @@ enum ApprovalStatus {
   REJECTED
   EXPIRED
 }
+
+// =============================================
+// MOBILE MONEY INTEGRATION
+// =============================================
+
+model MomoTransaction {
+  id                      String   @id @default(cuid())
+  referenceId            String   @unique
+  externalId             String   // Sale ID or order ID
+  phoneNumber            String
+  amount                 Float
+  currency               String   @default("RWF")
+  status                 String   @default("PENDING") // PENDING, SUCCESSFUL, FAILED
+  financialTransactionId String?  // MTN's transaction ID
+  requestData            Json?    // Original request payload
+  responseData           Json?    // MTN's response
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  @@map("momo_transactions")
+}

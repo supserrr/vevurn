@@ -1,11 +1,11 @@
 /**
- * Backend Middleware Export File
+ * Backend Middleware Export File - Better Auth Only
  * 
  * This file provides organized exports for all middleware functionality
- * in the Vevurn POS backend system.
+ * in the Vevurn POS backend system using Better Auth exclusively.
  */
 
-// Better Auth middleware (recommended for new implementations)
+// Better Auth middleware (primary authentication system)
 export {
   attachBetterAuthSession,
   requireBetterAuth,
@@ -14,22 +14,12 @@ export {
   getCurrentSession,
 } from './betterAuth';
 
-// Legacy auth middleware (for compatibility)
-export { authMiddleware } from './auth';
-
-// Enhanced auth middleware
-export { enhancedAuthMiddleware } from './enhancedAuthMiddleware';
-
-// Error handling
+// Core middleware
 export { errorHandler } from './errorHandler';
-export { enhancedErrorHandler } from './enhancedErrorHandler';
+export { rateLimiter } from './rateLimiter';
+export { requestLogger } from './requestLogger';
+export { roleMiddleware } from './roleMiddleware';
 export { setupErrorTracking } from './errorTracking';
 
 // Rate limiting
-export { rateLimiter } from './rateLimiter';
-
-// Request logging
-export { requestLogger } from './requestLogger';
-
-// Role-based middleware
-export { roleMiddleware } from './roleMiddleware';
+export { default as rateLimitHandler } from './rate-limit-handler';
