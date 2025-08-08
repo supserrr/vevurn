@@ -1,0 +1,196 @@
+/**
+ * POS-specific React hooks for Better Auth
+ * 
+ * Provides type-safe authentication hooks optimized for POS operations
+ */
+
+'use client'
+
+import { useSession } from './auth-client'
+import type { POSUser, UserRole, Session } from './auth-client'
+
+// Enhanced session hook with POS-specific functionality
+export function usePOSAuth() {
+  const session = useSession()
+  
+  const user = session.data?.user as POSUser | undefined
+  const sessionData = session.data?.session
+  
+  // Helper functions
+  const canApplyDiscount = (discountPercent: number): boolean => {
+    return user?.isActive === true && (user?.maxDiscountAllowed || 0) >= discountPercent
+  }
+  
+  const canSellBelowMinimum = (): boolean => {
+    return user?.isActive === true && user?.canSellBelowMin === true
+  }
+  
+  const hasRole = (role: UserRole): boolean => {
+    return user?.role === role && user?.isActive === true
+  }
+  
+  const hasMinimumRole = (minRole: UserRole): boolean => {
+    if (!user?.isActive) return false
+    
+    const roleHierarchy: Record<UserRole, number> = {
+      user: 0,
+      cashier: 1,
+      manager: 2,
+      admin: 3
+    }
+    
+    const userRoleLevel = roleHierarchy[user.role] ?? 0
+    const minRoleLevel = roleHierarchy[minRole] ?? 0
+    
+    return userRoleLevel >= minRoleLevel
+  }
+  
+  const isAdmin = (): boolean => hasRole('admin')
+  const isManager = (): boolean => hasMinimumRole('manager')
+  const isCashier = (): boolean => hasMinimumRole('cashier')
+  
+  // Employee information
+  const getDisplayName = (): string => {
+    if (!user) return 'Unknown User'
+    return user.name || `${user.firstName} ${user.lastName}`
+  }
+  
+  const getEmployeeId = (): string | null => {
+    return user?.employeeId || null
+  }
+  
+  return {
+    // Session state
+    session: sessionData,
+    user,
+    isLoading: session.isPending,
+    isError: session.error !== null,
+    error: session.error,
+    
+    // Authentication state
+    isAuthenticated: !!user,
+    isActive: user?.isActive === true,
+    
+    // Permission checks
+    canApplyDiscount,
+    canSellBelowMinimum,
+    hasRole,
+    hasMinimumRole,
+    isAdmin,
+    isManager,
+    isCashier,
+    
+    // User information
+    getDisplayName,
+    getEmployeeId,
+    role: user?.role || 'user',
+    permissions: {
+      maxDiscountAllowed: user?.maxDiscountAllowed || 0,
+      canSellBelowMin: user?.canSellBelowMin || false
+    }
+  }
+}
+
+// Hook for employee-specific operations
+export function useEmployeeAuth() {
+  const posAuth = usePOSAuth()
+  
+  return {
+    ...posAuth,
+    // Employee-specific checks
+    isEmployee: (): boolean => {
+      return !!(posAuth.user?.employeeId && posAuth.user?.isActive)
+    },
+    
+    // Clock in/out functionality helpers
+    canClockIn: (): boolean => {
+      return posAuth.isAuthenticated && posAuth.isActive && !!posAuth.user?.employeeId
+    },
+    
+    // Shift management helpers
+    getShiftInfo: () => ({
+      employeeId: posAuth.getEmployeeId(),
+      displayName: posAuth.getDisplayName(),
+      role: posAuth.role,
+      sessionId: posAuth.session?.id,
+      loginTime: posAuth.session?.createdAt
+    })
+  }
+}
+
+// Hook for admin operations
+export function useAdminAuth() {
+  const posAuth = usePOSAuth()
+  
+  return {
+    ...posAuth,
+    
+    // Admin-only checks
+    canManageUsers: (): boolean => {
+      return posAuth.isAdmin()
+    },
+    
+    canManageRoles: (): boolean => {
+      return posAuth.isAdmin()
+    },
+    
+    canViewReports: (): boolean => {
+      return posAuth.hasMinimumRole('manager')
+    },
+    
+    canModifyPrices: (): boolean => {
+      return posAuth.hasMinimumRole('manager')
+    },
+    
+    canApproveDiscounts: (): boolean => {
+      return posAuth.hasMinimumRole('manager')
+    },
+    
+    // System administration
+    canAccessSystemSettings: (): boolean => {
+      return posAuth.isAdmin()
+    },
+    
+    canManageIntegrations: (): boolean => {
+      return posAuth.isAdmin()
+    }
+  }
+}
+
+// Permission constants for easy reference
+export const PERMISSIONS = {
+  // Basic POS operations
+  PROCESS_SALE: 'cashier',
+  HANDLE_RETURNS: 'cashier',
+  MANAGE_INVENTORY: 'manager',
+  
+  // Financial operations
+  APPLY_DISCOUNT: 'cashier', // But limited by user.maxDiscountAllowed
+  SELL_BELOW_MIN: 'manager', // Or user.canSellBelowMin
+  PROCESS_REFUNDS: 'manager',
+  VIEW_REPORTS: 'manager',
+  
+  // Administrative
+  MANAGE_USERS: 'admin',
+  SYSTEM_SETTINGS: 'admin',
+  MANAGE_INTEGRATIONS: 'admin'
+} as const
+
+export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS]
+
+// Helper function to check permissions
+export function checkPermission(user: POSUser | undefined, permission: Permission): boolean {
+  if (!user?.isActive) return false
+  
+  const roleHierarchy: Record<UserRole, number> = {
+    user: 0,
+    cashier: 1,
+    manager: 2,
+    admin: 3
+  }
+  
+  const requiredLevel = roleHierarchy[permission] ?? 0
+  const userLevel = roleHierarchy[user.role] ?? 0
+  
+  return userLevel >= requiredLevel
+}

@@ -34,8 +34,9 @@ import enhancedAuthRoutes from './routes/enhancedAuth';
 import databaseMonitoringRoutes from './routes/database-monitoring';
 import errorTrackingRoutes from './routes/error-tracking';
 
-// Import Better Auth
-import { auth } from './lib/auth';
+// Import Better Auth with proper Express integration
+import { auth } from './lib/index.js';
+import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
 
 // Import services
 import { DatabaseService } from './services/DatabaseService';
@@ -80,7 +81,11 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key']
 }));
 
-// Body parsing middleware
+// Mount Better Auth handler BEFORE other body parsing middleware
+// This is crucial - Better Auth must be mounted before express.json()
+app.all("/api/auth/*", toNodeHandler(auth));
+
+// Body parsing middleware - AFTER Better Auth handler
 app.use(compression() as unknown as express.RequestHandler);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -134,13 +139,99 @@ app.get('/health', async (_req, res) => {
   }
 });
 
-// API routes
-app.use('/api/auth', authRoutes);
-// Better Auth routes
-app.all('/api/better-auth/*', async (req, _res) => {
-  const response = await auth.handler(req as any);
-  return response;
+// Better Auth session endpoint - demonstrates proper Express integration
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+    
+    if (!session) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    
+    return res.json(session);
+  } catch (error) {
+    logger.error('Error getting session:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
+
+// Better Auth health check endpoint
+app.get('/api/auth/ok', (_req, res) => {
+  return res.json({ status: 'ok', message: 'Better Auth is running' });
+});
+
+// Better Auth middleware demonstration routes
+import { attachBetterAuthSession, requireBetterAuth, requireRole, getCurrentUser } from './middleware/betterAuth.js';
+
+// Attach session middleware to demonstration routes
+app.use('/api/better-auth-demo', attachBetterAuthSession);
+
+// Public route that shows user info if authenticated
+app.get('/api/better-auth-demo/status', (req, res) => {
+  const user = getCurrentUser(req);
+  res.json({
+    authenticated: !!user,
+    user: user ? {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      isActive: user.isActive
+    } : null,
+    message: user ? `Welcome ${user.name}!` : 'Not authenticated'
+  });
+});
+
+// Protected route requiring authentication
+app.get('/api/better-auth-demo/protected', requireBetterAuth, (req, res) => {
+  const user = getCurrentUser(req);
+  res.json({
+    message: 'This is a protected route - authentication required',
+    user: {
+      id: user?.id,
+      email: user?.email,
+      name: user?.name,
+      role: user?.role
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Admin-only protected route
+app.get('/api/better-auth-demo/admin', requireRole('admin'), (req, res) => {
+  const user = getCurrentUser(req);
+  res.json({
+    message: 'Admin access granted - you have admin privileges',
+    user: {
+      id: user?.id,
+      email: user?.email,
+      name: user?.name,
+      role: user?.role
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Multi-role protected route (cashier, manager, or admin)
+app.get('/api/better-auth-demo/staff', requireRole(['cashier', 'manager', 'admin']), (req, res) => {
+  const user = getCurrentUser(req);
+  res.json({
+    message: 'Staff access granted - you have staff privileges',
+    user: {
+      id: user?.id,
+      email: user?.email,
+      name: user?.name,
+      role: user?.role
+    },
+    allowedRoles: ['cashier', 'manager', 'admin'],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// API routes
+app.use('/api/legacy-auth', authRoutes);
 // Enhanced Authentication routes (enterprise security features)
 app.use('/api/enhanced-auth', enhancedAuthRoutes);
 // Database monitoring routes (admin only)
@@ -203,14 +294,6 @@ process.on('SIGINT', async () => {
       await databasePoolService.disconnect();
       await redisService.disconnect();
       await ErrorTrackingService.getInstance().cleanup();
-      logger.info('Server closed successfully');
-      process.exit(0);
-    } catch (error) {
-      logger.error('Error during shutdown:', error);
-      process.exit(1);
-    }
-  });
-});
       logger.info('Server closed successfully');
       process.exit(0);
     } catch (error) {

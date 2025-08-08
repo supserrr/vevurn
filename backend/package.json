@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Vevurn POS Backend API",
   "main": "dist/index.js",
+  "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:demo": "tsx watch src/demo-server.ts",
@@ -10,6 +11,10 @@
     "start": "npm run migrate:deploy && node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:email": "tsx scripts/test-email.ts",
+    "test:oauth": "tsx scripts/test-oauth.ts",
+    "test:rate-limit": "tsx scripts/test-rate-limit.ts",
+    "test:session": "tsx test-session-management.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "db:generate": "prisma generate",
