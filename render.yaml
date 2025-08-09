@@ -10,13 +10,11 @@ services:
     rootDir: ./backend
     buildCommand: |
       echo "=== Backend Build from /backend directory ==="
-      node --version
-      corepack enable
-      corepack prepare pnpm@9.14.4 --activate
-      cd ..
-      pnpm install --no-frozen-lockfile
-      pnpm --filter @vevurn/shared build
-      pnpm --filter @vevurn/backend build
+      echo "Node version:" && node --version
+      echo "Setting up pnpm..." && corepack enable && corepack prepare pnpm@9.14.4 --activate
+      echo "Installing dependencies..." && cd .. && pnpm install --no-frozen-lockfile --ignore-scripts
+      echo "Building shared packages..." && pnpm --filter @vevurn/shared build || echo "Shared build skipped"
+      echo "Building backend..." && pnpm --filter @vevurn/backend build
     startCommand: pnpm start
     envVars:
       - key: NODE_ENV

@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:demo": "tsx watch src/demo-server.ts",
-    "build": "tsc",
+    "build": "echo 'Building backend...' && tsc",
     "start": "pnpm run migrate:deploy && node dist/server.js",
     "test": "jest",
     "test:watch": "jest --watch",

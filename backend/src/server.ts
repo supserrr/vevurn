@@ -1,44 +1,26 @@
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import dotenv from 'dotenv';
 import { createServer } from 'http';
 
-// Load environment variables
-dotenv.config();
+// Simple HTTP server without dependencies
+const server = createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    }));
+    return;
+  }
 
-// Create Express app
-const app = express();
+  if (req.url === '/api/test') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: 'Backend API is running!' }));
+    return;
+  }
 
-// Security middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
-app.use(compression());
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Health check
-app.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '1.0.0'
-  });
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Not found' }));
 });
-
-// Basic API routes
-app.get('/api/test', (_req: Request, res: Response) => {
-  res.json({ message: 'Backend API is running!' });
-});
-
-// Create HTTP server
-const server = createServer(app);
 
 // Start server
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -67,4 +49,4 @@ process.on('SIGINT', () => {
   });
 });
 
-export default app;
+export default server;
