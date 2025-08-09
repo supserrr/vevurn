@@ -19,7 +19,16 @@ rm -f yarn.lock
 
 # Install dependencies
 echo "Installing dependencies..."
-pnpm install --frozen-lockfile
+# Check if we're in backend directory already (for rootDir configuration)
+if [[ $(basename $(pwd)) == "backend" ]]; then
+  echo "Running from backend directory"
+  cd ..
+  pnpm install --frozen-lockfile
+  cd backend
+else
+  echo "Running from root directory"
+  pnpm install --frozen-lockfile
+fi
 
 # Build shared package first, then backend
 echo "Building backend..."
@@ -27,6 +36,6 @@ pnpm --filter @vevurn/shared build
 pnpm --filter @vevurn/backend build
 
 echo "Backend build complete. Checking dist folder..."
-ls -la backend/dist/ || echo "No backend/dist found"
+ls -la dist/ || ls -la backend/dist/ || echo "No dist folder found"
 
 echo "✅ Backend build completed successfully!"
