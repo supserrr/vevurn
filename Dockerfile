@@ -2,35 +2,39 @@
 FROM node:18-alpine AS base
 
 # Install dependencies only when needed
-FROM base AS backend-deps
+FROM base AS deps
 RUN apk add --no-cache libc6-compat postgresql-client
-WORKDIR /app/backend
+WORKDIR /app
 
-# Copy package files
-COPY backend/package.json backend/pnpm-lock.yaml* ./
-COPY pnpm-workspace.yaml /app/
-COPY package.json /app/
+# Copy workspace configuration files
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY backend/package.json ./backend/
+COPY backend/shared/package.json ./backend/shared/
 
 # Enable corepack and install dependencies
 RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
 RUN pnpm install --frozen-lockfile
 
 # Build stage
-FROM base AS backend-builder
+FROM base AS builder
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
 
-# Copy workspace files
-COPY pnpm-workspace.yaml package.json ./
+# Copy workspace files and node_modules
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/backend/node_modules ./backend/node_modules
+COPY --from=deps /app/backend/shared/node_modules ./backend/shared/node_modules
+
+# Copy source code
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY backend/ ./backend/
-COPY --from=backend-deps /app/backend/node_modules ./backend/node_modules
 
 # Build the application
-WORKDIR /app/backend
-RUN pnpm build
+RUN pnpm --filter @vevurn/shared build
+RUN pnpm --filter @vevurn/backend build
 
 # Production stage
-FROM base AS backend-runner
+FROM base AS runner
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
 
@@ -38,11 +42,14 @@ RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
 
+# Copy workspace configuration
+COPY --chown=nodejs:nodejs pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+
 # Copy built application
-COPY --from=backend-builder --chown=nodejs:nodejs /app/backend/dist ./dist
-COPY --from=backend-builder --chown=nodejs:nodejs /app/backend/package.json ./
-COPY --from=backend-builder --chown=nodejs:nodejs /app/backend/prisma ./prisma
-COPY --from=backend-deps --chown=nodejs:nodejs /app/backend/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/backend/dist ./backend/dist
+COPY --from=builder --chown=nodejs:nodejs /app/backend/package.json ./backend/
+COPY --from=builder --chown=nodejs:nodejs /app/backend/prisma ./backend/prisma
+COPY --from=deps --chown=nodejs:nodejs /app/backend/node_modules ./backend/node_modules
 
 USER nodejs
 
@@ -51,4 +58,5 @@ EXPOSE 3001
 ENV NODE_ENV=production
 ENV PORT=3001
 
+WORKDIR /app/backend
 CMD ["pnpm", "start"]

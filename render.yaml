@@ -4,9 +4,9 @@ services:
   - type: web
     name: vevurn-backend
     runtime: node
-    rootDir: ./backend
-    buildCommand: ../build-backend.sh
-    startCommand: corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
+    rootDir: ./
+    buildCommand: ./build-backend.sh
+    startCommand: cd backend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
     plan: starter # Change to 'standard' for production
     envVars:
       - key: NODE_ENV
@@ -48,10 +48,10 @@ services:
   - type: web
     name: vevurn-frontend
     runtime: node
-    rootDir: ./frontend
+    rootDir: ./
     plan: starter # Change to 'standard' for production
-    buildCommand: ../build-frontend.sh
-    startCommand: corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
+    buildCommand: ./build-frontend.sh
+    startCommand: cd frontend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
     envVars:
       - key: NODE_ENV
         value: production
