@@ -2,10 +2,20 @@
 services:
   - type: web
     name: vevurn-backend
-    runtime: node
+    env: node
     buildCommand: ./build-backend.sh
     startCommand: cd backend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
     plan: starter
+    region: oregon
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_TYPE
+        value: backend
+      - key: PORT
+        value: 3001
+      - key: SKIP_DOCKER
+        value: "true"
     envVars:
       - key: NODE_ENV
         value: production
