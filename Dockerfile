@@ -1,23 +1,15 @@
-# Multi-stage Dockerfile for Render deployment
-FROM node:18-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
-RUN apk add --no-cache libc6-compat postgresql-client
-WORKDIR /app
-
-# Copy workspace configuration files
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-COPY backend/package.json ./backend/
-COPY backend/shared/package.json ./backend/shared/
-
-# Enable corepack and install dependencies
-RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
-RUN pnpm install --frozen-lockfile
-
-# Build stage
-FROM base AS builder
-WORKDIR /app
+# THIS PROJECT REQUIRES NODE.JS RUNTIME - NOT DOCKER!
+# Please configure Render with: env: node
+FROM node:18-alpine
+RUN echo "========================================" && \
+    echo "ERROR: Docker build detected!" && \
+    echo "This project must use Node.js runtime." && \
+    echo "Please configure Render with:" && \
+    echo "  env: node" && \
+    echo "  runtime: node" && \
+    echo "Remove Dockerfile and use Node.js runtime" && \
+    echo "========================================" && \
+    exit 1
 RUN corepack enable && corepack prepare pnpm@9.14.4 --activate
 
 # Copy workspace files and node_modules

@@ -1,8 +1,9 @@
-# render.yaml - Render Blueprint Configuration - NODE.JS ONLY
+# render.yaml - FORCE NODE.JS RUNTIME - NO DOCKER ALLOWED
 services:
-  # Backend API Service
+  # Backend API Service - EXPLICIT NODE.JS
   - type: web
     name: vevurn-backend
+    runtime: node
     env: node
     region: oregon
     rootDir: ./

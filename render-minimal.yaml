@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: vevurn-backend
+    runtime: node
+    buildCommand: |
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate
+      pnpm install --no-frozen-lockfile
+      pnpm --filter @vevurn/backend build
+    startCommand: |
+      cd backend
+      pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001

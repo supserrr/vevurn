@@ -1,0 +1,48 @@
+# EXPLICIT NODE.JS ONLY - NO DOCKER
+services:
+  - type: web
+    name: vevurn-backend
+    runtime: node
+    env: node  
+    plan: starter
+    region: oregon
+    dockerfilePath: null
+    dockerContext: false
+    buildCommand: |
+      echo "=== FORCE NODE.JS BUILD - ABSOLUTELY NO DOCKER ==="
+      echo "Node version: $(node --version)"
+      echo "NPM version: $(npm --version)" 
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate
+      echo "PNPM version: $(pnpm --version)"
+      echo "Installing dependencies..."
+      pnpm install --no-frozen-lockfile
+      echo "Building shared..."
+      pnpm --filter @vevurn/shared build || echo "No shared package"
+      echo "Building backend..."
+      pnpm --filter @vevurn/backend build
+      echo "BUILD COMPLETED"
+    startCommand: |
+      echo "=== STARTING NODE.JS SERVICE ==="
+      cd backend
+      pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_TYPE
+        value: backend
+      - key: PORT
+        value: 3001
+      - key: SKIP_DOCKER
+        value: "true"
+      - key: DISABLE_DOCKER
+        value: "true"
+      - key: FORCE_NODE_RUNTIME
+        value: "true"
+    healthCheckPath: /health
+
+databases:
+  - name: vevurn-postgres
+    plan: starter
+    databaseName: vevurn_pos
+    user: vevurn_user
