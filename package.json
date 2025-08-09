@@ -7,27 +7,27 @@
     "node": ">=18.0.0"
   },
   "workspaces": [
-    "shared",
+    "backend/shared",
     "backend", 
     "frontend"
   ],
   "scripts": {
     "// Development": "# Development commands for running services",
     "dev": "turbo run dev --parallel",
-    "backend:dev": "pnpm --filter backend dev",
+    "backend:dev": "pnpm --filter @vevurn/backend dev",
     "frontend:dev": "pnpm --filter frontend dev",
 
     "// Building": "# Build commands for all packages",
     "build": "turbo run build",
-    "backend:build": "pnpm --filter shared build && pnpm --filter backend build",
-    "frontend:build": "pnpm --filter shared build && pnpm --filter frontend build",
+    "backend:build": "pnpm --filter @vevurn/shared build && pnpm --filter @vevurn/backend build",
+    "frontend:build": "pnpm --filter @vevurn/shared build && pnpm --filter frontend build",
 
     "// Testing": "# Testing commands for all packages",
     "test": "turbo run test",
     "test:unit": "turbo run test:unit",
     "test:integration": "turbo run test:integration",
     "test:e2e": "turbo run test:e2e --concurrency=1",
-    "backend:test": "pnpm --filter backend test",
+    "backend:test": "pnpm --filter @vevurn/backend test",
     "frontend:test": "pnpm --filter frontend test",
 
     "// Database": "# Database management commands",
@@ -56,9 +56,9 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "clean": "turbo run clean && rm -rf node_modules",
     "reset": "pnpm clean && pnpm install",
-    "shared:build": "pnpm --filter shared build",
-    "shared:test": "pnpm --filter shared test",
-    "backend:start": "pnpm --filter backend start",
+    "shared:build": "pnpm --filter @vevurn/shared build",
+    "shared:test": "pnpm --filter @vevurn/shared test",
+    "backend:start": "pnpm --filter @vevurn/backend start",
     "frontend:start": "pnpm --filter frontend start",
     "security:audit": "pnpm audit --audit-level high",
     "security:scan": "bash scripts/utilities/security-scan.sh",

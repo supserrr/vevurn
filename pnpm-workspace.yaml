@@ -1,7 +1,5 @@
 # PNPM Workspace Configuration for Vevurn POS System
 packages:
-  - 'shared'
+  - 'backend/shared'
   - 'backend' 
   - 'frontend'
-  - 'tools/*'
-  - 'infrastructure/*'
