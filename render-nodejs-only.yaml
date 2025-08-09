@@ -1,0 +1,66 @@
+# RENDER DEPLOYMENT - ABSOLUTE NODE.JS ONLY
+# This file completely avoids any Docker detection
+
+services:
+  - type: web
+    name: vevurn-backend-nodejs
+    runtime: node
+    env: node
+    plan: starter
+    rootDir: backend
+    buildCommand: |
+      echo "========================================="
+      echo "BACKEND BUILD - NODE.JS RUNTIME ONLY"
+      echo "========================================="
+      echo "Node version: $(node --version)"
+      echo "NPM version: $(npm --version)"
+      echo "Current directory: $(pwd)"
+      echo "Listing files: $(ls -la)"
+      echo ""
+      echo "Setting up PNPM..."
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate
+      echo "PNPM version: $(pnpm --version)"
+      echo ""
+      echo "Going to workspace root..."
+      cd ..
+      echo "Current directory: $(pwd)"
+      echo "Installing dependencies..."
+      pnpm install --no-frozen-lockfile --prefer-offline
+      echo ""
+      echo "Building shared package..."
+      pnpm --filter @vevurn/shared build || echo "No shared package found, continuing..."
+      echo ""
+      echo "Building backend..."
+      pnpm --filter @vevurn/backend build
+      echo ""
+      echo "========================================="
+      echo "BUILD COMPLETED SUCCESSFULLY"
+      echo "========================================="
+    startCommand: |
+      echo "========================================="
+      echo "STARTING BACKEND SERVICE"
+      echo "========================================="
+      echo "Current directory: $(pwd)"
+      echo "PNPM version: $(pnpm --version || echo 'Setting up PNPM...')"
+      corepack enable || echo "Corepack already enabled"
+      corepack prepare pnpm@9.14.4 --activate || echo "PNPM already activated"
+      echo "Starting application..."
+      pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: FORCE_NODE_JS
+        value: "true"
+      - key: NO_DOCKER
+        value: "true"
+    healthCheckPath: /health
+
+# Separate database configuration
+databases:
+  - name: vevurn-postgres
+    plan: starter
+    databaseName: vevurn_pos
+    user: vevurn_user
