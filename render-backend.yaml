@@ -3,10 +3,9 @@ services:
   - type: web
     name: vevurn-backend
     runtime: node
-    plan: starter
     buildCommand: ./build-backend.sh
     startCommand: cd backend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
-    rootDir: ./
+    plan: starter
     envVars:
       - key: NODE_ENV
         value: production
