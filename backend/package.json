@@ -9,7 +9,7 @@
     "dev": "tsx watch src/index.ts",
     "dev:demo": "tsx watch src/demo-server.ts",
     "build": "tsc",
-    "start": "pnpm run migrate:deploy && node dist/index.js",
+    "start": "pnpm run migrate:deploy && node dist/server.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:email": "tsx scripts/test-email.ts",

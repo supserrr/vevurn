@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "lib": ["ES2020"],
+    "lib": ["ES2020", "DOM"],
     "module": "ESNext", 
     "moduleResolution": "node",
     "esModuleInterop": true,
@@ -21,19 +21,23 @@
     "declaration": true,
     "sourceMap": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "types": ["node"]
   },
   "include": [
-    "src/**/*",
-    "prisma/**/*"
+    "src/server.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
     "**/*.test.ts",
     "**/*.spec.ts",
+    "**/*.example.ts",
     "scripts/**/*",
     "archived-scripts/**/*",
-    "test-session-management.ts"
+    "test-session-management.ts",
+    "src/demo-server.ts",
+    "src/index.cleaned.ts",
+    "src/examples/**/*"
   ]
 }
