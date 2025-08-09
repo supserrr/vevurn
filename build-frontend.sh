@@ -23,7 +23,7 @@ pnpm install --frozen-lockfile
 
 # Build shared package first, then frontend
 echo "Building frontend..."
-pnpm run shared:build
+pnpm --filter @vevurn/shared build
 pnpm --filter frontend build
 
 echo "Frontend build complete. Checking .next folder..."

@@ -23,7 +23,7 @@ pnpm install --frozen-lockfile
 
 # Build shared package first, then backend
 echo "Building backend..."
-pnpm run shared:build
+pnpm --filter @vevurn/shared build
 pnpm --filter @vevurn/backend build
 
 echo "Backend build complete. Checking dist folder..."

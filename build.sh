@@ -27,13 +27,13 @@ pnpm install --frozen-lockfile
 echo "Building application..."
 if [[ "${SERVICE_TYPE:-}" == "backend" ]] || [[ "${RENDER_SERVICE_NAME:-}" == *"backend"* ]]; then
     echo "Building backend service..."
-    pnpm run shared:build
+    pnpm --filter @vevurn/shared build
     pnpm --filter @vevurn/backend build
     echo "Backend build complete. Checking dist folder..."
     ls -la backend/dist/ || echo "No backend/dist found"
 elif [[ "${SERVICE_TYPE:-}" == "frontend" ]] || [[ "${RENDER_SERVICE_NAME:-}" == *"frontend"* ]]; then
     echo "Building frontend service..."
-    pnpm run shared:build
+    pnpm --filter @vevurn/shared build
     pnpm --filter frontend build
     echo "Frontend build complete. Checking .next folder..."
     ls -la frontend/.next/ || echo "No frontend/.next found"
