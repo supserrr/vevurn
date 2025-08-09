@@ -23,11 +23,11 @@ echo "Installing dependencies..."
 if [[ $(basename $(pwd)) == "backend" ]]; then
   echo "Running from backend directory"
   cd ..
-  pnpm install --frozen-lockfile
+  pnpm install --no-frozen-lockfile
   cd backend
 else
   echo "Running from root directory"
-  pnpm install --frozen-lockfile
+  pnpm install --no-frozen-lockfile
 fi
 
 # Generate Prisma client first

@@ -1,0 +1,26 @@
+{
+  "services": [
+    {
+      "type": "web",
+      "name": "vevurn-backend",
+      "env": "node",
+      "plan": "starter",
+      "buildCommand": "pnpm run build:render",
+      "startCommand": "cd backend && pnpm start",
+      "envVars": [
+        {
+          "key": "NODE_ENV",
+          "value": "production"
+        },
+        {
+          "key": "SERVICE_TYPE", 
+          "value": "backend"
+        },
+        {
+          "key": "PORT",
+          "value": "3001"
+        }
+      ]
+    }
+  ]
+}

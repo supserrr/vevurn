@@ -1,14 +1,18 @@
-# render.yaml - Render Blueprint Configuration
+# render.yaml - Render Blueprint Configuration - NODE.JS ONLY
 services:
   # Backend API Service
   - type: web
     name: vevurn-backend
     env: node
+    region: oregon
     rootDir: ./
-    buildCommand: ./build-backend.sh
-    startCommand: cd backend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
-    plan: starter # Change to 'standard' for production
-    dockerfilePath: ""  # Explicitly disable Docker
+    buildCommand: pnpm run build:render
+    startCommand: |
+      cd backend
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate
+      pnpm start
+    plan: starter
     envVars:
       - key: NODE_ENV
         value: production
@@ -49,11 +53,15 @@ services:
   - type: web
     name: vevurn-frontend
     env: node
+    region: oregon
     rootDir: ./
-    plan: starter # Change to 'standard' for production
-    buildCommand: ./build-frontend.sh
-    startCommand: cd frontend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
-    dockerfilePath: ""  # Explicitly disable Docker
+    plan: starter
+    buildCommand: pnpm run frontend:build
+    startCommand: |
+      cd frontend
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate
+      pnpm start
     envVars:
       - key: NODE_ENV
         value: production
