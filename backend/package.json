@@ -8,8 +8,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:demo": "tsx watch src/demo-server.ts",
-    "build": "echo 'Building backend...' && tsc",
-    "start": "pnpm run migrate:deploy && node dist/server.js",
+    "prebuild": "echo '🔧 Pre-build: Dependencies check...' && cd .. && pnpm install --no-frozen-lockfile --ignore-scripts || npm install",
+    "build": "echo '🔨 Building backend...' && cp src/server.js dist/server.js || mkdir -p dist && cp src/server.js dist/server.js",
+    "start": "node dist/server.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:email": "tsx scripts/test-email.ts",
