@@ -1,10 +1,9 @@
-# render.yaml - Render Blueprint Configuration
+# Backend-only Render Configuration
 services:
-  # Backend API Service
   - type: web
     name: vevurn-backend
     runtime: node
-    plan: starter # Change to 'standard' for production
+    plan: starter
     buildCommand: ./build-backend.sh
     startCommand: cd backend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
     rootDir: ./
@@ -43,42 +42,15 @@ services:
       - key: AWS_S3_BUCKET
         sync: false
     healthCheckPath: /health
-    
-  # Frontend Next.js Service  
-  - type: web
-    name: vevurn-frontend
-    runtime: node
-    plan: starter # Change to 'standard' for production
-    buildCommand: ./build-frontend.sh
-    startCommand: cd frontend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
-    rootDir: ./
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: SERVICE_TYPE
-        value: frontend
-      - key: PORT
-        value: 3000
-      - key: NEXT_PUBLIC_API_URL
-        value: https://vevurn-backend.onrender.com
-      - key: BETTER_AUTH_URL
-        value: https://vevurn-backend.onrender.com
-      - key: BETTER_AUTH_SECRET
-        fromService:
-          type: web
-          name: vevurn-backend
-          envVarKey: BETTER_AUTH_SECRET
 
-# Database Configuration
 databases:
   - name: vevurn-postgres
-    plan: starter # Change to 'standard' for production
+    plan: starter
     databaseName: vevurn_pos
     user: vevurn_user
 
-# Redis Configuration  
 services:
   - type: redis
     name: vevurn-redis
-    plan: starter # Change to 'standard' for production
+    plan: starter
     maxmemoryPolicy: allkeys-lru

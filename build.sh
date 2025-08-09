@@ -6,7 +6,8 @@ set -e
 echo "=== Vevurn POS Build Script ==="
 echo "Node: $(node --version)"
 echo "Working Directory: $(pwd)"
-echo "Service: ${RENDER_SERVICE_NAME:-unknown}"
+echo "Service Type: ${SERVICE_TYPE:-auto-detect}"
+echo "Render Service: ${RENDER_SERVICE_NAME:-unknown}"
 
 # Setup pnpm via corepack
 echo "Setting up pnpm..."
@@ -22,16 +23,18 @@ rm -f yarn.lock
 echo "Installing dependencies..."
 pnpm install --frozen-lockfile
 
-# Build based on service
+# Build based on service type or auto-detection
 echo "Building application..."
-if [[ "${RENDER_SERVICE_NAME:-}" == *"backend"* ]]; then
-    echo "Building backend..."
-    pnpm run backend:build
+if [[ "${SERVICE_TYPE:-}" == "backend" ]] || [[ "${RENDER_SERVICE_NAME:-}" == *"backend"* ]]; then
+    echo "Building backend service..."
+    pnpm run shared:build
+    pnpm --filter @vevurn/backend build
     echo "Backend build complete. Checking dist folder..."
     ls -la backend/dist/ || echo "No backend/dist found"
-elif [[ "${RENDER_SERVICE_NAME:-}" == *"frontend"* ]]; then
-    echo "Building frontend..."
-    pnpm run frontend:build
+elif [[ "${SERVICE_TYPE:-}" == "frontend" ]] || [[ "${RENDER_SERVICE_NAME:-}" == *"frontend"* ]]; then
+    echo "Building frontend service..."
+    pnpm run shared:build
+    pnpm --filter frontend build
     echo "Frontend build complete. Checking .next folder..."
     ls -la frontend/.next/ || echo "No frontend/.next found"
 else
