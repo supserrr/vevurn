@@ -1,0 +1,6 @@
+# Render Build Configuration
+NODE_ENV=production
+
+# Force Node.js Runtime - No Docker
+SKIP_DOCKER=true
+DISABLE_DOCKER=true

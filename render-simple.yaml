@@ -1,0 +1,61 @@
+services:
+  - type: web
+    name: vevurn-backend
+    env: node
+    plan: starter
+    buildCommand: |
+      echo "=== Backend Build ==="
+      echo "Node: $(node --version)"
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate
+      pnpm install --frozen-lockfile
+      cd backend
+      pnpm exec prisma generate
+      cd ..
+      pnpm --filter @vevurn/shared build
+      pnpm --filter @vevurn/backend build
+      echo "Build complete!"
+    startCommand: |
+      cd backend
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate
+      pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVICE_TYPE
+        value: backend
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vevurn-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: vevurn-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: BETTER_AUTH_URL
+        value: https://vevurn-backend.onrender.com
+      - key: FRONTEND_URL
+        value: https://vevurn-frontend.onrender.com
+    healthCheckPath: /health
+
+databases:
+  - name: vevurn-postgres
+    plan: starter
+    databaseName: vevurn_pos
+    user: vevurn_user
+
+services:
+  - type: redis
+    name: vevurn-redis
+    plan: starter
+    maxmemoryPolicy: allkeys-lru

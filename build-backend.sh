@@ -30,12 +30,20 @@ else
   pnpm install --frozen-lockfile
 fi
 
+# Generate Prisma client first
+echo "Generating Prisma client..."
+cd backend || echo "Already in backend"
+pnpm exec prisma generate
+
+# Go back to root for building
+cd .. 2>/dev/null || echo "Already at root"
+
 # Build shared package first, then backend
 echo "Building backend..."
 pnpm --filter @vevurn/shared build
 pnpm --filter @vevurn/backend build
 
 echo "Backend build complete. Checking dist folder..."
-ls -la dist/ || ls -la backend/dist/ || echo "No dist folder found"
+ls -la backend/dist/ || echo "No backend/dist found"
 
 echo "✅ Backend build completed successfully!"

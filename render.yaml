@@ -3,11 +3,12 @@ services:
   # Backend API Service
   - type: web
     name: vevurn-backend
-    runtime: node
+    env: node
     rootDir: ./
     buildCommand: ./build-backend.sh
     startCommand: cd backend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
     plan: starter # Change to 'standard' for production
+    dockerfilePath: ""  # Explicitly disable Docker
     envVars:
       - key: NODE_ENV
         value: production
@@ -47,11 +48,12 @@ services:
   # Frontend Next.js Service  
   - type: web
     name: vevurn-frontend
-    runtime: node
+    env: node
     rootDir: ./
     plan: starter # Change to 'standard' for production
     buildCommand: ./build-frontend.sh
     startCommand: cd frontend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
+    dockerfilePath: ""  # Explicitly disable Docker
     envVars:
       - key: NODE_ENV
         value: production

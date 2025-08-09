@@ -1,0 +1,4 @@
+# Render ignore file - prevent Docker usage
+Dockerfile*
+docker-compose*
+.dockerignore
