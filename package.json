@@ -3,15 +3,14 @@
   "version": "1.0.0",
   "description": "Vevurn POS System - Complete monorepo with separate backend and frontend",
   "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "workspaces": [
     "shared",
-    "backend",
+    "backend", 
     "frontend"
   ],
-  "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
-  },
   "scripts": {
     "// Development": "# Development commands for running services",
     "dev": "turbo run dev --parallel",

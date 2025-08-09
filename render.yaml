@@ -6,7 +6,7 @@ services:
     runtime: node
     plan: starter # Change to 'standard' for production
     buildCommand: ./build.sh
-    startCommand: cd backend && pnpm start
+    startCommand: cd backend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
     envVars:
       - key: NODE_ENV
         value: production
@@ -47,7 +47,7 @@ services:
     runtime: node
     plan: starter # Change to 'standard' for production
     buildCommand: ./build.sh
-    startCommand: cd frontend && pnpm start
+    startCommand: cd frontend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
     envVars:
       - key: NODE_ENV
         value: production
