@@ -1,7 +1,7 @@
 {
   "name": "vevurn-pos-system",
   "version": "1.0.0",
-  "description": "Vevurn POS System - Complete monorepo with separate backend and frontend",
+  "description": "Vevurn POS System - Clean monorepo with independent deployments (backend/, frontend/, docs/)",
   "private": true,
   "engines": {
     "node": ">=18.0.0"
@@ -30,40 +30,23 @@
     "backend:test": "pnpm --filter @vevurn/backend test",
     "frontend:test": "pnpm --filter frontend test",
 
-    "// Database": "# Database management commands",
+    "// Database": "# Database management commands - Use backend-specific commands",
     "db:migrate": "pnpm --filter @vevurn/backend db:migrate",
-    "db:seed": "pnpm --filter @vevurn/backend db:seed",
-    "db:studio": "pnpm --filter @vevurn/backend db:studio",
     "db:generate": "pnpm --filter @vevurn/backend db:generate",
-    "db:reset": "pnpm --filter @vevurn/backend db:reset",
-    "db:backup": "bash backend/scripts/database/backup.sh",
-    "db:restore": "bash backend/scripts/database/restore.sh",
 
-    "// Docker": "# Docker and containerization commands",
+    "// Docker": "# Docker and containerization commands - Use backend-specific commands",
     "docker:up": "cd backend && docker-compose up -d",
-    "docker:build": "cd backend && docker-compose build",
     "docker:down": "cd backend && docker-compose down",
-    "docker:logs": "cd backend && docker-compose logs -f",
-    "docker:clean": "docker system prune -f",
-    "monitoring:up": "cd backend && docker-compose -f docker-compose.prod.yml up -d prometheus grafana loki",
-    "monitoring:down": "cd backend && docker-compose -f docker-compose.prod.yml down",
 
     "// Utility": "# Utility and maintenance commands",
     "start": "turbo run start",
     "lint": "turbo run lint",
-    "type-check": "turbo run type-check",
+    "type-check": "turbo run type-check", 
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "clean": "turbo run clean && rm -rf node_modules",
     "reset": "pnpm clean && pnpm install",
-    "shared:build": "pnpm --filter @vevurn/shared build",
-    "shared:test": "pnpm --filter @vevurn/shared test",
-    "backend:start": "pnpm --filter @vevurn/backend start",
-    "frontend:start": "pnpm --filter frontend start",
-    "security:audit": "pnpm audit --audit-level high",
-    "security:scan": "bash backend/scripts/utilities/security-scan.sh",
-    "health-check": "bash backend/scripts/maintenance/health-check.sh",
-    "performance-test": "bash backend/scripts/utilities/performance-test.sh"
+    "security:audit": "pnpm audit --audit-level high"
   },
   "devDependencies": {
     "@types/node": "^24.2.0",
