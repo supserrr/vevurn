@@ -1,0 +1,24 @@
+# Frontend-only deployment from frontend directory
+services:
+  - type: web
+    name: vevurn-frontend
+    runtime: node
+    env: node
+    plan: starter
+    rootDir: ./frontend
+    buildCommand: |
+      echo "=== Frontend Build ==="
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate
+      cd ..
+      pnpm install --no-frozen-lockfile
+      pnpm --filter @vevurn/shared build
+      pnpm --filter frontend build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: NEXT_PUBLIC_API_URL
+        value: https://vevurn-backend.onrender.com

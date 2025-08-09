@@ -1,10 +1,19 @@
-# Backend-only Render Configuration
+# Backend-only Render Configuration - Deploy from backend directory
 services:
   - type: web
     name: vevurn-backend
     env: node
-    buildCommand: ./build-backend.sh
-    startCommand: cd backend && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm start
+    runtime: node
+    rootDir: ./backend
+    buildCommand: |
+      echo "=== Backend Build from backend directory ==="
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate
+      cd ..
+      pnpm install --no-frozen-lockfile
+      pnpm --filter @vevurn/shared build
+      pnpm --filter @vevurn/backend build
+    startCommand: pnpm start
     plan: starter
     region: oregon
     envVars:
