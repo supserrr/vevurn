@@ -1,19 +1,30 @@
-# render.yaml - FORCE NODE.JS RUNTIME - NO DOCKER ALLOWED
+# ABSOLUTE FORCE NODE.JS - ZERO DOCKER
+version: "1"
 services:
-  # Backend API Service - EXPLICIT NODE.JS
   - type: web
     name: vevurn-backend
     runtime: node
     env: node
+    plan: starter
     region: oregon
-    rootDir: ./
-    buildCommand: pnpm run build:render
+    buildCommand: |
+      echo "=== FORCED NODE.JS BUILD ==="
+      node --version
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate  
+      pnpm --version
+      pnpm install --no-frozen-lockfile
+      pnpm --filter @vevurn/backend build
     startCommand: |
       cd backend
-      corepack enable
-      corepack prepare pnpm@9.14.4 --activate
       pnpm start
-    plan: starter
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DISABLE_DOCKER
+        value: "true"
     envVars:
       - key: NODE_ENV
         value: production
