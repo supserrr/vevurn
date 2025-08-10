@@ -57,7 +57,7 @@ export class UploadController {
    */
   static async uploadMultiple(req: Request, res: Response): Promise<void> {
     try {
-      const files = req.files as Express.Multer.File[]
+      const files = req.files as multer.File[]
       if (!files || files.length === 0) {
         res.status(400).json({ error: 'No files provided' })
         return

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { ProductService } from '../services/ProductService'
 import { z } from 'zod'
+import multer from 'multer'
 
 // Get the singleton instance
 const productService = ProductService.getInstance()
@@ -341,7 +342,7 @@ export class ProductController {
   static async uploadImages(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
-      const files = req.files as Express.Multer.File[]
+      const files = req.files as multer.File[]
 
       if (!files || files.length === 0) {
         res.status(400).json({

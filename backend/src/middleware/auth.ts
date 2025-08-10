@@ -21,6 +21,13 @@ export interface AuthenticatedRequest extends Request {
     session: any;
     user: any;
   };
+  // Explicitly ensure Express properties are available
+  body: any;
+  params: any;
+  query: any;
+  headers: any;
+  files?: any;
+  file?: any;
 }
 
 // Legacy auth middleware - delegates to better-auth
