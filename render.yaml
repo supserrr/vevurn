@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: vevurn-backend
+    name: vevurn
     runtime: node
     env: node
     plan: starter
