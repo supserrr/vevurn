@@ -497,7 +497,7 @@ export class UserManagementService {
             sessions: {
               where: {
                 updatedAt: { gte: cutoffDate },
-                expires: { gt: new Date() }
+                expiresAt: { gt: new Date() }
               },
               orderBy: { updatedAt: 'desc' },
               take: 1

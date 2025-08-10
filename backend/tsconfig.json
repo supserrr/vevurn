@@ -18,11 +18,14 @@
     "sourceMap": false
   },
   "include": [
-    "src/server.ts"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
     "dist",
+    "src/**/*.disabled.*",
+    "src/**/disabled/**",
+    "src/scripts/**",
     "**/*.test.ts",
     "**/*.spec.ts",
     "**/*.example.ts",

@@ -123,11 +123,11 @@ export class RedisService {
         if (exists === 0) return false
       }
 
-      let result: string | null
+      let result: string | null = null
       if (ttl) {
-        result = await this.client.setEx(key, ttl, value)
+        result = await this.client.setEx(key, ttl, value) as string | null
       } else {
-        result = await this.client.set(key, value)
+        result = await this.client.set(key, value) as string | null
       }
       
       return result === 'OK'
@@ -142,7 +142,7 @@ export class RedisService {
    */
   async get(key: string): Promise<string | null> {
     try {
-      return await this.client.get(key)
+      return await this.client.get(key) as string | null
     } catch (error) {
       logger.error('Redis GET error:', error)
       return null
@@ -256,7 +256,7 @@ export class RedisService {
    */
   async hGet(key: string, field: string): Promise<string | null> {
     try {
-      return await this.client.hGet(key, field)
+      return await this.client.hGet(key, field) as string | null
     } catch (error) {
       logger.error('Redis HGET error:', error)
       return null
@@ -512,11 +512,11 @@ export class RedisService {
       let cursor = 0
       
       do {
-        const result = await this.client.scan(cursor, {
+        const result = await this.client.scan(cursor.toString(), {
           MATCH: pattern,
           COUNT: count
         })
-        cursor = result.cursor
+        cursor = parseInt(result.cursor.toString())
         keys.push(...result.keys)
       } while (cursor !== 0)
       
