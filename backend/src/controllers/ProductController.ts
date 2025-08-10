@@ -342,7 +342,7 @@ export class ProductController {
   static async uploadImages(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.params
-      const files = req.files as multer.File[]
+      const files = req.files as Express.Multer.File[]
 
       if (!files || files.length === 0) {
         res.status(400).json({
