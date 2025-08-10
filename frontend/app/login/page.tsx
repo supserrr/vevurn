@@ -1,147 +1,278 @@
-/**
- * Login Page for Vevurn POS System
- * 
- * This page provides a login form using Better Auth
- */
+"use client";
 
-'use client';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { apiClient } from "@/lib/api-client";
+import { useStore } from "@/lib/store";
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useVevurnAuth, useAuthActions } from '@/lib/auth-hooks';
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  
+const signupSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+export default function AuthPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { isAuthenticated } = useVevurnAuth();
-  const { signIn } = useAuthActions();
-  
-  const callbackUrl = searchParams?.get('callbackUrl') || '/dashboard';
-  const errorParam = searchParams?.get('error');
+  const [isLoading, setIsLoading] = useState(false);
+  const setUser = useStore((state) => state.setUser);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.push(callbackUrl);
-    }
-  }, [isAuthenticated, router, callbackUrl]);
+  const loginForm = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  // Show error messages from URL params
-  useEffect(() => {
-    if (errorParam) {
-      switch (errorParam) {
-        case 'insufficient_permissions':
-          setError('You do not have permission to access that page.');
-          break;
-        case 'account_inactive':
-          setError('Your account has been deactivated. Please contact an administrator.');
-          break;
-        default:
-          setError('Authentication error occurred.');
-      }
-    }
-  }, [errorParam]);
+  const signupForm = useForm<z.infer<typeof signupSchema>>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  async function onLogin(values: z.infer<typeof loginSchema>) {
     setIsLoading(true);
-
+    
     try {
-      const result = await signIn(email, password, callbackUrl);
+      const response = await apiClient.post("/auth/login", values);
+      const { user, accessToken, refreshToken } = response.data;
       
-      if (!result.success) {
-        setError(result.error || 'Login failed');
-      }
-    } catch (err) {
-      setError('An unexpected error occurred');
-      console.error('Login error:', err);
+      // Store tokens
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("refresh_token", refreshToken);
+      
+      // Update store
+      setUser(user);
+      
+      toast.success("Login successful!");
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Login failed");
     } finally {
       setIsLoading(false);
     }
-  };
+  }
+
+  async function onSignup(values: z.infer<typeof signupSchema>) {
+    setIsLoading(true);
+    
+    try {
+      const { confirmPassword, ...signupData } = values;
+      const response = await apiClient.post("/auth/register", signupData);
+      
+      toast.success("Account created successfully! Please sign in.");
+      
+      // Switch to login tab and pre-fill email
+      loginForm.setValue("email", values.email);
+      signupForm.reset();
+      
+      // You might want to automatically switch to login tab here
+      // For now, user needs to manually switch to login tab
+      
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Registration failed");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Vevurn POS Login
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to access your POS system
-          </p>
-        </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <input type="hidden" name="remember" value="true" />
-          
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                disabled={isLoading}
-              />
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+      <Card className="w-[400px]">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">
+            Vevurn POS
+          </CardTitle>
+          <CardDescription className="text-center">
+            Access your point of sale system
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="login" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
             
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Need help? Contact your system administrator
-            </p>
-          </div>
-        </form>
-      </div>
+            <TabsContent value="login" className="space-y-4">
+              <Form {...loginForm}>
+                <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
+                  <FormField
+                    control={loginForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="user@example.com"
+                            type="email"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={loginForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="••••••••"
+                            type="password"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Sign In
+                  </Button>
+                </form>
+              </Form>
+            </TabsContent>
+            
+            <TabsContent value="signup" className="space-y-4">
+              <Form {...signupForm}>
+                <form onSubmit={signupForm.handleSubmit(onSignup)} className="space-y-4">
+                  <FormField
+                    control={signupForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="John Doe"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={signupForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="user@example.com"
+                            type="email"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={signupForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="••••••••"
+                            type="password"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={signupForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="••••••••"
+                            type="password"
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Create Account
+                  </Button>
+                </form>
+              </Form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }
