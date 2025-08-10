@@ -71,9 +71,23 @@ const productSchema = z.object({
   unit: z.string().min(1, "Unit is required"),
 });
 
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  sku: string;
+  categoryId: string;
+  price: number;
+  cost: number;
+}
+
 export default function ProductsPage() {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -592,7 +606,7 @@ export default function ProductsPage() {
                       </TableCell>
                       <TableCell>{product.sku}</TableCell>
                       <TableCell>
-                        {categories.find((c: any) => c.id === product.categoryId)?.name}
+                        {categories.find((c: Category) => c.id === product.categoryId)?.name}
                       </TableCell>
                       <TableCell>${product.price}</TableCell>
                       <TableCell>${product.cost}</TableCell>

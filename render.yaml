@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: vevurn-frontend
+    runtime: node
+    env: node
+    plan: starter
+    region: oregon
+    rootDir: ./frontend
+    buildCommand: |
+      echo "=== Frontend Build ==="
+      node --version
+      npm --version
+      npm install
+      npm run build
+    startCommand: npm start
+    publishDir: .next
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: NEXT_PUBLIC_API_URL
+        value: https://vevurn-backend.onrender.com

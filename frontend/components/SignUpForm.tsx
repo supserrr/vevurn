@@ -21,7 +21,15 @@ export default function SignUpForm() {
       email,
       password,
       name,
-      callbackURL: "/dashboard"
+      callbackURL: "/dashboard",
+      // Required additional fields
+      role: "employee", // Default role
+      employeeId: "", // Will be set by admin later
+      firstName: name.split(" ")[0] || name,
+      lastName: name.split(" ").slice(1).join(" ") || "",
+      isActive: true,
+      maxDiscountAllowed: 0,
+      canSellBelowMin: false
     }, {
       onRequest: () => {
         setIsLoading(true)

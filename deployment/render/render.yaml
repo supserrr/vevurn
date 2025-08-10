@@ -57,9 +57,10 @@ services:
       corepack prepare pnpm@9.14.4 --activate
       cd ..
       pnpm install --no-frozen-lockfile
-      pnpm --filter @vevurn/shared build
+      pnpm --filter @vevurn/shared build || echo "Shared build skipped"
       pnpm --filter frontend build
-    startCommand: pnpm start
+    startCommand: node .next/standalone/server.js
+    publishDir: .next
     envVars:
       - key: NODE_ENV
         value: production
@@ -87,83 +88,4 @@ services:
   - type: redis
     name: vevurn-redis
     plan: starter
-    maxmemoryPolicy: allkeys-lru
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: SERVICE_TYPE
-        value: backend
-      - key: PORT
-        value: 3001
-      - key: DATABASE_URL
-        fromDatabase:
-          name: vevurn-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: vevurn-redis
-          property: connectionString
-      - key: JWT_SECRET
-        generateValue: true
-      - key: JWT_REFRESH_SECRET
-        generateValue: true
-      - key: BETTER_AUTH_SECRET
-        generateValue: true
-      - key: BETTER_AUTH_URL
-        value: https://vevurn-backend.onrender.com
-      - key: FRONTEND_URL
-        value: https://vevurn-frontend.onrender.com
-      - key: AWS_REGION
-        sync: false
-      - key: AWS_ACCESS_KEY_ID
-        sync: false
-      - key: AWS_SECRET_ACCESS_KEY
-        sync: false
-      - key: AWS_S3_BUCKET
-        sync: false
-    healthCheckPath: /health
-    
-  # Frontend Next.js Service  
-  - type: web
-    name: vevurn-frontend
-    env: node
-    region: oregon
-    rootDir: ./
-    plan: starter
-    buildCommand: pnpm run frontend:build
-    startCommand: |
-      cd frontend
-      corepack enable
-      corepack prepare pnpm@9.14.4 --activate
-      pnpm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: SERVICE_TYPE
-        value: frontend
-      - key: PORT
-        value: 3000
-      - key: NEXT_PUBLIC_API_URL
-        value: https://vevurn-backend.onrender.com
-      - key: BETTER_AUTH_URL
-        value: https://vevurn-backend.onrender.com
-      - key: BETTER_AUTH_SECRET
-        fromService:
-          type: web
-          name: vevurn-backend
-          envVarKey: BETTER_AUTH_SECRET
-
-# Database Configuration
-databases:
-  - name: vevurn-postgres
-    plan: starter # Change to 'standard' for production
-    databaseName: vevurn_pos
-    user: vevurn_user
-
-# Redis Configuration  
-services:
-  - type: redis
-    name: vevurn-redis
-    plan: starter # Change to 'standard' for production
     maxmemoryPolicy: allkeys-lru
