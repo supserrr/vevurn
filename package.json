@@ -13,14 +13,11 @@
     "frontend"
   ],
   "scripts": {
-    "// Development": "# Development commands for running services",
     "dev": "turbo run dev --parallel",
     "backend:dev": "pnpm --filter @vevurn/backend dev",
     "frontend:dev": "pnpm --filter frontend dev",
-
-    "// Building": "# Build commands for all packages",
-    "build": "./render-frontend-build.sh",
-    "start": "./render-frontend-start.sh",
+    "build": "cd frontend && npm install --force && npm run build && cd .. && cp -r frontend/.next/standalone/frontend/* build/",
+    "start": "cd build && node server.js",
     "build:render": "echo '=== RENDER BUILD - NODE.JS ONLY ===' && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm install --no-frozen-lockfile && pnpm --filter @vevurn/shared build && pnpm --filter @vevurn/backend build",
     "backend:build": "pnpm --filter @vevurn/shared build && pnpm --filter @vevurn/backend build",
     "frontend:build": "pnpm --filter @vevurn/shared build && pnpm --filter frontend build",
@@ -37,12 +34,9 @@
     "db:migrate": "pnpm --filter @vevurn/backend db:migrate",
     "db:generate": "pnpm --filter @vevurn/backend db:generate",
 
-    "// Docker": "# Docker and containerization commands - Use backend-specific commands",
     "docker:up": "cd backend && docker-compose up -d",
     "docker:down": "cd backend && docker-compose down",
 
-    "// Utility": "# Utility and maintenance commands",
-    "start": "turbo run start",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check", 
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
