@@ -4,11 +4,7 @@ services:
     runtime: node
     plan: starter
     rootDir: ./frontend
-    buildCommand: |
-      npm install --include=dev
-      npm run build
-      echo "Build completed successfully"
-      ls -la .next/ || echo "Build output not found"
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     autoDeploy: true
     envVars:

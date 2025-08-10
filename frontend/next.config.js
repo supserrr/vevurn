@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Ensure all static files are properly copied
-  trailingSlash: false,
-  
-  // Disable image optimization on Render (causes issues)
+  // Keep image optimization disabled for Render
   images: {
     unoptimized: true,
   },
