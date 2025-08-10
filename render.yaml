@@ -5,6 +5,7 @@ services:
   plan: starter
   rootDir: ./frontend
   buildCommand: npm install --include=dev && npm run build
+  publishDir: .next
   startCommand: node .next/standalone/frontend/server.js
   autoDeploy: true
   envVars:
