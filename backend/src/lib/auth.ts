@@ -260,7 +260,7 @@ export const auth = betterAuth({
     accountLinking: {
       enabled: true,
       // Allow trusted providers (Google, Microsoft) to link automatically
-      trustedProviders: ["google", "microsoft"],
+      trustedProviders: ["google"],
       // Allow linking accounts with different email addresses (for POS flexibility)
       allowDifferentEmails: true,
       // Update user info when linking new accounts
@@ -281,29 +281,8 @@ export const auth = betterAuth({
         }
       },
     },
-    microsoft: {
-      clientId: process.env.MICROSOFT_CLIENT_ID!,
-      clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
-      scope: ["openid", "profile", "email"],
-      mapProfileToUser: (profile) => {
-        return {
-          firstName: profile.givenName || profile.name?.split(' ')[0] || '',
-          lastName: profile.surname || profile.name?.split(' ').slice(1).join(' ') || '',
-        }
-      },
-    },
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      scope: ["user:email"],
-      mapProfileToUser: (profile) => {
-        const nameParts = (profile.name || '').split(' ')
-        return {
-          firstName: nameParts[0] || '',
-          lastName: nameParts.slice(1).join(' ') || '',
-        }
-      },
-    },
+    // Removed Microsoft and GitHub providers to simplify configuration
+    // and avoid requiring unused environment variables in production
   },
   trustedOrigins: getAllowedOrigins(),
 })

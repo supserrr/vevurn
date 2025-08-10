@@ -6,8 +6,43 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
-// Load environment variables
-dotenv.config();
+// Only load dotenv in development - production uses environment variables directly
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
+
+// Validate required environment variables
+const requiredEnvVars = [
+  'GOOGLE_CLIENT_ID', 
+  'GOOGLE_CLIENT_SECRET', 
+  'DATABASE_URL',
+  'BETTER_AUTH_SECRET',
+  'REDIS_URL'
+];
+
+console.log('🔍 Validating environment variables...');
+const missingVars = [];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    missingVars.push(envVar);
+    console.error(`❌ Missing required environment variable: ${envVar}`);
+  } else {
+    console.log(`✅ ${envVar}: configured`);
+  }
+}
+
+if (missingVars.length > 0) {
+  console.error(`\n🚨 Missing ${missingVars.length} required environment variables: ${missingVars.join(', ')}`);
+  if (process.env.NODE_ENV === 'production') {
+    console.error('🛑 Exiting in production mode due to missing environment variables');
+    process.exit(1);
+  } else {
+    console.warn('⚠️  Continuing in development mode with missing variables (some features may not work)');
+  }
+} else {
+  console.log('✅ All required environment variables are configured');
+}
 
 // Import configuration
 import { config, getAllowedOrigins, getBaseUrl } from './config/environment';
