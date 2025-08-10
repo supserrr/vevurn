@@ -1,18 +1,26 @@
 services:
   - type: web
-    name: vevurn-frontend
-    runtime: node
+    name: vevurn-backend
+    runtime: node  # EXPLICIT Node.js runtime
+    env: node      # EXPLICIT Node.js environment
     plan: starter
-    rootDir: ./frontend
-    buildCommand: npm install --include=dev && npm run build
-    startCommand: npm start
+    rootDir: ./backend
+    buildCommand: |
+      echo "=== Node.js Build Only - NO DOCKER ==="
+      corepack enable
+      corepack prepare pnpm@9.14.4 --activate
+      cd ..
+      pnpm install --no-frozen-lockfile
+      pnpm --filter @vevurn/shared build
+      pnpm --filter @vevurn/backend build
+    startCommand: pnpm start
     autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
-      - key: NEXT_PUBLIC_API_URL
-        value: https://vevurn-backend.onrender.com
-      - key: HOSTNAME
-        value: 0.0.0.0
+        value: 8000
+      - key: RUNTIME_TYPE
+        value: nodejs
+      - key: NO_DOCKER
+        value: "true"

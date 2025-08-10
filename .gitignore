@@ -158,3 +158,10 @@ coverage/
 # Local environment files
 .env*.local
 backend/.env.production
+
+# Docker files (not used in this project - Node.js runtime only)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+docker-data/
+volumes/
