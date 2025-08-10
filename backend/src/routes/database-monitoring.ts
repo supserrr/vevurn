@@ -3,18 +3,10 @@
 
 import express from 'express';
 import { DatabasePoolService } from '../services/DatabasePoolService';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 
 const router = express.Router();
-
-interface AuthenticatedRequest extends express.Request {
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-  };
-}
 
 interface Recommendation {
   type: string;

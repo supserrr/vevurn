@@ -1,15 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import { customerService } from '../services/CustomerService'
 import { z } from 'zod'
-
-// Extend Request interface to include user
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string
-    email: string
-    role: string
-  }
-}
+import { AuthenticatedRequest } from '../middleware/auth'
 
 // Validation schemas
 const createCustomerSchema = z.object({

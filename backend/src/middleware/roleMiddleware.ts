@@ -1,15 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import { logger } from '../utils/logger'
-
-interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string
-    email: string
-    role: string
-    permissions?: string[]
-    isActive: boolean
-  }
-}
+import { AuthenticatedRequest } from './auth'
 
 const ROLE_HIERARCHY: Record<string, number> = {
   'cashier': 1,
