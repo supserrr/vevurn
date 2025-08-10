@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // CRITICAL: Enable standalone output for deployment
-  output: 'standalone',
-  
   // Ensure all static files are properly copied
   trailingSlash: false,
   
