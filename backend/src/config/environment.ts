@@ -56,7 +56,7 @@ export function getEnvironmentConfig(): EnvironmentConfig {
   
   return {
     NODE_ENV,
-    PORT: parseInt(env.PORT || '8000', 10),
+    PORT: parseInt(env.PORT || '10000', 10),
     HOST: env.HOST || '0.0.0.0',
     
     // Database
@@ -85,15 +85,15 @@ export function getEnvironmentConfig(): EnvironmentConfig {
     
     BETTER_AUTH_URL: env.BETTER_AUTH_URL || (() => {
       if (NODE_ENV === 'production') {
-        return 'https://vevurn-backend.onrender.com';
+        return 'https://vevurn.onrender.com';
       }
-      return 'http://localhost:8000';
+      return 'http://localhost:10000';
     })(),
     
     // Frontend
     FRONTEND_URL: env.FRONTEND_URL || (() => {
       if (NODE_ENV === 'production') {
-        return 'https://vevurn-frontend.vercel.app';
+        return 'https://vevurn.vercel.app';
       }
       return 'http://localhost:3000';
     })(),
@@ -135,9 +135,9 @@ export const getBaseUrl = () => {
 export const getAllowedOrigins = () => {
   if (isProduction()) {
     return [
-      config.FRONTEND_URL,
-      'https://vevurn-frontend.vercel.app',
-      'https://vevurn.vercel.app'
+      'https://vevurn.vercel.app',           // Main frontend domain
+      'https://vevurn-frontend.vercel.app',  // Alternative domain
+      'https://*.vercel.app'                 // Allow preview deployments
     ];
   }
   return [

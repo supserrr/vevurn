@@ -19,7 +19,11 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 8000
+        value: 10000
+      - key: BETTER_AUTH_URL
+        value: https://vevurn.onrender.com
+      - key: FRONTEND_URL
+        value: https://vevurn.vercel.app
       - key: FORCE_NODE_JS
         value: "true"
       - key: DISABLE_DOCKER
