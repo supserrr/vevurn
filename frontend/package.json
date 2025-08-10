@@ -5,9 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p $PORT",
-    "start:standalone": "node .next/standalone/frontend/server.js",
-    "lint": "next lint"
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "vercel-build": "npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
@@ -64,5 +65,9 @@
     "eslint": "^8.0.0",
     "eslint-config-next": "15.4.6",
     "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
