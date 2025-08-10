@@ -5,8 +5,9 @@ services:
     env: node
     plan: starter
     region: oregon
-    buildCommand: cd frontend && npm install && npm run build
-    startCommand: cd frontend && node .next/standalone/frontend/server.js
+    rootDir: ./frontend
+    buildCommand: npm install && npm run build
+    startCommand: node .next/standalone/frontend/server.js
     envVars:
       - key: NODE_ENV
         value: production
