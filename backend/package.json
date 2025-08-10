@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:demo": "tsx watch src/demo-server.ts",
-    "prebuild": "echo '🔧 Pre-build: Dependencies and Prisma...' && cd .. && pnpm install --no-frozen-lockfile --ignore-scripts || npm install && cd backend && npx prisma generate",
+    "prebuild": "echo '🔧 Pre-build: Generating Prisma client...' && prisma generate",
     "build": "echo '🔨 Building TypeScript backend...' && tsc && echo '✅ TypeScript compilation complete'",
     "start": "node dist/index.js",
     "test": "jest",
@@ -58,7 +58,8 @@
     "typescript": "^5.3.2",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
-    "zod": "^4.0.15"
+    "zod": "^4.0.15",
+    "prisma": "^6.13.0"
   },
   "devDependencies": {
     "@types/archiver": "^6.0.3",
@@ -77,7 +78,6 @@
     "eslint": "^8.54.0",
     "jest": "^30.0.5",
     "node-fetch": "^3.3.2",
-    "prisma": "^6.13.0",
     "ts-jest": "^29.4.1",
     "tsx": "^4.20.3",
     "typescript": "^5.3.2"
