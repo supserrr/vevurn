@@ -9,6 +9,9 @@ import { Server } from 'socket.io';
 // Load environment variables
 dotenv.config();
 
+// Import configuration
+import { config, getAllowedOrigins, getBaseUrl } from './config/environment';
+
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
@@ -50,7 +53,7 @@ const databaseService = new DatabaseService();
 const redisService = new RedisService();
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: getAllowedOrigins(),
     credentials: true
   }
 });
@@ -69,7 +72,7 @@ app.use(compression() as any);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  origin: getAllowedOrigins(),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -163,18 +166,18 @@ const gracefulShutdown = async (signal: string) => {
 };
 
 // Start server
-const PORT = parseInt(process.env.PORT || '3001', 10);
-const HOST = process.env.HOST || '0.0.0.0';
-
-server.listen(PORT, HOST, () => {
-  console.log(`🚀 Vevurn POS Backend running on ${HOST}:${PORT}`);
-  console.log(`📊 Health check: http://${HOST}:${PORT}/health`);
-  console.log(`🔐 Better Auth: http://${HOST}:${PORT}/api/auth`);
-  console.log(`📱 Mobile Money: http://${HOST}:${PORT}/api/mobile-money`);
-  console.log(`📈 Analytics: http://${HOST}:${PORT}/api/analytics`);
-  console.log(`📋 Exports: http://${HOST}:${PORT}/api/exports`);
-  console.log(`🔒 GDPR Compliance: http://${HOST}:${PORT}/api/gdpr`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+server.listen(config.PORT, config.HOST, () => {
+  const baseUrl = getBaseUrl();
+    
+  console.log(`🚀 Vevurn POS Backend running on ${config.HOST}:${config.PORT}`);
+  console.log(`📊 Health check: ${baseUrl}/health`);
+  console.log(`🔐 Better Auth: ${baseUrl}/api/auth`);
+  console.log(`📱 Mobile Money: ${baseUrl}/api/mobile-money`);
+  console.log(`📈 Analytics: ${baseUrl}/api/analytics`);
+  console.log(`📋 Exports: ${baseUrl}/api/exports`);
+  console.log(`🔒 GDPR Compliance: ${baseUrl}/api/gdpr`);
+  console.log(`🌍 Environment: ${config.NODE_ENV}`);
+  console.log(`🔗 Allowed Origins: ${getAllowedOrigins().join(', ')}`);
 });
 
 // Graceful shutdown listeners

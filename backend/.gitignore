@@ -1,0 +1,6 @@
+# Backup and temporary files
+*.backup
+*.cleaned*
+*.tmp
+backups/
+logs/

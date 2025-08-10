@@ -4,12 +4,13 @@ import { PrismaClient } from "@prisma/client"
 import { redisStorage } from "./redis-storage"
 import { databaseHooks } from "./database-hooks"
 import { sendEmail, createVerificationEmailTemplate, createPasswordResetEmailTemplate, createWelcomeEmailTemplate } from "./email-service"
+import { config, getAllowedOrigins } from "../config/environment"
 
 const prisma = new PrismaClient()
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:8000",
-  secret: process.env.BETTER_AUTH_SECRET!,
+  baseURL: config.BETTER_AUTH_URL,
+  secret: config.BETTER_AUTH_SECRET,
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
@@ -304,10 +305,7 @@ export const auth = betterAuth({
       },
     },
   },
-  trustedOrigins: [
-    "http://localhost:3000", // frontend URL
-    process.env.FRONTEND_URL || "http://localhost:3000"
-  ],
+  trustedOrigins: getAllowedOrigins(),
 })
 
 export type Session = typeof auth.$Infer.Session

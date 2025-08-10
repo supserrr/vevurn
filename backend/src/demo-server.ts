@@ -20,7 +20,9 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:3001",
+    origin: process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' 
+      ? 'https://vevurn-frontend.vercel.app' 
+      : "http://localhost:3001"),
     methods: ["GET", "POST"]
   }
 });
@@ -31,7 +33,9 @@ const PORT = process.env.PORT || 8000;
 app.use(helmet());
 app.use(compression() as unknown as express.RequestHandler);
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3001",
+  origin: process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' 
+    ? 'https://vevurn-frontend.vercel.app' 
+    : "http://localhost:3001"),
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -141,9 +145,13 @@ app.use((req, res) => {
 
 // Start server
 httpServer.listen(PORT, () => {
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://vevurn-backend.onrender.com' 
+    : `http://localhost:${PORT}`;
+    
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Health check available at http://localhost:${PORT}/health`);
-  console.log(`🔗 API endpoints at http://localhost:${PORT}/api`);
+  console.log(`📊 Health check available at ${baseUrl}/health`);
+  console.log(`🔗 API endpoints at ${baseUrl}/api`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log('✅ Ready to accept connections!');
 });

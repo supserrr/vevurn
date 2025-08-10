@@ -1,4 +1,5 @@
-import { createClient, RedisClientType } from 'redis'
+import { createClient, RedisClientType, RedisClientOptions } from 'redis'
+import { config } from '../config/environment'
 import { logger } from '../utils/logger'
 
 interface CacheOptions {
@@ -22,10 +23,8 @@ export class RedisService {
   private isConnected: boolean = false
 
   constructor() {
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379'
-    
     this.client = createClient({
-      url: redisUrl,
+      url: config.REDIS_URL,
       socket: {
         connectTimeout: 10000,
       },
