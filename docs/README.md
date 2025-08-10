@@ -2,6 +2,54 @@
 
 This directory contains all documentation for the Vevurn POS System, organized by category for easy navigation.
 
+## 📁 Documentation Structure
+
+### `/api/` - API Documentation
+- `API_DOCUMENTATION.md` - Main API documentation
+- `Product-API-Documentation.md` - Product management API
+- `SALES_API.md` - Sales API documentation
+- `sales-api.md` - Additional sales API docs
+
+### `/auth/` - Authentication & Security
+- `BETTER_AUTH_*.md` - Better Auth implementation docs
+- `ENHANCED_AUTH_*.md` - Enhanced authentication system
+- `ENHANCED_SECURITY_*.md` - Security integration guides
+
+### `/backend/` - Backend System Documentation
+- `BACKEND_README.md` - Backend overview and setup
+- `ANALYTICS_CONTROLLER_API_DOCUMENTATION.md` - Analytics API endpoints
+- `IMPLEMENTATION_SUMMARY_ANALYTICS_EXPORT.md` - Analytics export features
+
+### `/build/` - Build System Documentation
+- Build processes and configurations
+- Deployment build instructions
+
+### `/deployment/` - Deployment Documentation
+- `DEPLOYMENT.md` - Main deployment guide
+- `DEPLOYMENT_CHECKLIST.md` - Pre-deployment checklist
+- `DEPLOYMENT_COMPREHENSIVE.md` - Comprehensive deployment guide
+- `RENDER_DEPLOYMENT.md` - Render-specific deployment
+- `MANUAL-RENDER-SETUP.md` - Manual Render setup instructions
+- `DEPLOYMENT_FRONTEND.md` - Frontend deployment specifics
+- `DEPLOYMENT_SUCCESS.md` - Deployment completion guide
+
+### `/project/` - Project Documentation
+- `PROJECT_STATUS.md` - Current project status and progress
+- `DOCUMENTATION_ORGANIZATION.md` - Documentation structure guide
+
+### `/scripts/` - Script Documentation
+- `README.md` - Scripts overview and usage instructions
+
+### `/services/` - Service Documentation
+- `BACKUP_SERVICE_COMPLETE_SUMMARY.md` - Backup service overview
+- `BACKUP_SERVICE_IMPLEMENTATION.md` - Backup implementation details
+- `LOCALIZATION_SERVICE_IMPLEMENTATION.md` - Localization features
+- `GDPR_COMPLIANCE_IMPLEMENTATION_SUMMARY.md` - GDPR compliance
+- `DATABASE_POOL_SERVICE_GUIDE.md` - Database connection pooling
+- `REDIS_SERVICE_DOCS.md` - Redis service implementationDocumentation
+
+This directory contains all documentation for the Vevurn POS System, organized by category for easy navigation.
+
 ## � Documentation Structure
 
 ### `/api/` - API Documentation

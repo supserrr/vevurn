@@ -1,6 +1,0 @@
-# Prevent any Docker usage
-Dockerfile*
-docker-compose*
-*.dockerfile
-**/*docker*
-**/*Docker*
