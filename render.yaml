@@ -1,18 +1,22 @@
 services:
-- type: web
-  name: vevurn-frontend
-  runtime: node
-  plan: starter
-  rootDir: ./frontend
-  buildCommand: npm install --include=dev && npm run build && cp -r .next/static .next/standalone/frontend/.next/ && cp -r public .next/standalone/frontend/
-  startCommand: node .next/standalone/frontend/server.js
-  autoDeploy: true
-  envVars:
-  - key: NODE_ENV
-    value: production
-  - key: PORT
-    value: 10000
-  - key: NEXT_PUBLIC_API_URL
-    value: https://vevurn-backend.onrender.com
-  - key: NEXT_PUBLIC_BACKEND_URL
-    value: https://vevurn-backend.onrender.com
+  - type: web
+    name: vevurn-frontend
+    runtime: node
+    plan: starter
+    rootDir: ./frontend
+    buildCommand: |
+      npm install --include=dev
+      npm run build
+      echo "Build completed successfully"
+      ls -la .next/ || echo "Build output not found"
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: NEXT_PUBLIC_API_URL
+        value: https://vevurn-backend.onrender.com
+      - key: HOSTNAME
+        value: 0.0.0.0

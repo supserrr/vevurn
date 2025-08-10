@@ -292,6 +292,12 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.9
+      autoprefixer:
+        specifier: ^10.4.21
+        version: 10.4.21(postcss@8.5.6)
       axios:
         specifier: ^1.11.0
         version: 1.11.0
@@ -319,6 +325,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      postcss:
+        specifier: ^8.5.6
+        version: 8.5.6
       react:
         specifier: ^19.1.1
         version: 19.1.1
@@ -340,6 +349,12 @@ importers:
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.3.1
+      tailwindcss:
+        specifier: 3.4.15
+        version: 3.4.15
+      tailwindcss-animate:
+        specifier: ^1.0.7
+        version: 1.0.7(tailwindcss@3.4.15)
       zod:
         specifier: ^4.0.15
         version: 4.0.15
@@ -347,33 +362,18 @@ importers:
         specifier: ^5.0.7
         version: 5.0.7(@types/react@19.1.9)(immer@10.1.1)(react@19.1.1)(use-sync-external-store@1.5.0(react@19.1.1))
     devDependencies:
-      '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.9
       '@types/react':
         specifier: ^19.1.9
         version: 19.1.9
       '@types/react-dom':
         specifier: ^19.1.7
         version: 19.1.7(@types/react@19.1.9)
-      autoprefixer:
-        specifier: ^10.4.21
-        version: 10.4.21(postcss@8.5.6)
       eslint:
         specifier: ^8.0.0
         version: 8.57.1
       eslint-config-next:
         specifier: 15.4.6
         version: 15.4.6(eslint@8.57.1)(typescript@5.9.2)
-      postcss:
-        specifier: ^8.5.6
-        version: 8.5.6
-      tailwindcss:
-        specifier: 3.4.15
-        version: 3.4.15
-      tailwindcss-animate:
-        specifier: ^1.0.7
-        version: 1.0.7(tailwindcss@3.4.15)
       typescript:
         specifier: ^5.9.2
         version: 5.9.2

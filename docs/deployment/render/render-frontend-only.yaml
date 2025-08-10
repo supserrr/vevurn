@@ -1,4 +1,4 @@
-# Frontend-only deployment from frontend directory
+# FIXED Frontend-only deployment configuration
 services:
   - type: web
     name: vevurn-frontend
@@ -7,18 +7,21 @@ services:
     plan: starter
     rootDir: ./frontend
     buildCommand: |
-      echo "=== Frontend Build ==="
-      corepack enable
-      corepack prepare pnpm@9.14.4 --activate
-      cd ..
-      pnpm install --no-frozen-lockfile
-      pnpm --filter @vevurn/shared build
-      pnpm --filter frontend build
-    startCommand: pnpm start
+      echo "=== Installing dependencies ==="
+      npm install --include=dev
+      echo "=== Building Next.js app ==="
+      npm run build
+      echo "=== Checking build output ==="
+      ls -la .next/
+      ls -la .next/standalone/ || echo "No standalone directory found"
+      echo "=== Build complete ==="
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: 10000
       - key: NEXT_PUBLIC_API_URL
         value: https://vevurn-backend.onrender.com
+      - key: HOSTNAME
+        value: 0.0.0.0
