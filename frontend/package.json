@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "if [ -f .next/standalone/frontend/server.js ]; then node .next/standalone/frontend/server.js; else next start; fi",
     "lint": "next lint"
   },
   "dependencies": {
