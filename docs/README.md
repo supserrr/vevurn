@@ -1,8 +1,48 @@
-# Vevurn POS Documentation Index
+# Vevurn POS System Documentation
 
-## 📚 **Complete Documentation Hub**
+This directory contains all documentation for the Vevurn POS System, organized by category for easy navigation.
 
-This directory contains all documentation for the Vevurn Point of Sale system.
+## � Documentation Structure
+
+### `/api/` - API Documentation
+- `API_DOCUMENTATION.md` - Main API documentation
+- `Product-API-Documentation.md` - Product management API
+- `SALES_API.md` - Sales API documentation
+- `sales-api.md` - Additional sales API docs
+
+### `/auth/` - Authentication & Security
+- `BETTER_AUTH_*.md` - Better Auth implementation docs
+- `ENHANCED_AUTH_*.md` - Enhanced authentication system
+- `ENHANCED_SECURITY_*.md` - Security integration guides
+
+### `/services/` - Service Documentation
+- `DATABASE_POOL_SERVICE_GUIDE.md` - Database connection pooling
+- `REDIS_SERVICE_DOCS.md` - Redis service implementation
+- `S3_SERVICE_DOCS.md` - S3 service documentation
+- `ENHANCED_ERROR_HANDLER*.md` - Error handling services
+
+### `/setup/` - Setup & Configuration
+- `ENVIRONMENT_SETUP.md` - Environment configuration
+- `OAUTH_SETUP_GUIDE.md` - OAuth setup guide
+- `BETTER_AUTH_SETUP.md` - Authentication setup
+
+### `/implementations/` - Implementation Details
+- `ProductController-Summary.md` - Product controller implementation
+- `ProductService-Implementation.md` - Product service implementation
+- `MINOR_ISSUE_RESOLUTION.md` - Issue resolution notes
+
+### `/archive/` - Historical Documents
+- Status reports and completion summaries
+- Migration guides and audit reports
+- Outdated implementation notes
+
+## 📋 Main Documentation Files
+
+### In Root `/docs/`:
+- `BACKEND_README.md` - Backend-specific documentation
+- `PROJECT_STATUS.md` - Current project status
+- `SCRIPTS_README.md` - Scripts documentation
+- `DOCUMENTATION_ORGANIZATION.md` - This organization structure
 
 ---
 

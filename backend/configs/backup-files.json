@@ -1,0 +1,28 @@
+{
+  "id": "files-backup",
+  "name": "Files and Uploads Backup",
+  "type": "files",
+  "schedule": "0 3 * * *",
+  "retention": {
+    "daily": 3,
+    "weekly": 2,
+    "monthly": 3
+  },
+  "compression": "gzip",
+  "encryption": true,
+  "destinations": [
+    {
+      "type": "s3",
+      "config": {
+        "bucket": "vevurn-backups",
+        "region": "us-east-1",
+        "folder": "files"
+      }
+    }
+  ],
+  "notifications": {
+    "onSuccess": [],
+    "onFailure": ["admin@vevurn.com"]
+  },
+  "enabled": true
+}

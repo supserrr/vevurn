@@ -30,6 +30,11 @@ import reportRoutes from './routes/reports';
 import settingRoutes from './routes/settings';
 import pricingRoutes from './routes/pricing.routes';
 import mobileMoneyRoutes from './routes/mobileMoneyRoutes'; // NEW
+import { analyticsRoutes } from './routes/analytics';
+import { exportsRoutes } from './routes/exports';
+import { gdprRoutes } from './routes/gdpr';
+import backupRoutes from './routes/backup';
+import localizationRoutes from './routes/localization';
 
 // Import services
 import { DatabaseService } from './services/DatabaseService';
@@ -60,7 +65,7 @@ app.set('trust proxy', 1);
 
 // Security middleware
 app.use(helmet());
-app.use(compression());
+app.use(compression() as any);
 
 // CORS configuration
 app.use(cors({
@@ -111,6 +116,11 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/mobile-money', mobileMoneyRoutes); // NEW
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/exports', exportsRoutes);
+app.use('/api/gdpr', gdprRoutes);
+app.use('/api/backup', backupRoutes);
+app.use('/api/localization', localizationRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -161,6 +171,9 @@ server.listen(PORT, HOST, () => {
   console.log(`📊 Health check: http://${HOST}:${PORT}/health`);
   console.log(`🔐 Better Auth: http://${HOST}:${PORT}/api/auth`);
   console.log(`📱 Mobile Money: http://${HOST}:${PORT}/api/mobile-money`);
+  console.log(`📈 Analytics: http://${HOST}:${PORT}/api/analytics`);
+  console.log(`📋 Exports: http://${HOST}:${PORT}/api/exports`);
+  console.log(`🔒 GDPR Compliance: http://${HOST}:${PORT}/api/gdpr`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 

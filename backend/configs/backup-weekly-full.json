@@ -1,0 +1,34 @@
+{
+  "id": "weekly-full-backup",
+  "name": "Weekly Full Backup",
+  "type": "full",
+  "schedule": "0 1 * * 0",
+  "retention": {
+    "daily": 1,
+    "weekly": 8,
+    "monthly": 12
+  },
+  "compression": "gzip",
+  "encryption": true,
+  "destinations": [
+    {
+      "type": "s3",
+      "config": {
+        "bucket": "vevurn-backups",
+        "region": "us-east-1",
+        "folder": "full-backups"
+      }
+    },
+    {
+      "type": "local",
+      "config": {
+        "path": "/backup/local/weekly"
+      }
+    }
+  ],
+  "notifications": {
+    "onSuccess": ["admin@vevurn.com"],
+    "onFailure": ["admin@vevurn.com", "tech@vevurn.com"]
+  },
+  "enabled": true
+}
