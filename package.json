@@ -19,7 +19,8 @@
     "frontend:dev": "pnpm --filter frontend dev",
 
     "// Building": "# Build commands for all packages",
-    "build": "turbo run build",
+    "build": "./render-frontend-build.sh",
+    "start": "./render-frontend-start.sh",
     "build:render": "echo '=== RENDER BUILD - NODE.JS ONLY ===' && corepack enable && corepack prepare pnpm@9.14.4 --activate && pnpm install --no-frozen-lockfile && pnpm --filter @vevurn/shared build && pnpm --filter @vevurn/backend build",
     "backend:build": "pnpm --filter @vevurn/shared build && pnpm --filter @vevurn/backend build",
     "frontend:build": "pnpm --filter @vevurn/shared build && pnpm --filter frontend build",

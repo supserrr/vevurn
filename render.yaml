@@ -12,8 +12,10 @@ services:
       npm --version
       npm install
       npm run build
-    startCommand: npm start
-    publishDir: .next
+      echo "Build completed, checking output..."
+      ls -la .next/
+      ls -la .next/standalone/
+    startCommand: node .next/standalone/frontend/server.js
     envVars:
       - key: NODE_ENV
         value: production
