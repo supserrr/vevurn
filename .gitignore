@@ -159,9 +159,15 @@ coverage/
 .env*.local
 backend/.env.production
 
-# Docker files (not used in this project - Node.js runtime only)
-Dockerfile*
-docker-compose*.yml
-.dockerignore
+# DOCKER FILES COMPLETELY BLOCKED - NODE.JS RUNTIME ONLY
+**/Dockerfile*
+**/docker-compose*.yml
+**/.dockerignore
 docker-data/
 volumes/
+.docker/
+**/.docker/
+
+# Kubernetes (also not used)
+**/kubernetes/
+**/.kube/

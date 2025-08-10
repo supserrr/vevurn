@@ -139,12 +139,12 @@ pnpm test:coverage
 
 ## 🚀 Deployment
 
-### Docker Deployment
+### Node.js Deployment (Render)
 ```bash
-# Build and run with Docker Compose
-pnpm docker:up
+# Build for production
+pnpm build
 
-# For production
+# Deploy to production
 pnpm deploy:prod
 ```
 

@@ -93,11 +93,23 @@ openssl rand -base64 32  # for JWT_REFRESH_SECRET
 ### 4. Database Setup
 
 ```bash
-# Start PostgreSQL (if using Docker)
-docker run --name vevurn-postgres -e POSTGRES_PASSWORD=password -e POSTGRES_DB=vevurn_pos -p 5432:5432 -d postgres:15
+# Install PostgreSQL locally or use a cloud provider
+# For local PostgreSQL setup:
+# macOS: brew install postgresql
+# Ubuntu: sudo apt install postgresql
+# Windows: Download from postgresql.org
 
-# Start Redis (if using Docker)
-docker run --name vevurn-redis -p 6379:6379 -d redis:7-alpine
+# Start PostgreSQL service
+brew services start postgresql  # macOS
+sudo systemctl start postgresql  # Linux
+
+# Install Redis locally or use a cloud provider
+# macOS: brew install redis
+# Ubuntu: sudo apt install redis-server
+
+# Start Redis service
+brew services start redis  # macOS
+redis-server  # Manual start
 
 # Run database migrations
 cd backend
@@ -237,46 +249,7 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 NEXT_PUBLIC_STRIPE_PUBLIC_KEY=pk_live_your_public_key
 ```
 
-## 🐳 Docker Environment
-
-For Docker development:
-
-### docker-compose.yml
-```yaml
-version: '3.8'
-services:
-  backend:
-    build: ./backend
-    env_file:
-      - ./backend/.env
-    ports:
-      - "3001:3001"
-    depends_on:
-      - postgres
-      - redis
-
-  frontend:
-    build: ./frontend
-    env_file:
-      - ./frontend/.env.local
-    ports:
-      - "3000:3000"
-
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: vevurn_pos
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-```
-
-## 🚨 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 

@@ -1,12 +1,12 @@
 services:
   - type: web
     name: vevurn-backend
-    runtime: node  # EXPLICIT Node.js runtime
-    env: node      # EXPLICIT Node.js environment
+    runtime: node
+    env: node
     plan: starter
     rootDir: ./backend
     buildCommand: |
-      echo "=== Node.js Build Only - NO DOCKER ==="
+      echo "=== Node.js Build - NO DOCKER ==="
       corepack enable
       corepack prepare pnpm@9.14.4 --activate
       cd ..
@@ -20,7 +20,10 @@ services:
         value: production
       - key: PORT
         value: 8000
+      - key: FORCE_NODE_JS
+        value: "true"
+      - key: DISABLE_DOCKER
+        value: "true"
       - key: RUNTIME_TYPE
         value: nodejs
-      - key: NO_DOCKER
-        value: "true"
+    healthCheckPath: /health

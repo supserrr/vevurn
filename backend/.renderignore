@@ -1,4 +1,0 @@
-# Prevent Docker usage in backend
-Dockerfile*
-docker-compose*
-*.dockerfile
