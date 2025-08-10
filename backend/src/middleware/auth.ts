@@ -5,6 +5,7 @@
  */
 
 import { requireBetterAuth } from './betterAuth.js';
+import { Request } from 'express';
 
 // Extended Request interface for authenticated requests  
 export interface AuthenticatedRequest extends Request {
