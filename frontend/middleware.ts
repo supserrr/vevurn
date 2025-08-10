@@ -57,14 +57,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get session cookie to check if user is authenticated
-  const sessionCookie = getSessionCookie(request, {
-    cookieName: "better-auth.session_token",
-    cookiePrefix: "vevurn_auth"
-  });
+  // For now, just check for basic session cookie existence
+  // More sophisticated validation should be done in the components
+  const sessionCookie = request.cookies.get('better-auth.session_token') || 
+                       request.cookies.get('vevurn_auth.session_token');
 
-  // WARNING: This only checks for cookie existence, not validity
-  // Always validate the session on the server for security
   if (!sessionCookie) {
     console.log(`[Middleware] No session cookie found, redirecting to login`);
     const loginUrl = new URL('/login', request.url);
@@ -72,56 +69,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // For role-specific routes, we need to fetch the full session
-  // This requires making an API call which should be done carefully
-  const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
-  const isManagerRoute = managerRoutes.some(route => pathname.startsWith(route));
-
-  if (isAdminRoute || isManagerRoute) {
-    try {
-      // Make an API call to validate session and get user role
-      const sessionResponse = await fetch(`${request.nextUrl.origin}/api/auth/get-session`, {
-        headers: {
-          cookie: request.headers.get("cookie") || "",
-        },
-      });
-
-      if (!sessionResponse.ok) {
-        console.log(`[Middleware] Session validation failed, redirecting to login`);
-        const loginUrl = new URL('/login', request.url);
-        loginUrl.searchParams.set('callbackUrl', pathname);
-        return NextResponse.redirect(loginUrl);
-      }
-
-      const session = await sessionResponse.json();
-
-      // Check role permissions
-      if (isAdminRoute && session.user.role !== 'admin') {
-        console.log(`[Middleware] Admin access denied for role: ${session.user.role}`);
-        return NextResponse.redirect(new URL('/dashboard?error=insufficient_permissions', request.url));
-      }
-
-      if (isManagerRoute && !['admin', 'manager'].includes(session.user.role)) {
-        console.log(`[Middleware] Manager access denied for role: ${session.user.role}`);
-        return NextResponse.redirect(new URL('/dashboard?error=insufficient_permissions', request.url));
-      }
-
-      // Check if user account is active
-      if (!session.user.isActive) {
-        console.log(`[Middleware] Inactive account detected`);
-        return NextResponse.redirect(new URL('/login?error=account_inactive', request.url));
-      }
-
-    } catch (error) {
-      console.error('[Middleware] Error validating session:', error);
-      // On error, redirect to login for security
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
-
-  // Add security headers
+  // Add security headers and continue
   const response = NextResponse.next();
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
