@@ -14,3 +14,5 @@ services:
     value: 10000
   - key: NEXT_PUBLIC_API_URL
     value: https://vevurn-backend.onrender.com
+  - key: NEXT_PUBLIC_BACKEND_URL
+    value: https://vevurn-backend.onrender.com

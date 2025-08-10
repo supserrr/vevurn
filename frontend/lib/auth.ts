@@ -9,7 +9,7 @@ import { createAuthClient } from "better-auth/react";
 import { inferAdditionalFields } from "better-auth/client/plugins";
 
 // Get backend API URL from environment variables
-const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001";
+const backendURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 // Type definitions for additional user fields (POS-specific)
 export interface VevurnUser {
