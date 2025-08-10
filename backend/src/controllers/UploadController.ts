@@ -4,6 +4,16 @@ import { s3Service } from '../services/S3Service'
 import { logger } from '../utils/logger'
 import multer from 'multer'
 
+// Add this interface for multer file uploads
+interface UploadedFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  buffer: Buffer;
+  size: number;
+}
+
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -57,7 +67,7 @@ export class UploadController {
    */
   static async uploadMultiple(req: Request, res: Response): Promise<void> {
     try {
-      const files = req.files as Express.Multer.File[]
+      const files = req.files as UploadedFile[]
       if (!files || files.length === 0) {
         res.status(400).json({ error: 'No files provided' })
         return
