@@ -11,41 +11,76 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
-// Validate required environment variables
-const requiredEnvVars = [
-  'GOOGLE_CLIENT_ID', 
-  'GOOGLE_CLIENT_SECRET', 
-  'DATABASE_URL',
-  'BETTER_AUTH_SECRET',
-  'REDIS_URL'
-];
+// Import configuration first
+import { config, getAllowedOrigins, getBaseUrl, isProduction } from './config/environment';
 
-console.log('🔍 Validating environment variables...');
-const missingVars = [];
-
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    missingVars.push(envVar);
-    console.error(`❌ Missing required environment variable: ${envVar}`);
-  } else {
-    console.log(`✅ ${envVar}: configured`);
+// Service Health Check Function
+async function performHealthChecks(): Promise<{ [key: string]: 'SUCCESS' | 'FAILURE' }> {
+  const results: { [key: string]: 'SUCCESS' | 'FAILURE' } = {};
+  
+  console.log('🔍 Verifying service health...');
+  
+  // 1. Environment Variables Check
+  try {
+    const requiredVars = ['DATABASE_URL', 'REDIS_URL', 'BETTER_AUTH_SECRET'];
+    const missingVars = requiredVars.filter(varName => !process.env[varName]);
+    
+    if (missingVars.length === 0) {
+      results['Environment variables'] = 'SUCCESS';
+      console.log('✅ Environment variables: SUCCESS');
+    } else {
+      results['Environment variables'] = 'FAILURE';
+      console.log(`❌ Environment variables: FAILURE (missing: ${missingVars.join(', ')})`);
+    }
+  } catch (error) {
+    results['Environment variables'] = 'FAILURE';
+    console.log('❌ Environment variables: FAILURE');
   }
-}
-
-if (missingVars.length > 0) {
-  console.error(`\n🚨 Missing ${missingVars.length} required environment variables: ${missingVars.join(', ')}`);
-  if (process.env.NODE_ENV === 'production') {
-    console.error('🛑 Exiting in production mode due to missing environment variables');
-    process.exit(1);
-  } else {
-    console.warn('⚠️  Continuing in development mode with missing variables (some features may not work)');
+  
+  // 2. Database Connection Check
+  try {
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    await prisma.$connect();
+    await prisma.$disconnect();
+    
+    results['Database connection'] = 'SUCCESS';
+    console.log('✅ Database connection: SUCCESS');
+  } catch (error) {
+    results['Database connection'] = 'FAILURE';
+    console.log('❌ Database connection: FAILURE');
   }
-} else {
-  console.log('✅ All required environment variables are configured');
+  
+  // 3. Redis Connection Check
+  try {
+    const Redis = await import('ioredis');
+    const redis = new Redis.default(config.REDIS_URL);
+    await redis.ping();
+    redis.disconnect();
+    
+    results['Redis connection'] = 'SUCCESS';
+    console.log('✅ Redis connection: SUCCESS');
+  } catch (error) {
+    results['Redis connection'] = 'FAILURE';
+    console.log('❌ Redis connection: FAILURE');
+  }
+  
+  // 4. Authentication Setup Check
+  try {
+    if (config.BETTER_AUTH_SECRET && config.BETTER_AUTH_URL) {
+      results['Authentication'] = 'SUCCESS';
+      console.log('✅ Authentication: SUCCESS');
+    } else {
+      results['Authentication'] = 'FAILURE';
+      console.log('❌ Authentication: FAILURE (missing auth configuration)');
+    }
+  } catch (error) {
+    results['Authentication'] = 'FAILURE';
+    console.log('❌ Authentication: FAILURE');
+  }
+  
+  return results;
 }
-
-// Import configuration
-import { config, getAllowedOrigins, getBaseUrl } from './config/environment';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -124,22 +159,53 @@ app.use(requestLogger);
 // Rate limiting
 app.use('/api', rateLimiter);
 
-// Health check endpoints
-app.get('/health', (_req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    service: 'vevurn-pos-backend',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
+// Health check endpoints with comprehensive status
+app.get('/health', async (_req, res) => {
+  try {
+    const healthResults = await performHealthChecks();
+    const allHealthy = Object.values(healthResults).every(status => status === 'SUCCESS');
+    
+    res.status(allHealthy ? 200 : 503).json({
+      status: allHealthy ? 'ok' : 'degraded',
+      service: 'vevurn-pos-backend',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      services: healthResults,
+      urls: {
+        backend: getBaseUrl(),
+        frontend: config.FRONTEND_URL,
+        auth: `${getBaseUrl()}/api/auth`
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      service: 'vevurn-pos-backend',
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed'
+    });
+  }
 });
 
-app.get('/api/health', (_req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    service: 'vevurn-pos-api',
-    timestamp: new Date().toISOString(),
-  });
+app.get('/api/health', async (_req, res) => {
+  try {
+    const healthResults = await performHealthChecks();
+    const allHealthy = Object.values(healthResults).every(status => status === 'SUCCESS');
+    
+    res.status(allHealthy ? 200 : 503).json({
+      status: allHealthy ? 'ok' : 'degraded',
+      service: 'vevurn-pos-api',
+      timestamp: new Date().toISOString(),
+      services: healthResults
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      service: 'vevurn-pos-api',
+      timestamp: new Date().toISOString(),
+      error: 'API health check failed'
+    });
+  }
 });
 
 // Better Auth handler
@@ -204,20 +270,44 @@ const gracefulShutdown = async (signal: string) => {
   }, 30000);
 };
 
-// Start server
-server.listen(config.PORT, config.HOST, () => {
-  const baseUrl = getBaseUrl();
+// Start server with comprehensive health checks
+async function startServer() {
+  try {
+    // Perform health checks
+    const healthResults = await performHealthChecks();
     
-  console.log(`🚀 Vevurn POS Backend running on ${config.HOST}:${config.PORT}`);
-  console.log(`📊 Health check: ${baseUrl}/health`);
-  console.log(`🔐 Better Auth: ${baseUrl}/api/auth`);
-  console.log(`📱 Mobile Money: ${baseUrl}/api/mobile-money`);
-  console.log(`📈 Analytics: ${baseUrl}/api/analytics`);
-  console.log(`📋 Exports: ${baseUrl}/api/exports`);
-  console.log(`🔒 GDPR Compliance: ${baseUrl}/api/gdpr`);
-  console.log(`🌍 Environment: ${config.NODE_ENV}`);
-  console.log(`🔗 Allowed Origins: ${getAllowedOrigins().join(', ')}`);
-});
+    // Check if all services are healthy
+    const allHealthy = Object.values(healthResults).every(status => status === 'SUCCESS');
+    
+    // Start the server
+    server.listen(config.PORT, config.HOST, () => {
+      const baseUrl = getBaseUrl();
+      
+      console.log('\n🚀 Vevurn POS Backend Started Successfully!');
+      console.log(`📊 Health Check: ${baseUrl}/health`);
+      console.log(`🔐 Better Auth: ${baseUrl}/api/auth`);
+      console.log(`� Allowed Origins: ${getAllowedOrigins().join(', ')}`);
+      console.log(`🌍 Environment: ${config.NODE_ENV}`);
+      console.log(`🏠 Running on: ${config.HOST}:${config.PORT}`);
+      
+      // Overall health status
+      if (allHealthy) {
+        console.log('✅ ALL SERVICES HEALTHY');
+      } else {
+        console.log('⚠️  SOME SERVICES HAVE ISSUES - CHECK LOGS ABOVE');
+      }
+      
+      console.log('\n' + '='.repeat(60));
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Call the start function
+startServer();
 
 // Graceful shutdown listeners
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

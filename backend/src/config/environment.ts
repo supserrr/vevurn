@@ -1,127 +1,107 @@
-/**
- * Environment Configuration and Validation
- * 
- * This file ensures all required environment variables are properly configured
- * for production deployment and provides sensible defaults for development.
- */
+import { z } from 'zod';
 
-export interface EnvironmentConfig {
-  NODE_ENV: 'development' | 'production' | 'test';
-  PORT: number;
-  HOST: string;
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.string().default('10000'),
+  HOST: z.string().default('0.0.0.0'),
   
   // Database
-  DATABASE_URL: string;
+  DATABASE_URL: z.string(),
   
   // Redis
-  REDIS_URL: string;
+  REDIS_URL: z.string(),
   
-  // Better Auth
-  BETTER_AUTH_SECRET: string;
-  BETTER_AUTH_URL: string;
+  // Authentication
+  BETTER_AUTH_SECRET: z.string(),
+  BETTER_AUTH_URL: z.string().default('http://localhost:10000'),
   
-  // Frontend
-  FRONTEND_URL: string;
+  // URLs - CORRECTED for your requirements
+  FRONTEND_URL: z.string().default('https://vevurn.vercel.app'),
   
-  // Email (optional for development)
-  SMTP_HOST?: string;
-  SMTP_PORT?: number;
-  SMTP_SECURE?: boolean;
-  SMTP_USER?: string;
-  SMTP_PASSWORD?: string;
-}
+  // OAuth
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  
+  // File Upload
+  UPLOAD_MAX_SIZE: z.string().default('10485760'),
+  UPLOAD_ALLOWED_TYPES: z.string().default('image/jpeg,image/png,image/gif,application/pdf'),
+  
+  // AWS S3
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_REGION: z.string().optional(),
+  AWS_S3_BUCKET: z.string().optional(),
+  
+  // Email SMTP
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_SECURE: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASSWORD: z.string().optional(),
+  
+  // Mobile Money
+  MOMO_BASE_URL: z.string().optional(),
+  MOMO_SUBSCRIPTION_KEY: z.string().optional(),
+  MOMO_API_USER: z.string().optional(),
+  MOMO_API_KEY: z.string().optional(),
+});
 
 /**
- * Validates and returns the environment configuration
+ * Parse and validate environment variables
  */
-export function getEnvironmentConfig(): EnvironmentConfig {
+function getEnvironmentConfig() {
   const env = process.env;
-  const NODE_ENV = (env.NODE_ENV as any) || 'development';
   
-  // Required variables for production
-  if (NODE_ENV === 'production') {
-    const requiredVars = [
-      'DATABASE_URL',
-      'REDIS_URL',
-      'BETTER_AUTH_SECRET',
-      'BETTER_AUTH_URL'
-    ];
-    
-    for (const varName of requiredVars) {
-      if (!env[varName]) {
-        throw new Error(`Missing required environment variable: ${varName}`);
-      }
-    }
+  try {
+    return {
+      NODE_ENV: env.NODE_ENV || 'development',
+      PORT: parseInt(env.PORT || '10000', 10),
+      HOST: env.HOST || '0.0.0.0',
+      DATABASE_URL: env.DATABASE_URL!,
+      REDIS_URL: env.REDIS_URL!,
+      BETTER_AUTH_SECRET: env.BETTER_AUTH_SECRET!,
+      BETTER_AUTH_URL: env.BETTER_AUTH_URL || (env.NODE_ENV === 'production' ? 'https://vevurn.onrender.com' : 'http://localhost:10000'),
+      FRONTEND_URL: env.FRONTEND_URL || 'https://vevurn.vercel.app',
+      
+      // OAuth
+      GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET,
+      
+      // File Upload
+      UPLOAD_MAX_SIZE: parseInt(env.UPLOAD_MAX_SIZE || '10485760', 10),
+      UPLOAD_ALLOWED_TYPES: (env.UPLOAD_ALLOWED_TYPES || 'image/jpeg,image/png,image/gif,application/pdf').split(','),
+      
+      // AWS S3
+      AWS_ACCESS_KEY_ID: env.AWS_ACCESS_KEY_ID,
+      AWS_SECRET_ACCESS_KEY: env.AWS_SECRET_ACCESS_KEY,
+      AWS_REGION: env.AWS_REGION,
+      AWS_S3_BUCKET: env.AWS_S3_BUCKET,
+      
+      // Email SMTP
+      SMTP_HOST: env.SMTP_HOST,
+      SMTP_PORT: env.SMTP_PORT ? parseInt(env.SMTP_PORT, 10) : undefined,
+      SMTP_SECURE: env.SMTP_SECURE === 'true',
+      SMTP_USER: env.SMTP_USER,
+      SMTP_PASSWORD: env.SMTP_PASSWORD,
+      
+      // Mobile Money
+      MOMO_BASE_URL: env.MOMO_BASE_URL,
+      MOMO_SUBSCRIPTION_KEY: env.MOMO_SUBSCRIPTION_KEY,
+      MOMO_API_USER: env.MOMO_API_USER,
+      MOMO_API_KEY: env.MOMO_API_KEY,
+    };
+  } catch (error) {
+    console.error('❌ Invalid environment configuration:', error);
+    process.exit(1);
   }
-  
-  return {
-    NODE_ENV,
-    PORT: parseInt(env.PORT || '10000', 10),
-    HOST: env.HOST || '0.0.0.0',
-    
-    // Database
-    DATABASE_URL: env.DATABASE_URL || (() => {
-      if (NODE_ENV === 'production') {
-        throw new Error('DATABASE_URL is required in production');
-      }
-      return 'postgresql://localhost:5432/vevurn_dev';
-    })(),
-    
-    // Redis
-    REDIS_URL: env.REDIS_URL || (() => {
-      if (NODE_ENV === 'production') {
-        throw new Error('REDIS_URL is required in production');
-      }
-      return 'redis://localhost:6379';
-    })(),
-    
-    // Better Auth
-    BETTER_AUTH_SECRET: env.BETTER_AUTH_SECRET || (() => {
-      if (NODE_ENV === 'production') {
-        throw new Error('BETTER_AUTH_SECRET is required in production');
-      }
-      return 'dev-secret-key-not-for-production';
-    })(),
-    
-    BETTER_AUTH_URL: env.BETTER_AUTH_URL || (() => {
-      if (NODE_ENV === 'production') {
-        return 'https://vevurn.onrender.com';
-      }
-      return 'http://localhost:10000';
-    })(),
-    
-    // Frontend
-    FRONTEND_URL: env.FRONTEND_URL || (() => {
-      if (NODE_ENV === 'production') {
-        return 'https://vevurn.vercel.app';
-      }
-      return 'http://localhost:3000';
-    })(),
-    
-    // Email (optional)
-    SMTP_HOST: env.SMTP_HOST,
-    SMTP_PORT: env.SMTP_PORT ? parseInt(env.SMTP_PORT, 10) : undefined,
-    SMTP_SECURE: env.SMTP_SECURE === 'true',
-    SMTP_USER: env.SMTP_USER,
-    SMTP_PASSWORD: env.SMTP_PASSWORD,
-  };
 }
 
-/**
- * Get the current environment configuration
- */
 export const config = getEnvironmentConfig();
 
-/**
- * Utility functions for environment checks
- */
 export const isDevelopment = () => config.NODE_ENV === 'development';
 export const isProduction = () => config.NODE_ENV === 'production';
 export const isTest = () => config.NODE_ENV === 'test';
 
-/**
- * Get the base URL for the current environment
- */
 export const getBaseUrl = () => {
   if (isProduction()) {
     return config.BETTER_AUTH_URL;
@@ -130,20 +110,17 @@ export const getBaseUrl = () => {
 };
 
 /**
- * Get allowed origins for CORS
+ * CORRECTED: Get allowed origins for CORS - ONLY the two required URLs
  */
 export const getAllowedOrigins = () => {
   if (isProduction()) {
     return [
-      'https://vevurn.vercel.app',           // Main frontend domain
-      'https://vevurn-frontend.vercel.app',  // Alternative domain
-      'https://*.vercel.app'                 // Allow preview deployments
+      'https://vevurn.vercel.app'  // ONLY this URL as requested
     ];
   }
   return [
     'http://localhost:3000',
     'http://localhost:3001',
-    'http://localhost:3002',
-    config.FRONTEND_URL
+    'http://localhost:3002'
   ];
 };
