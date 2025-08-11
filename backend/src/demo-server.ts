@@ -146,7 +146,7 @@ app.use((req, res) => {
 // Start server
 httpServer.listen(PORT, () => {
   const baseUrl = process.env.NODE_ENV === 'production' 
-    ? 'https://vevurn-backend.onrender.com' 
+    ? 'https://vevurn.onrender.com' 
     : `http://localhost:${PORT}`;
     
   console.log(`🚀 Server running on port ${PORT}`);

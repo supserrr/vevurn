@@ -37,9 +37,9 @@ services:
       - key: BETTER_AUTH_SECRET
         generateValue: true
       - key: BETTER_AUTH_URL
-        value: https://vevurn-backend.onrender.com
+        value: https://vevurn.onrender.com
       - key: FRONTEND_URL
-        value: https://vevurn-frontend.onrender.com
+        value: https://vevurn.vercel.app
     healthCheckPath: /health
 
   # Frontend Next.js Service - Deploy from frontend directory  
@@ -67,9 +67,9 @@ services:
       - key: PORT
         value: 3000
       - key: NEXT_PUBLIC_API_URL
-        value: https://vevurn-backend.onrender.com
+        value: https://vevurn.onrender.com
       - key: BETTER_AUTH_URL
-        value: https://vevurn-backend.onrender.com
+        value: https://vevurn.onrender.com
       - key: BETTER_AUTH_SECRET
         fromService:
           type: web

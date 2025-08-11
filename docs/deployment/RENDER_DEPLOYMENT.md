@@ -125,12 +125,12 @@ SMTP_PASS=your_app_password
 
 After deployment, your services will be available at:
 
-- **Backend API**: `https://vevurn-backend.onrender.com`
-- **Frontend**: `https://vevurn-frontend.onrender.com`
+- **Backend API**: `https://vevurn.onrender.com`
+- **Frontend**: `https://vevurn.vercel.app`
 - **API Endpoints**: 
-  - Auth: `https://vevurn-backend.onrender.com/api/auth`
-  - Products: `https://vevurn-backend.onrender.com/api/products`
-  - Sales: `https://vevurn-backend.onrender.com/api/sales`
+  - Auth: `https://vevurn.onrender.com/api/auth`
+  - Products: `https://vevurn.onrender.com/api/products`
+  - Sales: `https://vevurn.onrender.com/api/sales`
 
 ## 📊 Scaling Configuration
 

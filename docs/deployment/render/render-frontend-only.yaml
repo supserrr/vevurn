@@ -22,6 +22,6 @@ services:
       - key: PORT
         value: 10000
       - key: NEXT_PUBLIC_API_URL
-        value: https://vevurn-backend.onrender.com
+        value: https://vevurn.onrender.com
       - key: HOSTNAME
         value: 0.0.0.0

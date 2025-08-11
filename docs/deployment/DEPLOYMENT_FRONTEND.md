@@ -13,7 +13,7 @@
 ```
 NODE_ENV=production
 PORT=10000
-NEXT_PUBLIC_API_URL=https://vevurn-backend.onrender.com
+NEXT_PUBLIC_API_URL=https://vevurn.onrender.com
 ```
 
 ### Build Output:

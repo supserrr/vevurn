@@ -92,11 +92,11 @@ cd ../frontend && pnpm build
 ### 4. **Verification**
 ```bash
 # Test health endpoints
-curl https://vevurn-backend.onrender.com/health
-curl -I https://vevurn-frontend.onrender.com
+curl https://vevurn.onrender.com/health
+curl -I https://vevurn.vercel.app
 
 # Test authentication
-curl -X POST https://vevurn-backend.onrender.com/api/auth/login \
+curl -X POST https://vevurn.onrender.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password"}'
 ```

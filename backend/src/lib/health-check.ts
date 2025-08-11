@@ -85,7 +85,7 @@ export class HealthCheckManager {
     try {
       // This would typically check if auth routes are responding
       // For now, we'll do basic validation
-      const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:8000'
+      const baseUrl = process.env.BETTER_AUTH_URL || (process.env.NODE_ENV === 'production' ? 'https://vevurn.onrender.com' : 'http://localhost:10000')
       
       return {
         status: 'healthy',

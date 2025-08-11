@@ -13,7 +13,7 @@ const envSchema = z.object({
   
   // Authentication
   BETTER_AUTH_SECRET: z.string(),
-  BETTER_AUTH_URL: z.string().default('http://localhost:10000'),
+  BETTER_AUTH_URL: z.string().default('https://vevurn.onrender.com'),
   
   // URLs - CORRECTED for your requirements
   FRONTEND_URL: z.string().default('https://vevurn.vercel.app'),

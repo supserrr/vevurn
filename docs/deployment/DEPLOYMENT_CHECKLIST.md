@@ -174,13 +174,13 @@ After deployment, test these endpoints:
 
 ```bash
 # Backend health check
-curl https://vevurn-backend.onrender.com/health
+curl https://vevurn.onrender.com/health
 
 # Frontend accessibility
-curl -I https://vevurn-frontend.onrender.com
+curl -I https://vevurn.vercel.app
 
 # API endpoint test
-curl https://vevurn-backend.onrender.com/api/health
+curl https://vevurn.onrender.com/api/health
 ```
 
 Expected responses:

@@ -43,9 +43,9 @@ services:
       - key: BETTER_AUTH_SECRET
         generateValue: true
       - key: BETTER_AUTH_URL
-        value: https://vevurn-backend.onrender.com
+        value: https://vevurn.onrender.com
       - key: FRONTEND_URL
-        value: https://vevurn-frontend.onrender.com
+        value: https://vevurn.vercel.app
     healthCheckPath: /health
 
 databases:

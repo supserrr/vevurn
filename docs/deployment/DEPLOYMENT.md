@@ -58,8 +58,8 @@ DATABASE_URL: (auto-generated from database)
 REDIS_URL: (auto-generated from redis)
 JWT_SECRET: (auto-generated)
 BETTER_AUTH_SECRET: (auto-generated)
-BETTER_AUTH_URL: https://vevurn-backend.onrender.com
-FRONTEND_URL: https://vevurn-frontend.onrender.com
+BETTER_AUTH_URL: https://vevurn.onrender.com
+FRONTEND_URL: https://vevurn.vercel.app
 ```
 
 ### Frontend Environment Variables  
@@ -67,8 +67,8 @@ FRONTEND_URL: https://vevurn-frontend.onrender.com
 NODE_ENV: production
 SERVICE_TYPE: frontend
 PORT: 3000
-NEXT_PUBLIC_API_URL: https://vevurn-backend.onrender.com
-BETTER_AUTH_URL: https://vevurn-backend.onrender.com
+NEXT_PUBLIC_API_URL: https://vevurn.onrender.com
+BETTER_AUTH_URL: https://vevurn.onrender.com
 ```
 
 ## Deployment Order
@@ -81,7 +81,7 @@ For production deployments, follow this order:
    ```
    
 2. **Wait for Backend to be Live**
-   - Verify at: https://vevurn-backend.onrender.com/health
+   - Verify at: https://vevurn.onrender.com/health
    
 3. **Deploy Frontend**
    ```bash
@@ -90,8 +90,8 @@ For production deployments, follow this order:
 
 ## Health Check Endpoints
 
-- **Backend**: `https://vevurn-backend.onrender.com/health`
-- **Frontend**: `https://vevurn-frontend.onrender.com` (Next.js default health)
+- **Backend**: `https://vevurn.onrender.com/health`
+- **Frontend**: `https://vevurn.vercel.app` (Next.js default health)
 
 ## Rollback Strategy
 
