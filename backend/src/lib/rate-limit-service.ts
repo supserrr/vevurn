@@ -18,7 +18,7 @@ export interface RateLimitResult {
   allowed: boolean
   remaining: number
   resetTime: number
-  total: number
+  total?: number
 }
 
 export class RateLimitService {
@@ -27,11 +27,36 @@ export class RateLimitService {
   /**
    * Check and increment rate limit for a given key
    */
-  async checkRateLimit(config: RateLimitConfig): Promise<RateLimitResult> {
+  async checkRateLimit(config: RateLimitConfig): Promise<{
+    allowed: boolean
+    remaining: number
+    resetTime: number
+    retryAfter?: number
+  }> {
+    if (!redis) {
+      // If Redis is not available, allow all requests
+      console.warn('Redis not available, skipping rate limiting')
+      return {
+        allowed: true,
+        remaining: config.max,
+        resetTime: Date.now() + (config.window * 1000)
+      }
+    }
+
     const { key, window, max, identifier } = config
-    const rateLimitKey = this.buildKey(key, identifier)
+    const rateLimitKey = identifier ? `${key}:${identifier}` : key
     
     try {
+      if (!redis) {
+        // If Redis is not available, allow all requests
+        console.warn('Redis not available, skipping rate limiting')
+        return {
+          allowed: true,
+          remaining: max,
+          resetTime: Date.now() + (window * 1000)
+        }
+      }
+      
       const current = Date.now()
       const windowStart = current - (window * 1000)
       
@@ -61,16 +86,15 @@ export class RateLimitService {
       const remaining = Math.max(0, max - currentCount)
       const resetTime = current + (window * 1000)
       
-      // If limit exceeded, remove the request we just added
-      if (!allowed) {
+            // If not allowed, remove the request we just added
+      if (!allowed && redis) {
         await redis.zremrangebyrank(rateLimitKey, -1, -1)
       }
       
       return {
         allowed,
         remaining,
-        resetTime,
-        total: max
+        resetTime
       }
     } catch (error) {
       console.error('Rate limit check failed:', error)
@@ -78,8 +102,7 @@ export class RateLimitService {
       return {
         allowed: true,
         remaining: max - 1,
-        resetTime: Date.now() + (window * 1000),
-        total: max
+        resetTime: Date.now() + (window * 1000)
       }
     }
   }
@@ -92,6 +115,14 @@ export class RateLimitService {
     const rateLimitKey = this.buildKey(key, identifier)
     
     try {
+      if (!redis) {
+        return {
+          allowed: true,
+          remaining: max,
+          resetTime: Date.now() + (window * 1000)
+        }
+      }
+      
       const current = Date.now()
       const windowStart = current - (window * 1000)
       
@@ -126,6 +157,9 @@ export class RateLimitService {
   async resetRateLimit(key: string, identifier?: string): Promise<void> {
     const rateLimitKey = this.buildKey(key, identifier)
     try {
+      if (!redis) {
+        return
+      }
       await redis.del(rateLimitKey)
     } catch (error) {
       console.error('Rate limit reset failed:', error)
@@ -144,6 +178,15 @@ export class RateLimitService {
     const rateLimitKey = this.buildKey(key, identifier)
     
     try {
+      if (!redis) {
+        return {
+          key: rateLimitKey,
+          requestCount: 0,
+          oldestRequest: null,
+          newestRequest: null
+        }
+      }
+      
       const requestCount = await redis.zcard(rateLimitKey)
       let oldestRequest = null
       let newestRequest = null

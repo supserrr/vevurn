@@ -23,8 +23,10 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
   
-  // Secondary storage with Redis (following documentation patterns)
-  secondaryStorage: redisStorage,
+  // Secondary storage with Redis (optional - graceful fallback to database)
+  ...(config.REDIS_URL && {
+    secondaryStorage: redisStorage,
+  }),
   
   // Enhanced database hooks with comprehensive business logic
   databaseHooks,

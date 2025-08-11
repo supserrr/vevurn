@@ -1,5 +1,6 @@
 import { Redis } from 'ioredis'
 import type { SecondaryStorage } from 'better-auth'
+import { config } from '../config/environment.js'
 
 /**
  * Enhanced Redis Secondary Storage Implementation
@@ -7,42 +8,41 @@ import type { SecondaryStorage } from 'better-auth'
  * Reference: https://better-auth.com/docs/concepts/database#secondary-storage
  */
 
-// Create Redis client with enhanced configuration
-const redisConfig: any = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  db: parseInt(process.env.REDIS_DB || '0'),
-  maxRetriesPerRequest: 3,
-  lazyConnect: true,
-  // Enhanced retry strategy
-  retryDelayOnFailover: 100,
-  // Connection pool settings
-  family: 4, // Use IPv4
-  keepAlive: true,
+// Create Redis client with enhanced configuration using the same URL as main app
+let redis: Redis | null = null
+
+try {
+  redis = new Redis(config.REDIS_URL, {
+    maxRetriesPerRequest: 3,
+    lazyConnect: true,
+    connectTimeout: 10000,
+    commandTimeout: 5000,
+    // Connection pool settings
+    family: 4, // Use IPv4
+    keepAlive: 30000,
+    enableOfflineQueue: true
+  })
+
+  // Enhanced Redis event handling
+  redis.on('error', (err) => {
+    console.error('❌ Redis secondary storage error:', err)
+  })
+
+  redis.on('connect', () => {
+    console.log('✅ Connected to Redis for Better Auth secondary storage')
+  })
+
+  redis.on('ready', () => {
+    console.log('🚀 Redis is ready for Better Auth operations')
+  })
+
+  redis.on('close', () => {
+    console.warn('⚠️ Redis secondary storage connection closed')
+  })
+} catch (error) {
+  console.error('❌ Failed to initialize Redis secondary storage:', error)
+  redis = null
 }
-
-if (process.env.REDIS_PASSWORD) {
-  redisConfig.password = process.env.REDIS_PASSWORD
-}
-
-const redis = new Redis(redisConfig)
-
-// Enhanced Redis event handling
-redis.on('error', (err) => {
-  console.error('❌ Redis connection error:', err)
-})
-
-redis.on('connect', () => {
-  console.log('✅ Connected to Redis for Better Auth secondary storage')
-})
-
-redis.on('ready', () => {
-  console.log('🚀 Redis is ready for Better Auth operations')
-})
-
-redis.on('close', () => {
-  console.warn('⚠️ Redis connection closed')
-})
 
 /**
  * Enhanced Better Auth Secondary Storage Implementation
@@ -51,6 +51,11 @@ redis.on('close', () => {
 export const redisStorage: SecondaryStorage = {
   async get(key: string): Promise<string | null> {
     try {
+      if (!redis) {
+        console.warn('Redis not available, skipping cache get')
+        return null
+      }
+      
       const prefixedKey = `vevurn-auth:${key}`
       const value = await redis.get(prefixedKey)
       
@@ -69,6 +74,11 @@ export const redisStorage: SecondaryStorage = {
 
   async set(key: string, value: string, ttl?: number): Promise<void> {
     try {
+      if (!redis) {
+        console.warn('Redis not available, skipping cache set')
+        return
+      }
+      
       const prefixedKey = `vevurn-auth:${key}`
       
       if (ttl) {
@@ -89,6 +99,11 @@ export const redisStorage: SecondaryStorage = {
 
   async delete(key: string): Promise<void> {
     try {
+      if (!redis) {
+        console.warn('Redis not available, skipping cache delete')
+        return
+      }
+      
       const prefixedKey = `vevurn-auth:${key}`
       await redis.del(prefixedKey)
       
@@ -108,7 +123,7 @@ export const redisStorage: SecondaryStorage = {
  * Following Better Auth documentation patterns
  */
 export class RedisManager {
-  private redis: Redis
+  private redis: Redis | null
 
   constructor() {
     this.redis = redis
@@ -119,6 +134,15 @@ export class RedisManager {
    */
   async healthCheck() {
     try {
+      if (!this.redis) {
+        return {
+          status: "unavailable",
+          timestamp: new Date().toISOString(),
+          storage: "redis",
+          error: "Redis client not initialized",
+        }
+      }
+      
       await this.redis.ping()
       return {
         status: "healthy",
@@ -140,6 +164,10 @@ export class RedisManager {
    */
   async getStatistics() {
     try {
+      if (!this.redis) {
+        throw new Error('Redis client not available')
+      }
+      
       const info = await this.redis.info('memory')
       const keyspace = await this.redis.info('keyspace')
       const authKeys = await this.redis.keys('vevurn-auth:*')
@@ -160,6 +188,10 @@ export class RedisManager {
    */
   async clearAuthCache() {
     try {
+      if (!this.redis) {
+        throw new Error('Redis client not available')
+      }
+      
       const keys = await this.redis.keys('vevurn-auth:*')
       if (keys.length > 0) {
         await this.redis.del(...keys)
@@ -181,6 +213,14 @@ export class RedisManager {
    * Get connection status
    */
   getConnectionStatus() {
+    if (!this.redis) {
+      return {
+        status: 'unavailable',
+        lazyConnect: false,
+        timestamp: new Date().toISOString(),
+      }
+    }
+    
     return {
       status: this.redis.status,
       lazyConnect: this.redis.options.lazyConnect,
@@ -192,7 +232,9 @@ export class RedisManager {
    * Disconnect Redis (for graceful shutdown)
    */
   async disconnect() {
-    await this.redis.disconnect()
+    if (this.redis) {
+      await this.redis.disconnect()
+    }
   }
 }
 
