@@ -279,8 +279,11 @@ export const auth = betterAuth({
     // Account linking for users who want to connect multiple authentication methods
     accountLinking: {
       enabled: true,
-      // Allow trusted providers (Google, Microsoft) to link automatically
-      trustedProviders: ["google", "microsoft"],
+      // Allow trusted providers (Google, Microsoft) to link automatically - only if configured
+      trustedProviders: [
+        ...(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET ? ["google"] : []),
+        ...(config.MICROSOFT_CLIENT_ID && config.MICROSOFT_CLIENT_SECRET ? ["microsoft"] : [])
+      ],
       // Allow linking accounts with different email addresses (for POS flexibility)
       allowDifferentEmails: true,
       // Update user info when linking new accounts
@@ -289,45 +292,52 @@ export const auth = betterAuth({
       allowUnlinkingAll: false,
     },
   },
+  // Only include social providers that have credentials configured
   socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      scope: ["email", "profile"],
-      // Enhanced Google OAuth Configuration following Better Auth documentation
-      accessType: "offline", // Always get refresh token for long-term access
-      prompt: "select_account+consent", // Always ask for account selection and consent
-      // This ensures we get refresh tokens on every authorization
-      mapProfileToUser: (profile) => {
-        return {
-          firstName: profile.given_name || profile.name?.split(' ')[0] || '',
-          lastName: profile.family_name || profile.name?.split(' ').slice(1).join(' ') || '',
-        }
-      },
-    },
-    microsoft: {
-      clientId: process.env.MICROSOFT_CLIENT_ID!,
-      clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
-      scope: ["user.read"],
-      mapProfileToUser: (profile) => {
-        return {
-          firstName: profile.givenName || profile.displayName?.split(' ')[0] || '',
-          lastName: profile.surname || profile.displayName?.split(' ').slice(1).join(' ') || '',
-        }
-      },
-    },
-    github: {
-      clientId: process.env.GITHUB_CLIENT_ID!,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-      scope: ["user:email"],
-      mapProfileToUser: (profile) => {
-        const fullName = profile.name || profile.login || ''
-        return {
-          firstName: fullName.split(' ')[0] || '',
-          lastName: fullName.split(' ').slice(1).join(' ') || '',
-        }
-      },
-    },
+    ...(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET && {
+      google: {
+        clientId: config.GOOGLE_CLIENT_ID,
+        clientSecret: config.GOOGLE_CLIENT_SECRET,
+        scope: ["email", "profile"],
+        // Enhanced Google OAuth Configuration following Better Auth documentation
+        accessType: "offline", // Always get refresh token for long-term access
+        prompt: "select_account+consent", // Always ask for account selection and consent
+        // This ensures we get refresh tokens on every authorization
+        mapProfileToUser: (profile) => {
+          return {
+            firstName: profile.given_name || profile.name?.split(' ')[0] || '',
+            lastName: profile.family_name || profile.name?.split(' ').slice(1).join(' ') || '',
+          }
+        },
+      }
+    }),
+    ...(config.MICROSOFT_CLIENT_ID && config.MICROSOFT_CLIENT_SECRET && {
+      microsoft: {
+        clientId: config.MICROSOFT_CLIENT_ID,
+        clientSecret: config.MICROSOFT_CLIENT_SECRET,
+        scope: ["user.read"],
+        mapProfileToUser: (profile) => {
+          return {
+            firstName: profile.givenName || profile.displayName?.split(' ')[0] || '',
+            lastName: profile.surname || profile.displayName?.split(' ').slice(1).join(' ') || '',
+          }
+        },
+      }
+    }),
+    ...(config.GITHUB_CLIENT_ID && config.GITHUB_CLIENT_SECRET && {
+      github: {
+        clientId: config.GITHUB_CLIENT_ID,
+        clientSecret: config.GITHUB_CLIENT_SECRET,
+        scope: ["user:email"],
+        mapProfileToUser: (profile) => {
+          const fullName = profile.name || profile.login || ''
+          return {
+            firstName: fullName.split(' ')[0] || '',
+            lastName: fullName.split(' ').slice(1).join(' ') || '',
+          }
+        },
+      }
+    }),
   },
 })
 

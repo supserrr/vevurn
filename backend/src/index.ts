@@ -70,9 +70,23 @@ try {
     lazyConnect: true,
     maxRetriesPerRequest: process.env.NODE_ENV === 'production' ? 2 : 3,
     commandTimeout: process.env.NODE_ENV === 'production' ? 5000 : 10000,
-    enableOfflineQueue: false,
-    family: 4, // Force IPv4
+    enableOfflineQueue: true, // Allow offline queuing
+    family: 4 // Force IPv4
   });
+
+  // Handle Redis connection events
+  redis.on('error', (error) => {
+    console.error('Redis connection error:', error);
+  });
+
+  redis.on('connect', () => {
+    console.log('Redis connected');
+  });
+
+  redis.on('ready', () => {
+    console.log('Redis ready');
+  });
+
 } catch (error) {
   console.error('❌ Failed to initialize Redis Client:', error);
   process.exit(1);
@@ -128,9 +142,18 @@ async function verifyServices() {
 
   // Check Redis Connection
   try {
-    await redis.ping();
-    services.redis = true;
-    console.log('✅ Redis connection: SUCCESS');
+    // Ensure Redis is connected before pinging
+    if (redis.status === 'ready' || redis.status === 'connect') {
+      await redis.ping();
+      services.redis = true;
+      console.log('✅ Redis connection: SUCCESS');
+    } else {
+      // Try to connect if not already connected
+      await redis.connect();
+      await redis.ping();
+      services.redis = true;
+      console.log('✅ Redis connection: SUCCESS');
+    }
   } catch (error) {
     console.log('❌ Redis connection: FAILED');
     console.error('Redis error:', error);
