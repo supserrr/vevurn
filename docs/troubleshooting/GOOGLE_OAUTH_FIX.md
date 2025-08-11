@@ -5,10 +5,28 @@
 The error `"The OAuth client was not found. Error 401: invalid_client"` occurs because Google OAuth credentials are not properly configured.
 
 **Current Status:**
-- ❌ Google Client ID: `your-google-client-id.apps.googleusercontent.com` (placeholder)
-- ❌ Google Client Secret: `your-google-client-secret` (placeholder)
+- ❌ Google Client ID: Not configured (commented out)
+- ❌ Google Client Secret: Not configured (commented out)
 - ❌ Production: Google OAuth not available
-- ❌ Development: Using placeholder credentials
+- ❌ Development: Google OAuth disabled
+
+## 🚀 Quick Setup (Recommended)
+
+### Option 1: Automated Setup Script
+Run the automated setup script that will guide you through the entire process:
+
+```bash
+cd /Users/password/vevurn
+./scripts/setup-google-oauth.sh
+```
+
+This script will:
+- ✅ Guide you through Google Cloud Console setup
+- ✅ Configure environment variables automatically  
+- ✅ Validate your configuration
+- ✅ Provide testing instructions
+
+### Option 2: Manual Setup (Detailed)
 
 ## Step 1: Create Google OAuth Application
 
@@ -68,19 +86,41 @@ GOOGLE_CLIENT_SECRET=your-actual-google-client-secret
    - `GOOGLE_CLIENT_SECRET` = `your-actual-client-secret`
 3. **Deploy** to activate changes
 
-## Step 3: Verify Configuration
+## Step 3: Database Setup (Already Complete ✅)
 
-### 3.1 Local Testing
+Your database schema is already fully compatible with Better Auth OAuth! The following tables exist and are properly configured:
+
+- ✅ `users` - User accounts with OAuth support
+- ✅ `sessions` - User sessions management  
+- ✅ `accounts` - OAuth account linking
+- ✅ `verification_tokens` - Email verification
+
+**Optional**: Run the migration to add performance indexes:
+```bash
+cd /Users/password/vevurn/backend
+psql $DATABASE_URL -f database/migrations/better_auth_oauth_setup.sql
+```
+
+## Step 4: Verify Configuration
+
+### 4.1 Validation Script
+Run the automated validation:
+```bash
+cd /Users/password/vevurn
+./scripts/validate-google-oauth.sh
+```
+
+### 4.2 Local Testing
 1. Restart development server: `npm run dev`
 2. Check logs for: `✅ Google OAuth: CONFIGURED`
 3. Test at: http://localhost:3000/login
 
-### 3.2 Production Testing  
+### 4.3 Production Testing  
 1. After Render deployment completes
 2. Test at: https://vevurn.onrender.com/login
 3. Google sign-up button should work
 
-## Step 4: Test OAuth Flow
+## Step 5: Test OAuth Flow
 
 ### Expected Flow:
 1. Click "Sign up with Google"
@@ -93,6 +133,7 @@ GOOGLE_CLIENT_SECRET=your-actual-google-client-secret
 - **"OAuth client not found"** → Check Client ID is correct
 - **"redirect_uri_mismatch"** → Add redirect URI to Google Console
 - **"access_blocked"** → Check OAuth consent screen configuration
+- **"failed to create user"** → Database schema is compatible ✅
 
 ## Current Better Auth Configuration ✅
 
@@ -116,16 +157,31 @@ google: {
 
 ## Quick Fix Summary
 
-1. **Create Google OAuth app** in Google Cloud Console
-2. **Get real credentials** (not placeholders)
-3. **Update .env file** with actual Client ID and Secret  
-4. **Add to Render environment** variables
-5. **Restart/Deploy** both local and production
+1. **🚀 Run setup script**: `./scripts/setup-google-oauth.sh` (Recommended)
+2. **🔍 Validate config**: `./scripts/validate-google-oauth.sh`
+3. **🔄 Restart servers**: `npm run dev`
+4. **🧪 Test locally**: http://localhost:3000/login
+5. **🌐 Deploy to production**: Add env vars to Render
 
-Once configured, Google OAuth will work seamlessly! 🚀
+## Available Scripts
+
+- `./scripts/setup-google-oauth.sh` - Automated Google OAuth setup
+- `./scripts/validate-google-oauth.sh` - Configuration validation
+- `./scripts/fix-google-oauth.sh` - Enable/disable Google OAuth
 
 ## Security Notes
 - Keep Client Secret private (never commit to git)
 - Use environment variables only
 - Test on both localhost and production domains
 - Verify redirect URIs match exactly
+
+## Status After Setup
+
+Once configured, Google OAuth will work seamlessly with:
+- ✅ User registration via Google account
+- ✅ Automatic profile data mapping (firstName, lastName)  
+- ✅ Session management
+- ✅ Account linking
+- ✅ Secure token storage
+
+🎉 Your vevurnPOS will be fully OAuth-enabled!
