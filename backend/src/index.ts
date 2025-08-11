@@ -14,7 +14,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Import configuration
-import { config, getAllowedOrigins, getBaseUrl, isProduction } from './config/environment';
+import { config, getAllowedOrigins, getBaseUrl } from './config/environment';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -37,32 +37,67 @@ import mobileMoneyRoutes from './routes/mobileMoneyRoutes';
 import authRoutes from './routes/authRoutes';
 
 // Import authentication middleware
-import { requireAuth, optionalAuth, requireEmailVerified } from './middleware/authMiddleware';
+import { requireAuth, requireEmailVerified } from './middleware/authMiddleware';
 
-// Import testing utilities
-import { createTestRoute } from './utils/betterAuthExpressTest';
+// Import testing utilities (only in non-production)
+const createTestRoute = process.env.NODE_ENV === 'production' ? null : require('./utils/betterAuthExpressTest').createTestRoute;
 
 // Import services
-import { DatabaseService } from './services/DatabaseService';
 import { RedisService } from './services/RedisService';
 import { WebSocketService } from './services/WebSocketService';
 
-// Initialize services
-const prisma = new PrismaClient();
-const redis = new Redis(config.REDIS_URL);
+// Initialize services with better error handling and connection pooling
+let prisma: PrismaClient;
+let redis: Redis;
+
+// Production-optimized Prisma configuration
+try {
+  prisma = new PrismaClient({
+    log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'info', 'warn', 'error'],
+    errorFormat: process.env.NODE_ENV === 'production' ? 'minimal' : 'pretty',
+    datasources: {
+      db: {
+        url: config.DATABASE_URL
+      }
+    }
+  });
+} catch (error) {
+  console.error('❌ Failed to initialize Prisma Client:', error);
+  process.exit(1);
+}
+
+// Production-optimized Redis configuration
+try {
+  redis = new Redis(config.REDIS_URL, {
+    connectTimeout: 10000,
+    lazyConnect: true,
+    maxRetriesPerRequest: process.env.NODE_ENV === 'production' ? 2 : 3,
+    commandTimeout: process.env.NODE_ENV === 'production' ? 5000 : 10000,
+    enableOfflineQueue: false,
+    family: 4, // Force IPv4
+  });
+} catch (error) {
+  console.error('❌ Failed to initialize Redis Client:', error);
+  process.exit(1);
+}
 
 // Create Express app
 const app = express();
 const server = createServer(app);
 
 // Initialize services
-const databaseService = new DatabaseService();
 const redisService = new RedisService();
 const io = new Server(server, {
   cors: {
     origin: getAllowedOrigins(),
     credentials: true
-  }
+  },
+  // Production optimizations
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  transports: process.env.NODE_ENV === 'production' ? ['websocket'] : ['polling', 'websocket'],
+  allowEIO3: false,
+  serveClient: false,
 });
 const webSocketService = new WebSocketService(io);
 
@@ -136,9 +171,37 @@ async function verifyServices() {
 // Trust proxy (for deployment behind reverse proxy)
 app.set('trust proxy', 1);
 
-// Security middleware
-app.use(helmet());
-app.use(compression() as any);
+// Production-optimized security middleware
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      fontSrc: ["'self'", "https:", "data:"],
+      connectSrc: ["'self'", "wss:", "https:"],
+    },
+  } : false,
+  crossOriginEmbedderPolicy: process.env.NODE_ENV === 'production',
+  hsts: process.env.NODE_ENV === 'production' ? {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  } : false,
+}));
+
+// Compression with production settings
+app.use(compression({
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+  level: process.env.NODE_ENV === 'production' ? 6 : 1,
+  threshold: 1024,
+}) as any);
 
 // CORS configuration
 app.use(cors({
@@ -223,8 +286,10 @@ app.get('/api/me', async (req, res) => {
   }
 });
 
-// Better Auth integration test endpoint
-app.get('/api/test/auth-integration', createTestRoute());
+// Better Auth integration test endpoint (only in non-production)
+if (process.env.NODE_ENV !== 'production' && createTestRoute) {
+  app.get('/api/test/auth-integration', createTestRoute());
+}
 
 app.get('/api/health', async (_req, res) => {
   try {
@@ -315,25 +380,54 @@ async function startServer() {
       console.log('===============================================\n');
     });
 
-    // Graceful shutdown
-    process.on('SIGTERM', () => {
-      console.log('🛑 SIGTERM received, shutting down gracefully...');
-      server.close(() => {
-        console.log('✅ Server closed');
-        prisma.$disconnect();
-        redis.disconnect();
-        process.exit(0);
+    // Graceful shutdown with proper cleanup
+    const gracefulShutdown = (signal: string) => {
+      console.log(`🛑 ${signal} received, shutting down gracefully...`);
+      
+      const shutdownTimeout = setTimeout(() => {
+        console.error('❌ Graceful shutdown timed out, forcing exit');
+        process.exit(1);
+      }, 10000); // 10 second timeout
+      
+      server.close(async () => {
+        console.log('✅ HTTP server closed');
+        
+        try {
+          // Close WebSocket connections
+          io.close();
+          console.log('✅ WebSocket server closed');
+          
+          // Disconnect from database
+          await prisma.$disconnect();
+          console.log('✅ Database disconnected');
+          
+          // Disconnect from Redis
+          redis.disconnect();
+          console.log('✅ Redis disconnected');
+          
+          clearTimeout(shutdownTimeout);
+          console.log('✅ Graceful shutdown complete');
+          process.exit(0);
+        } catch (error) {
+          console.error('❌ Error during shutdown:', error);
+          clearTimeout(shutdownTimeout);
+          process.exit(1);
+        }
       });
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+    // Handle uncaught exceptions and unhandled rejections
+    process.on('uncaughtException', (error) => {
+      console.error('❌ Uncaught Exception:', error);
+      gracefulShutdown('UNCAUGHT_EXCEPTION');
     });
 
-    process.on('SIGINT', () => {
-      console.log('🛑 SIGINT received, shutting down gracefully...');
-      server.close(() => {
-        console.log('✅ Server closed');
-        prisma.$disconnect();
-        redis.disconnect();
-        process.exit(0);
-      });
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+      gracefulShutdown('UNHANDLED_REJECTION');
     });
 
   } catch (error) {

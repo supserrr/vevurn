@@ -2,28 +2,51 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
-// Simple logger fallback
+// Production-optimized logger
 const logger = {
-  error: (message: string, data?: any) => console.error(`[ERROR] ${message}`, data)
+  error: (message: string, data?: any) => {
+    const logData = {
+      timestamp: new Date().toISOString(),
+      level: 'error',
+      message,
+      ...data,
+    };
+    
+    if (process.env.NODE_ENV === 'production') {
+      // In production, log as JSON for better parsing by log aggregators
+      console.error(JSON.stringify(logData));
+    } else {
+      console.error(`[ERROR] ${message}`, data);
+    }
+  }
 };
 
 export interface ApiError extends Error {
   statusCode?: number;
-  code?: string;
+  code?: string | undefined;
   details?: any;
+  isOperational?: boolean;
 }
 
 export class AppError extends Error implements ApiError {
   public statusCode: number;
-  public code?: string;
+  public code?: string | undefined;
   public details?: any;
+  public isOperational: boolean;
 
-  constructor(message: string, statusCode: number = 500, code?: string, details?: any) {
+  constructor(
+    message: string, 
+    statusCode: number = 500, 
+    code?: string | undefined, 
+    details?: any,
+    isOperational: boolean = true
+  ) {
     super(message);
     this.name = 'AppError';
     this.statusCode = statusCode;
     this.code = code;
     this.details = details;
+    this.isOperational = isOperational;
     Error.captureStackTrace(this, this.constructor);
   }
 }
@@ -39,15 +62,24 @@ export const errorHandler = (
   let code = 'INTERNAL_ERROR';
   let details: any = null;
 
-  // Log error for monitoring
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Generate request ID for tracking
+  const requestId = req.headers['x-request-id'] || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  // Log error for monitoring with enhanced context
   logger.error('API Error occurred', {
+    requestId,
     message: error.message,
-    stack: error.stack,
+    stack: isProduction ? undefined : error.stack, // Don't log stack traces in production logs
     url: req.url,
     method: req.method,
     userAgent: req.headers['user-agent'],
     ip: req.ip,
-    timestamp: new Date().toISOString()
+    userId: (req as any).user?.id,
+    timestamp: new Date().toISOString(),
+    errorType: error.constructor.name,
+    statusCode,
   });
 
   // Handle specific error types
@@ -97,23 +129,42 @@ export const errorHandler = (
     code = 'TOKEN_EXPIRED';
   }
 
-  // Security headers
+  // Production-optimized response headers
   res.set({
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'X-XSS-Protection': '1; mode=block',
+    'X-Request-ID': requestId,
   });
 
-  return res.status(statusCode).json({
+  // Response payload - sanitized for production
+  const errorResponse: any = {
     success: false,
     error: {
-      message,
+      message: isProduction && statusCode >= 500 ? 'Internal Server Error' : message,
       code,
       timestamp: new Date().toISOString(),
-      ...(process.env.NODE_ENV === 'development' && { 
-        stack: error.stack,
-        details 
-      }),
+      requestId,
     },
-  });
+  };
+
+  // Include additional details only in development or for client errors (4xx)
+  if (!isProduction || statusCode < 500) {
+    if (details) {
+      errorResponse.error.details = details;
+    }
+  }
+
+  // Include stack trace only in development
+  if (!isProduction && error.stack) {
+    errorResponse.error.stack = error.stack;
+  }
+
+  // Log to monitoring service in production (placeholder for actual service integration)
+  if (isProduction && statusCode >= 500) {
+    // Here you would typically send to a monitoring service like Sentry, DataDog, etc.
+    console.error(`[PRODUCTION_ERROR] ${requestId}: ${error.message}`);
+  }
+
+  return res.status(statusCode).json(errorResponse);
 };

@@ -1,11 +1,10 @@
-import { Router } from 'express'
-import { Request, Response } from 'express'
+import { Router, Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
 
 const router = Router()
 const prisma = new PrismaClient()
 
-router.get('/health', (_req, res) => {
+router.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'categories' })
 })
 

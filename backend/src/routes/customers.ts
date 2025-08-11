@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Router, Request, Response } from 'express'
 import { CustomerController } from '../controllers/CustomerController'
 import { authMiddleware } from '../middleware/auth'
 import { roleMiddleware } from '../middleware/roleMiddleware'
@@ -6,7 +6,7 @@ import { roleMiddleware } from '../middleware/roleMiddleware'
 const router = Router()
 
 // Health check
-router.get('/health', (_req, res) => {
+router.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'customers' })
 })
 

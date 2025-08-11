@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { fromNodeHeaders } from 'better-auth/node';
 import { auth } from '../lib/index.js';
 import { requireAuth, optionalAuth, AuthenticatedRequest } from '../middleware/authMiddleware';
@@ -137,7 +137,7 @@ router.get('/status', optionalAuth, async (req: AuthenticatedRequest, res) => {
 /**
  * Refresh session endpoint
  */
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', async (req: Request, res: Response) => {
   try {
     // Better Auth handles session refresh automatically through the main auth handler
     // This endpoint can be used to manually trigger a session check
@@ -181,7 +181,7 @@ router.post('/refresh', async (req, res) => {
 /**
  * Get all user sessions (requires authentication)
  */
-router.get('/sessions', requireAuth, async (req: AuthenticatedRequest, res) => {
+router.get('/sessions', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Note: This would require implementing a sessions listing method in Better Auth
     // For now, return current session info
@@ -210,7 +210,7 @@ router.get('/sessions', requireAuth, async (req: AuthenticatedRequest, res) => {
 /**
  * Health check for auth endpoints
  */
-router.get('/health', async (req, res) => {
+router.get('/health', async (req: Request, res: Response) => {
   try {
     // Test Better Auth availability
     const testSession = await auth.api.getSession({

@@ -1,7 +1,7 @@
 // Database Pool Monitoring Routes
 // File: backend/src/routes/database-monitoring.ts
 
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { DatabasePoolService } from '../services/DatabasePoolService';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';

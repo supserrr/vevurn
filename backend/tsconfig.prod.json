@@ -1,0 +1,29 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": false,
+    "removeComments": true,
+    "declaration": false,
+    "incremental": false,
+    "tsBuildInfoFile": null
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/**/*.example.ts",
+    "src/**/*.disabled.*",
+    "src/**/disabled/**",
+    "src/scripts/**",
+    "scripts/**/*",
+    "archived-scripts/**/*",
+    "test-session-management.ts",
+    "src/demo-server.ts",
+    "src/index.cleaned.ts",
+    "src/examples/**/*",
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/*.mock.*"
+  ]
+}
