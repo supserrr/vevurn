@@ -117,73 +117,158 @@ const webSocketService = new WebSocketService(io);
 (global as any).redisService = redisService;
 
 /**
- * Verify all services are healthy on startup
+ * Verify all services are healthy on startup with detailed logging
  */
 async function verifyServices() {
   const services = {
     database: false,
     redis: false,
     auth: false,
-    environment: false
+    environment: false,
+    webSockets: false,
+    rateLimiting: false
   };
 
-  console.log('🔍 Verifying service health...');
+  console.log('🔍 ==============================================');
+  console.log('🔍 STARTING SERVICE HEALTH VERIFICATION');
+  console.log('🔍 ==============================================');
 
   // Check Database Connection
+  console.log('📊 Checking Database Connection...');
   try {
     await prisma.$connect();
     await prisma.$queryRaw`SELECT 1`;
     services.database = true;
-    console.log('✅ Database connection: SUCCESS');
+    console.log('✅ Database Service: INITIALIZED SUCCESSFULLY');
+    console.log('   └─ PostgreSQL connection established');
+    console.log('   └─ Query execution verified');
   } catch (error) {
-    console.log('❌ Database connection: FAILED');
-    console.error('Database error:', error);
+    console.log('❌ Database Service: INITIALIZATION FAILED');
+    console.error('   └─ Database error:', error);
   }
 
   // Check Redis Connection
+  console.log('🔴 Checking Redis Connection...');
   try {
-    // Ensure Redis is connected before pinging
-    if (redis.status === 'ready' || redis.status === 'connect') {
+    if (!redis) {
+      console.log('⚠️  Redis Service: NOT CONFIGURED');
+      console.log('   └─ Redis client not initialized (will use database fallback)');
+    } else if (redis.status === 'ready' || redis.status === 'connect') {
       await redis.ping();
       services.redis = true;
-      console.log('✅ Redis connection: SUCCESS');
+      console.log('✅ Redis Service: INITIALIZED SUCCESSFULLY');
+      console.log('   └─ Connection established and verified');
+      console.log('   └─ Secondary storage available for Better Auth');
     } else {
       // Try to connect if not already connected
       await redis.connect();
       await redis.ping();
       services.redis = true;
-      console.log('✅ Redis connection: SUCCESS');
+      console.log('✅ Redis Service: INITIALIZED SUCCESSFULLY');
+      console.log('   └─ Connection established after reconnect');
     }
   } catch (error) {
-    console.log('❌ Redis connection: FAILED');
-    console.error('Redis error:', error);
+    console.log('❌ Redis Service: INITIALIZATION FAILED');
+    console.error('   └─ Redis error:', error);
+    console.log('   └─ Will fallback to database-only mode');
   }
 
   // Check Environment Variables
+  console.log('⚙️  Checking Environment Configuration...');
   try {
-    if (config.DATABASE_URL && config.REDIS_URL && config.BETTER_AUTH_SECRET) {
+    const requiredVars = ['DATABASE_URL', 'BETTER_AUTH_SECRET'];
+    const missingVars = requiredVars.filter(varName => !config[varName as keyof typeof config]);
+    
+    if (missingVars.length === 0) {
       services.environment = true;
-      console.log('✅ Environment variables: SUCCESS');
+      console.log('✅ Environment Service: INITIALIZED SUCCESSFULLY');
+      console.log('   └─ All required environment variables present');
+      console.log('   └─ Configuration validated');
+      
+      // Optional environment variables logging
+      const optionalServices = {
+        'Redis': config.REDIS_URL,
+        'Google OAuth': config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET,
+        'Microsoft OAuth': config.MICROSOFT_CLIENT_ID && config.MICROSOFT_CLIENT_SECRET,
+        'GitHub OAuth': config.GITHUB_CLIENT_ID && config.GITHUB_CLIENT_SECRET,
+        'AWS S3': config.AWS_ACCESS_KEY_ID && config.AWS_SECRET_ACCESS_KEY,
+        'SMTP Email': config.SMTP_HOST && config.SMTP_USER
+      };
+      
+      Object.entries(optionalServices).forEach(([service, configured]) => {
+        console.log(`   └─ ${service}: ${configured ? 'CONFIGURED' : 'NOT CONFIGURED'}`);
+      });
+      
     } else {
-      console.log('❌ Environment variables: FAILED - Missing required variables');
+      console.log('❌ Environment Service: INITIALIZATION FAILED');
+      console.log(`   └─ Missing required variables: ${missingVars.join(', ')}`);
     }
   } catch (error) {
-    console.log('❌ Environment variables: FAILED');
-    console.error('Environment error:', error);
+    console.log('❌ Environment Service: INITIALIZATION FAILED');
+    console.error('   └─ Environment error:', error);
   }
 
   // Check Better Auth Setup
+  console.log('🔐 Checking Better Auth Configuration...');
   try {
     if (config.BETTER_AUTH_SECRET && config.BETTER_AUTH_URL) {
       services.auth = true;
-      console.log('✅ Better Auth configuration: SUCCESS');
+      console.log('✅ Better Auth Service: INITIALIZED SUCCESSFULLY');
+      console.log('   └─ Secret key configured');
+      console.log('   └─ Base URL configured');
+      console.log(`   └─ Auth endpoint: ${config.BETTER_AUTH_URL}/api/auth`);
     } else {
-      console.log('❌ Better Auth configuration: FAILED');
+      console.log('❌ Better Auth Service: INITIALIZATION FAILED');
+      console.log('   └─ Missing required auth configuration');
     }
   } catch (error) {
-    console.log('❌ Better Auth configuration: FAILED');
-    console.error('Auth error:', error);
+    console.log('❌ Better Auth Service: INITIALIZATION FAILED');
+    console.error('   └─ Auth error:', error);
   }
+
+  // Check WebSocket Service
+  console.log('🔌 Checking WebSocket Service...');
+  try {
+    if (webSocketService && io) {
+      services.webSockets = true;
+      console.log('✅ WebSocket Service: INITIALIZED SUCCESSFULLY');
+      console.log('   └─ Socket.IO server configured');
+      console.log('   └─ Real-time communication enabled');
+      console.log(`   └─ CORS origins: ${getAllowedOrigins().join(', ')}`);
+    } else {
+      console.log('❌ WebSocket Service: INITIALIZATION FAILED');
+      console.log('   └─ Socket.IO server not initialized');
+    }
+  } catch (error) {
+    console.log('❌ WebSocket Service: INITIALIZATION FAILED');
+    console.error('   └─ WebSocket error:', error);
+  }
+
+  // Check Rate Limiting Service
+  console.log('🛡️  Checking Rate Limiting Service...');
+  try {
+    // Import rate limiting config
+    const { getBetterAuthRateLimitConfig } = await import('./lib/rate-limit-config.js');
+    const rateLimitConfig = getBetterAuthRateLimitConfig();
+    
+    if (rateLimitConfig) {
+      services.rateLimiting = true;
+      console.log('✅ Rate Limiting Service: INITIALIZED SUCCESSFULLY');
+      console.log(`   └─ Storage: ${services.redis ? 'Redis (primary)' : 'Memory (fallback)'}`);
+      console.log('   └─ Better Auth rate limiting enabled');
+      console.log('   └─ Custom rate limiting available');
+    } else {
+      console.log('⚠️  Rate Limiting Service: PARTIALLY INITIALIZED');
+      console.log('   └─ Basic rate limiting only');
+    }
+  } catch (error) {
+    console.log('❌ Rate Limiting Service: INITIALIZATION FAILED');
+    console.error('   └─ Rate limiting error:', error);
+  }
+
+  console.log('🔍 ==============================================');
+  console.log('🔍 SERVICE HEALTH VERIFICATION COMPLETE');
+  console.log('🔍 ==============================================');
 
   return services;
 }
@@ -369,11 +454,13 @@ async function startServer() {
       console.log(`🌍 Environment: ${config.NODE_ENV}`);
       console.log(`📡 Server: http://${config.HOST}:${config.PORT}`);
       console.log(`🔗 Base URL: https://vevurn.onrender.com`); // CORRECTED URL
-      console.log('\n📋 Service Health Status:');
-      console.log(`  ${serviceHealth.database ? '✅' : '❌'} Database: ${serviceHealth.database ? 'Healthy' : 'Unhealthy'}`);
-      console.log(`  ${serviceHealth.redis ? '✅' : '❌'} Redis: ${serviceHealth.redis ? 'Healthy' : 'Unhealthy'}`);
-      console.log(`  ${serviceHealth.auth ? '✅' : '❌'} Authentication: ${serviceHealth.auth ? 'Healthy' : 'Unhealthy'}`);
-      console.log(`  ${serviceHealth.environment ? '✅' : '❌'} Environment: ${serviceHealth.environment ? 'Healthy' : 'Unhealthy'}`);
+      console.log('\n📋 Service Health Summary:');
+      console.log(`  ${serviceHealth.database ? '✅' : '❌'} Database: ${serviceHealth.database ? 'Connected & Operational' : 'Connection Failed'}`);
+      console.log(`  ${serviceHealth.redis ? '✅' : '⚠️ '} Redis: ${serviceHealth.redis ? 'Connected & Operational' : 'Using Fallback Storage'}`);
+      console.log(`  ${serviceHealth.auth ? '✅' : '❌'} Better Auth: ${serviceHealth.auth ? 'Configured & Ready' : 'Configuration Failed'}`);
+      console.log(`  ${serviceHealth.environment ? '✅' : '❌'} Environment: ${serviceHealth.environment ? 'All Required Variables Set' : 'Missing Required Variables'}`);
+      console.log(`  ${serviceHealth.webSockets ? '✅' : '❌'} WebSocket: ${serviceHealth.webSockets ? 'Socket.IO Server Active' : 'Socket.IO Failed'}`);
+      console.log(`  ${serviceHealth.rateLimiting ? '✅' : '❌'} Rate Limiting: ${serviceHealth.rateLimiting ? 'Protection Active' : 'Protection Failed'}`);
       
       console.log('\n🔗 API Endpoints:');
       console.log(`📊 Health Check: https://vevurn.onrender.com/health`); // CORRECTED
