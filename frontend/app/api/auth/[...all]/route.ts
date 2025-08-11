@@ -5,7 +5,7 @@
  * Route: /api/auth/[...all]
  */
 
-const backendURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const backendURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Proxy all auth requests to backend
 async function handler(request: Request) {

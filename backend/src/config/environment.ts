@@ -21,6 +21,10 @@ const envSchema = z.object({
   // OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  MICROSOFT_CLIENT_ID: z.string().optional(),
+  MICROSOFT_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
   
   // File Upload
   UPLOAD_MAX_SIZE: z.string().default('10485760'),
@@ -66,6 +70,10 @@ function getEnvironmentConfig() {
       // OAuth
       GOOGLE_CLIENT_ID: env.GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET: env.GOOGLE_CLIENT_SECRET,
+      MICROSOFT_CLIENT_ID: env.MICROSOFT_CLIENT_ID,
+      MICROSOFT_CLIENT_SECRET: env.MICROSOFT_CLIENT_SECRET,
+      GITHUB_CLIENT_ID: env.GITHUB_CLIENT_ID,
+      GITHUB_CLIENT_SECRET: env.GITHUB_CLIENT_SECRET,
       
       // File Upload
       UPLOAD_MAX_SIZE: parseInt(env.UPLOAD_MAX_SIZE || '10485760', 10),

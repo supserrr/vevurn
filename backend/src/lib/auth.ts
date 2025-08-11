@@ -1,21 +1,36 @@
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
+import { APIError } from "better-auth/api"
 import { PrismaClient } from "@prisma/client"
 import { redisStorage } from "./redis-storage"
 import { databaseHooks } from "./database-hooks"
+import { databaseConfig } from "./database-config"
+import { authHooks } from "./auth-hooks"
 import { sendEmail, createVerificationEmailTemplate, createPasswordResetEmailTemplate, createWelcomeEmailTemplate } from "./email-service"
 import { config, getAllowedOrigins } from "../config/environment"
+import { getBetterAuthRateLimitConfig } from "./rate-limit-config"
 
 const prisma = new PrismaClient()
 
 export const auth = betterAuth({
   baseURL: config.BETTER_AUTH_URL,
   secret: config.BETTER_AUTH_SECRET,
+  // Trusted origins for CORS and cookie handling
+  trustedOrigins: getAllowedOrigins(),
+  
+  // Enhanced database configuration following Better Auth documentation patterns
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  
+  // Secondary storage with Redis (following documentation patterns)
   secondaryStorage: redisStorage,
+  
+  // Enhanced database hooks with comprehensive business logic
   databaseHooks,
+  
+  // Enhanced application hooks following Better Auth documentation patterns
+  hooks: authHooks,
   session: {
     // Session duration: 12 hours for POS environments (staff shifts)
     expiresIn: 60 * 60 * 12, // 12 hours in seconds
@@ -31,73 +46,68 @@ export const auth = betterAuth({
     // Keep session refresh enabled for active users
     disableSessionRefresh: false,
   },
-  rateLimit: {
-    enabled: process.env.NODE_ENV === 'production', // Enable in production, disable in development
-    window: 60, // 1 minute window
-    max: 100, // 100 requests per minute (generous for POS operations)
-    storage: "secondary-storage", // Use Redis for distributed rate limiting
-    customRules: {
-      // Stricter limits for authentication endpoints
-      "/sign-in/email": {
-        window: 60, // 1 minute
-        max: 5, // 5 login attempts per minute per IP
-      },
-      "/sign-up/email": {
-        window: 300, // 5 minutes
-        max: 3, // Only 3 signup attempts per 5 minutes
-      },
-      "/reset-password": {
-        window: 300, // 5 minutes
-        max: 3, // Only 3 password reset requests per 5 minutes
-      },
-      "/verify-email": {
-        window: 300, // 5 minutes
-        max: 5, // 5 verification attempts per 5 minutes
-      },
-      // Social OAuth endpoints (slightly more lenient)
-      "/sign-in/social/*": {
-        window: 60,
-        max: 10, // 10 OAuth attempts per minute
-      },
-      // Account linking (less frequent operation)
-      "/link-social": {
-        window: 300, // 5 minutes
-        max: 5, // 5 link attempts per 5 minutes
-      },
-      // Password change (sensitive operation)
-      "/change-password": {
-        window: 300, // 5 minutes
-        max: 3, // Only 3 password changes per 5 minutes
-      },
-      // Session management
-      "/sign-out": {
-        window: 60,
-        max: 20, // Allow frequent sign-outs (shift changes)
-      },
-      // POS-specific: Allow higher limits for operational endpoints
-      "/session": {
-        window: 60,
-        max: 200, // High limit for session checks during POS operations
-      },
-    },
-  },
+  rateLimit: getBetterAuthRateLimitConfig(),
   advanced: {
+    // Cookie configuration for POS system
+    cookiePrefix: "vevurn-pos", // Custom prefix for your POS cookies
+    useSecureCookies: process.env.NODE_ENV === 'production', // Force secure cookies in production
+    cookies: {
+      session_token: {
+        name: "vevurn_session", // Custom session cookie name
+        attributes: {
+          maxAge: 60 * 60 * 12, // 12 hours to match session duration
+          sameSite: "strict", // Strict same-site for POS security
+          path: "/", // Available across the entire app
+        }
+      },
+      session_data: {
+        name: "vevurn_session_data", // Custom session data cookie name
+        attributes: {
+          maxAge: 5 * 60, // 5 minutes to match cache duration
+          sameSite: "strict",
+          path: "/",
+        }
+      },
+      dont_remember: {
+        name: "vevurn_dont_remember", // Custom remember me cookie
+        attributes: {
+          maxAge: 60 * 60 * 24 * 30, // 30 days
+          sameSite: "strict",
+          path: "/",
+        }
+      }
+    },
+    // IP Address handling for POS environments (enhanced for rate limiting)
     ipAddress: {
       // Support multiple IP header formats for different deployment environments
       ipAddressHeaders: [
         "cf-connecting-ip", // Cloudflare
-        "x-forwarded-for", // Standard proxy
+        "x-forwarded-for", // Standard proxy (Better Auth default)
         "x-real-ip", // Nginx
-        "x-client-ip", // Alternative
-        "x-forwarded", // Legacy
+        "x-client-ip", // Alternative header
+        "x-forwarded", // Legacy proxy header
+        "forwarded-for", // RFC 7239
+        "forwarded" // RFC 7239 standard
       ],
     },
   },
+  
+  // Enhanced email and password authentication following Better Auth documentation
   emailAndPassword: {
     enabled: true,
+    // Auto sign in after successful registration (Better Auth pattern)
     autoSignIn: true,
-    requireEmailVerification: process.env.NODE_ENV === 'production', // Require verification in production
-    sendResetPassword: async ({ user, url }, _request) => {
+    // Require email verification in production for security
+    requireEmailVerification: process.env.NODE_ENV === 'production',
+    // Disable sign up if needed (useful for invite-only systems)
+    disableSignUp: false,
+    // Password security configuration
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
+    // Reset password token expiration (1 hour)
+    resetPasswordTokenExpiresIn: 60 * 60, // 1 hour in seconds
+    // Password reset email functionality
+    sendResetPassword: async ({ user, url, token }, _request) => {
       const template = createPasswordResetEmailTemplate(user.name || user.email, url)
       await sendEmail({
         to: user.email,
@@ -105,6 +115,16 @@ export const auth = betterAuth({
         html: template.html,
         text: template.text,
       })
+      console.log(`Password reset email sent to ${user.email}`)
+    },
+    // Callback after successful password reset
+    onPasswordReset: async ({ user }, _request) => {
+      console.log(`Password successfully reset for user: ${user.email} (ID: ${user.id})`)
+      // Here you could add additional logic:
+      // - Send confirmation email
+      // - Log security event
+      // - Notify admin if needed
+      // - Invalidate other sessions for security
     },
   },
   emailVerification: {
@@ -260,7 +280,7 @@ export const auth = betterAuth({
     accountLinking: {
       enabled: true,
       // Allow trusted providers (Google, Microsoft) to link automatically
-      trustedProviders: ["google"],
+      trustedProviders: ["google", "microsoft"],
       // Allow linking accounts with different email addresses (for POS flexibility)
       allowDifferentEmails: true,
       // Update user info when linking new accounts
@@ -274,6 +294,10 @@ export const auth = betterAuth({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       scope: ["email", "profile"],
+      // Enhanced Google OAuth Configuration following Better Auth documentation
+      accessType: "offline", // Always get refresh token for long-term access
+      prompt: "select_account+consent", // Always ask for account selection and consent
+      // This ensures we get refresh tokens on every authorization
       mapProfileToUser: (profile) => {
         return {
           firstName: profile.given_name || profile.name?.split(' ')[0] || '',
@@ -281,10 +305,98 @@ export const auth = betterAuth({
         }
       },
     },
-    // Removed Microsoft and GitHub providers to simplify configuration
-    // and avoid requiring unused environment variables in production
+    microsoft: {
+      clientId: process.env.MICROSOFT_CLIENT_ID!,
+      clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+      scope: ["user.read"],
+      mapProfileToUser: (profile) => {
+        return {
+          firstName: profile.givenName || profile.displayName?.split(' ')[0] || '',
+          lastName: profile.surname || profile.displayName?.split(' ').slice(1).join(' ') || '',
+        }
+      },
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      scope: ["user:email"],
+      mapProfileToUser: (profile) => {
+        const fullName = profile.name || profile.login || ''
+        return {
+          firstName: fullName.split(' ')[0] || '',
+          lastName: fullName.split(' ').slice(1).join(' ') || '',
+        }
+      },
+    },
   },
-  trustedOrigins: getAllowedOrigins(),
 })
 
+// Better Auth TypeScript Integration
+// Export inferred types following Better Auth documentation patterns
+
+/**
+ * Session type including both session and user properties
+ * The user property represents the user object type with all additional fields
+ * The session property represents the session object type
+ */
 export type Session = typeof auth.$Infer.Session
+
+/**
+ * User type extracted from Session (Better Auth pattern)
+ * Includes: role, employeeId, firstName, lastName, isActive, maxDiscountAllowed, canSellBelowMin
+ */
+export type User = Session['user']
+
+/**
+ * Session object type (without user)
+ */
+export type SessionData = Session['session']
+
+/**
+ * Type-safe additional fields configuration
+ * Matches the server configuration for client-side inference
+ */
+export const additionalFieldsConfig = {
+  user: {
+    role: {
+      type: "string" as const,
+      required: false,
+      input: false // Security: prevent users from setting their own role
+    },
+    employeeId: {
+      type: "string" as const,
+      required: false,
+      input: false // Security: prevent users from setting their own employee ID
+    },
+    firstName: {
+      type: "string" as const,
+      required: true,
+      input: true // Allow users to set first name during registration
+    },
+    lastName: {
+      type: "string" as const,
+      required: true,
+      input: true // Allow users to set last name during registration
+    },
+    isActive: {
+      type: "boolean" as const,
+      required: false,
+      input: false // Security: only admins can activate/deactivate users
+    },
+    maxDiscountAllowed: {
+      type: "number" as const,
+      required: false,
+      input: false // Security: only admins can set discount limits
+    },
+    canSellBelowMin: {
+      type: "boolean" as const,
+      required: false,
+      input: false // Security: only admins can grant below-minimum selling permission
+    }
+  }
+} as const
+
+/**
+ * Auth configuration type for type-safe server setup
+ */
+export type AuthConfig = typeof auth

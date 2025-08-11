@@ -74,7 +74,7 @@ export function roleMiddleware(allowedRoles: string[]) {
         return
       }
 
-      const userRole = user.role
+      const userRole = user.role as string
       const userRoleLevel = ROLE_HIERARCHY[userRole] || 0
       
       // Check if user has any of the allowed roles
@@ -133,7 +133,7 @@ export function permissionMiddleware(requiredPermissions: string[]) {
         return
       }
 
-      const userRole = user.role
+      const userRole = user.role as string
       const userPermissions = ROLE_PERMISSIONS[userRole] || []
 
       // Check if user has admin role (full access)
@@ -200,7 +200,8 @@ export function ownershipMiddleware(
       }
 
       // Check if user has elevated role
-      const userRoleLevel = ROLE_HIERARCHY[user.role] || 0
+      const userRole = user.role as string
+      const userRoleLevel = ROLE_HIERARCHY[userRole] || 0
       const hasElevatedRole = allowedRoles.some(role => {
         const requiredLevel = ROLE_HIERARCHY[role] || 0
         return userRoleLevel >= requiredLevel

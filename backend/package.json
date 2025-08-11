@@ -1,6 +1,7 @@
 {
   "name": "@vevurn/backend",
   "version": "1.0.0",
+  "type": "module",
   "description": "Vevurn POS Backend API",
   "main": "dist/index.js",
   "packageManager": "pnpm@9.14.4",
@@ -16,6 +17,8 @@
     "test:oauth": "tsx scripts/test-oauth.ts",
     "test:rate-limit": "tsx scripts/test-rate-limit.ts",
     "test:session": "tsx test-session-management.ts",
+    "test:express-integration": "tsx scripts/validate-express-integration.ts",
+    "check:express-compliance": "tsx scripts/check-express-compliance.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "db:generate": "prisma generate",

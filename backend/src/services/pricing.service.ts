@@ -126,12 +126,13 @@ export class PricingService {
     }
 
     // Check if staff has permission for this discount percentage
-    if (discountPercentage > staff.maxDiscountAllowed) {
+    const maxDiscountAllowed = staff.maxDiscountAllowed || 0;
+    if (discountPercentage > maxDiscountAllowed) {
       return {
         isValid: false,
         requiresApproval: true,
-        reason: `Discount of ${discountPercentage.toFixed(1)}% exceeds staff limit of ${staff.maxDiscountAllowed}%`,
-        maxAllowedPrice: basePrice * (1 - staff.maxDiscountAllowed / 100)
+        reason: `Discount of ${discountPercentage.toFixed(1)}% exceeds staff limit of ${maxDiscountAllowed}%`,
+        maxAllowedPrice: basePrice * (1 - maxDiscountAllowed / 100)
       };
     }
 
@@ -179,12 +180,14 @@ export class PricingService {
 
     if (!staff || !product) return 0;
 
+    const maxStaffDiscount = staff.maxDiscountAllowed || 0;
+
     // Return the more restrictive limit
     if (product.maxDiscountPercent > 0) {
-      return Math.min(staff.maxDiscountAllowed, product.maxDiscountPercent);
+      return Math.min(maxStaffDiscount, product.maxDiscountPercent);
     }
 
-    return staff.maxDiscountAllowed;
+    return maxStaffDiscount;
   }
 
   /**

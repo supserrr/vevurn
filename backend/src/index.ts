@@ -23,7 +23,7 @@ import { rateLimiter } from './middleware/rateLimiter';
 
 // Import Better Auth
 import { auth } from './lib/index.js';
-import { toNodeHandler } from 'better-auth/node';
+import { toNodeHandler, fromNodeHeaders } from 'better-auth/node';
 
 // Import routes
 import productRoutes from './routes/products';
@@ -34,6 +34,13 @@ import supplierRoutes from './routes/suppliers';
 import reportRoutes from './routes/reports';
 import pricingRoutes from './routes/pricing.routes';
 import mobileMoneyRoutes from './routes/mobileMoneyRoutes';
+import authRoutes from './routes/authRoutes';
+
+// Import authentication middleware
+import { requireAuth, optionalAuth, requireEmailVerified } from './middleware/authMiddleware';
+
+// Import testing utilities
+import { createTestRoute } from './utils/betterAuthExpressTest';
 
 // Import services
 import { DatabaseService } from './services/DatabaseService';
@@ -141,7 +148,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 
-// Basic middleware
+// IMPORTANT: Better Auth handler MUST be mounted BEFORE other middleware
+app.all('/api/auth/*', toNodeHandler(auth));
+
+// Basic middleware (mounted AFTER Better Auth handler per documentation)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(requestLogger);
@@ -177,6 +187,45 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+// Better Auth session endpoint - Following Express integration documentation
+app.get('/api/me', async (req, res) => {
+  try {
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+    
+    if (!session) {
+      return res.status(401).json({ 
+        error: 'Not authenticated',
+        message: 'No valid session found'
+      });
+    }
+    
+    return res.json({
+      success: true,
+      data: {
+        user: session.user,
+        session: {
+          id: session.session.id,
+          userId: session.session.userId,
+          expiresAt: session.session.expiresAt,
+          createdAt: session.session.createdAt,
+          updatedAt: session.session.updatedAt
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Session error:', error);
+    return res.status(500).json({ 
+      error: 'Session retrieval failed',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Better Auth integration test endpoint
+app.get('/api/test/auth-integration', createTestRoute());
+
 app.get('/api/health', async (_req, res) => {
   try {
     const serviceHealth = await verifyServices();
@@ -198,18 +247,16 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
-// Better Auth handler
-app.all('/api/auth/*', toNodeHandler(auth));
-
-// API routes
-app.use('/api/customers', customerRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/sales', saleRoutes);
-app.use('/api/suppliers', supplierRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/pricing', pricingRoutes);
-app.use('/api/mobile-money', mobileMoneyRoutes);
+// API routes with authentication middleware following Better Auth Express integration
+app.use('/api/auth-info', authRoutes); // Additional auth endpoints (separate from Better Auth handler)
+app.use('/api/customers', requireAuth, customerRoutes);
+app.use('/api/products', requireAuth, productRoutes);
+app.use('/api/categories', requireAuth, categoryRoutes);
+app.use('/api/sales', requireAuth, requireEmailVerified, saleRoutes);
+app.use('/api/suppliers', requireAuth, supplierRoutes);
+app.use('/api/reports', requireAuth, requireEmailVerified, reportRoutes);
+app.use('/api/pricing', requireAuth, pricingRoutes);
+app.use('/api/mobile-money', requireAuth, requireEmailVerified, mobileMoneyRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {

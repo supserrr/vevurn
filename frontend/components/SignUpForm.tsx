@@ -3,48 +3,93 @@
 import { useState } from "react"
 import { signUp } from "../lib/auth-client"
 import { useRouter } from "next/navigation"
+import SocialAuthButtons from "./SocialAuthButtons"
 
 export default function SignUpForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [name, setName] = useState("")
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
 
+  const validateForm = () => {
+    if (!firstName.trim()) {
+      setError("First name is required")
+      return false
+    }
+    if (!lastName.trim()) {
+      setError("Last name is required")
+      return false
+    }
+    if (!email.trim()) {
+      setError("Email is required")
+      return false
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Invalid email format")
+      return false
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters")
+      return false
+    }
+    return true
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     setError("")
+    
+    if (!validateForm()) {
+      return
+    }
 
-    const { data, error: signUpError } = await signUp.email({
-      email,
+    setIsLoading(true)
+
+    // Log the exact request payload for debugging
+    const requestData = {
+      email: email.trim(),
       password,
-      name,
+      name: `${firstName.trim()} ${lastName.trim()}`,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       callbackURL: "/dashboard",
-      // Required additional fields
-      role: "employee", // Default role
-      employeeId: "", // Will be set by admin later
-      firstName: name.split(" ")[0] || name,
-      lastName: name.split(" ").slice(1).join(" ") || "",
+      // Additional Better Auth fields
+      role: "cashier", // Default role for new users
+      employeeId: "", // Will be set by admin later (empty string instead of null)
       isActive: true,
       maxDiscountAllowed: 0,
       canSellBelowMin: false
-    }, {
-      onRequest: () => {
-        setIsLoading(true)
-      },
-      onSuccess: () => {
-        router.push("/dashboard")
-      },
-      onError: (ctx: any) => {
-        setError(ctx.error.message)
-        setIsLoading(false)
-      },
-    })
+    }
 
-    if (signUpError) {
-      setError(signUpError.message || "An error occurred during sign up")
+    console.log('Registration payload:', requestData)
+
+    try {
+      const { data, error: signUpError } = await signUp.email(requestData, {
+        onRequest: () => {
+          console.log('Registration request started')
+        },
+        onSuccess: () => {
+          console.log('Registration successful, redirecting to dashboard')
+          router.push("/dashboard")
+        },
+        onError: (ctx: any) => {
+          console.error('Registration error context:', ctx)
+          setError(ctx.error?.message || "Registration failed")
+          setIsLoading(false)
+        },
+      })
+
+      if (signUpError) {
+        console.error('Sign up error:', signUpError)
+        setError(signUpError.message || "An error occurred during sign up")
+        setIsLoading(false)
+      }
+    } catch (error) {
+      console.error('Unexpected registration error:', error)
+      setError("An unexpected error occurred. Please try again.")
       setIsLoading(false)
     }
   }
@@ -61,14 +106,28 @@ export default function SignUpForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-            Full Name
+          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+            First Name
           </label>
           <input
             type="text"
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            id="firstName"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            required
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+            Last Name
+          </label>
+          <input
+            type="text"
+            id="lastName"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
             required
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
           />
@@ -113,6 +172,22 @@ export default function SignUpForm() {
         >
           {isLoading ? "Creating account..." : "Create Account"}
         </button>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-300" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+          </div>
+        </div>
+
+        <SocialAuthButtons 
+          mode="signup" 
+          disabled={isLoading}
+          showDivider={false}
+          providers={['google', 'microsoft']}
+        />
       </form>
 
       <div className="mt-4 text-center">

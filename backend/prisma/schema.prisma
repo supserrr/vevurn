@@ -1,5 +1,6 @@
 // Vevurn POS System Database Schema
 // This is your Prisma schema file
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,37 +15,33 @@ datasource db {
 // =============================================
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  
+  id                       String             @id @default(cuid())
+  name                     String?
+  email                    String             @unique
+  emailVerified            DateTime?
+  image                    String?
   // Better Auth required fields
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
   // Your custom fields
-  role              String   @default("cashier")
-  employeeId        String?  @unique
-  firstName         String
-  lastName          String
-  isActive          Boolean  @default(true)
-  maxDiscountAllowed Int?    @default(0)
-  canSellBelowMin   Boolean? @default(false)
-  
+  role                     String             @default("cashier")
+  employeeId               String?            @unique
+  firstName                String
+  lastName                 String
+  isActive                 Boolean            @default(true)
+  maxDiscountAllowed       Int?               @default(0)
+  canSellBelowMin          Boolean?           @default(false)
   // Relations
-  accounts Account[]
-  sessions Session[]
-  
+  accounts                 Account[]
+  sessions                 Session[]
   // POS system relations
-  sales                        Sale[]
-  auditLogs                   AuditLog[]
-  stockMovements              StockMovement[]
-  approvedDiscounts           SaleItem[] @relation("ApprovedBy")
-  requestedDiscounts          DiscountApproval[] @relation("RequestedDiscounts")
-  approvedDiscountRequests    DiscountApproval[] @relation("ApprovedDiscountRequests")
-  
+  sales                    Sale[]
+  auditLogs                AuditLog[]
+  stockMovements           StockMovement[]
+  approvedDiscounts        SaleItem[]         @relation("ApprovedBy")
+  requestedDiscounts       DiscountApproval[] @relation("RequestedDiscounts")
+  approvedDiscountRequests DiscountApproval[] @relation("ApprovedDiscountRequests")
+
   @@map("users")
 }
 
@@ -57,29 +54,27 @@ model Session {
   userAgent String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("sessions")
 }
 
 model Account {
-  id                       String    @id @default(cuid())
-  userId                   String
-  accountId                String    @map("providerAccountId") // Better Auth expects 'accountId'
-  providerId               String    @map("provider") // Better Auth expects 'providerId'
-  accessToken             String?   @db.Text @map("access_token")
-  refreshToken            String?   @db.Text @map("refresh_token")
-  accessTokenExpiresAt    DateTime? @map("expires_at")
-  refreshTokenExpiresAt   DateTime?
-  scope                   String?
-  idToken                 String?   @db.Text @map("id_token")
-  password                String?   // For email/password auth
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String    @map("providerAccountId") // Better Auth expects 'accountId'
+  providerId            String    @map("provider") // Better Auth expects 'providerId'
+  accessToken           String?   @db.Text @map("access_token")
+  refreshToken          String?   @db.Text @map("refresh_token")
+  accessTokenExpiresAt  DateTime? @map("expires_at")
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?   @db.Text @map("id_token")
+  password              String? // For email/password auth
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([providerId, accountId])
   @@map("accounts")
 }
@@ -91,15 +86,16 @@ model Verification {
   expiresAt  DateTime @map("expires") // Better Auth expects 'expiresAt'
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  
+
   @@unique([identifier, value])
   @@map("verification_tokens")
 }
 
 // Rate Limit table for Better Auth (optional - can use Redis instead)
+
 model RateLimit {
-  id          String @id @default(cuid())
-  key         String @unique
+  id          String   @id @default(cuid())
+  key         String   @unique
   count       Int
   lastRequest BigInt
   createdAt   DateTime @default(now())
@@ -109,6 +105,7 @@ model RateLimit {
 }
 
 // Legacy UserRole enum - kept for reference but not used in User model anymore
+
 enum UserRole {
   ADMIN
   MANAGER
@@ -121,78 +118,67 @@ enum UserRole {
 // =============================================
 
 model Category {
-  id          String @id @default(cuid())
-  name        String @unique
+  id          String    @id @default(cuid())
+  name        String    @unique
   description String?
-  isActive    Boolean @default(true)
-  
+  isActive    Boolean   @default(true)
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   // Relations
-  products Product[]
-  
+  products    Product[]
+
   @@map("categories")
 }
 
 model Product {
-  id          String  @id @default(cuid())
-  name        String
-  description String?
-  sku         String  @unique
-  barcode     String? @unique
-  brand       String?
-  model       String?
-  color       String?
-  
+  id                 String            @id @default(cuid())
+  name               String
+  description        String?
+  sku                String            @unique
+  barcode            String?           @unique
+  brand              String?
+  model              String?
+  color              String?
   // Flexible Pricing System (RWF - Primary Currency)
-  basePriceRwf         Float   // Standard selling price
-  minPriceRwf          Float   // Minimum allowed selling price
-  maxDiscountPercent   Float   @default(0) // Maximum discount allowed on this product
-  wholesalePriceRwf    Float?  // Price for consignment/wholesale
-  
+  basePriceRwf       Float // Standard selling price
+  minPriceRwf        Float // Minimum allowed selling price
+  maxDiscountPercent Float             @default(0) // Maximum discount allowed on this product
+  wholesalePriceRwf  Float? // Price for consignment/wholesale
   // Multi-currency support (USD)
-  basePriceUsd         Float?
-  minPriceUsd          Float?
-  wholesalePriceUsd    Float?
-  
+  basePriceUsd       Float?
+  minPriceUsd        Float?
+  wholesalePriceUsd  Float?
   // Multi-currency support (EUR)
-  basePriceEur         Float?
-  minPriceEur          Float?
-  wholesalePriceEur    Float?
-  
+  basePriceEur       Float?
+  minPriceEur        Float?
+  wholesalePriceEur  Float?
   // Legacy pricing (will be migrated to basePriceRwf)
-  priceRwf Float?
-  priceUsd Float?
-  priceEur Float?
-  costPrice Float?
-  
+  priceRwf           Float?
+  priceUsd           Float?
+  priceEur           Float?
+  costPrice          Float?
   // Inventory
-  stockQuantity    Int     @default(0)
-  minStockLevel    Int     @default(0)
-  maxStockLevel    Int?
-  reorderPoint     Int     @default(0)
-  isActive         Boolean @default(true)
-  isTrackInventory Boolean @default(true)
-  
+  stockQuantity      Int               @default(0)
+  minStockLevel      Int               @default(0)
+  maxStockLevel      Int?
+  reorderPoint       Int               @default(0)
+  isActive           Boolean           @default(true)
+  isTrackInventory   Boolean           @default(true)
   // Product specifications
-  specifications Json?
-  
+  specifications     Json?
   // Images and media
-  images String[]
-  
+  images             String[]
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   // Relations
-  category       Category        @relation(fields: [categoryId], references: [id])
-  categoryId     String
-  saleItems      SaleItem[]
-  stockMovements StockMovement[]
-  suppliers      ProductSupplier[]
-  
+  category           Category          @relation(fields: [categoryId], references: [id])
+  categoryId         String
+  saleItems          SaleItem[]
+  stockMovements     StockMovement[]
+  suppliers          ProductSupplier[]
+
   @@index([sku])
   @@index([barcode])
   @@index([categoryId])
@@ -200,38 +186,34 @@ model Product {
 }
 
 model Supplier {
-  id      String  @id @default(cuid())
-  name    String  @unique
-  contact String?
-  email   String?
-  phone   String?
-  address String?
-  
+  id        String            @id @default(cuid())
+  name      String            @unique
+  contact   String?
+  email     String?
+  phone     String?
+  address   String?
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
   // Relations
-  products ProductSupplier[]
-  
+  products  ProductSupplier[]
+
   @@map("suppliers")
 }
 
 model ProductSupplier {
-  id         String @id @default(cuid())
-  product    Product @relation(fields: [productId], references: [id])
-  productId  String
-  supplier   Supplier @relation(fields: [supplierId], references: [id])
-  supplierId String
-  
+  id            String   @id @default(cuid())
+  product       Product  @relation(fields: [productId], references: [id])
+  productId     String
+  supplier      Supplier @relation(fields: [supplierId], references: [id])
+  supplierId    String
   supplierSku   String?
   supplierPrice Float?
   leadTimeDays  Int?
   minOrderQty   Int?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
   @@unique([productId, supplierId])
   @@map("product_suppliers")
 }
@@ -241,51 +223,43 @@ model ProductSupplier {
 // =============================================
 
 model Sale {
-  id            String     @id @default(cuid())
-  receiptNumber String     @unique
-  
+  id               String        @id @default(cuid())
+  receiptNumber    String        @unique
   // Customer information
-  customerName  String?
-  customerPhone String?
-  customerEmail String?
-  
+  customerName     String?
+  customerPhone    String?
+  customerEmail    String?
   // Sale totals (all in selected currency)
-  currency      Currency   @default(RWF)
-  subtotal      Float
-  taxAmount     Float      @default(0)
-  discountAmount Float     @default(0)
-  totalAmount   Float
-  
+  currency         Currency      @default(RWF)
+  subtotal         Float
+  taxAmount        Float         @default(0)
+  discountAmount   Float         @default(0)
+  totalAmount      Float
   // Payment information
-  paymentMethod PaymentMethod
-  paymentStatus PaymentStatus @default(PENDING)
-  paidAmount    Float         @default(0)
-  changeAmount  Float         @default(0)
-  
+  paymentMethod    PaymentMethod
+  paymentStatus    PaymentStatus @default(PENDING)
+  paidAmount       Float         @default(0)
+  changeAmount     Float         @default(0)
   // MTN Mobile Money details (if applicable)
   mtnTransactionId String?
   mtnStatus        String?
-  
   // Staff and commission
-  cashier      User   @relation(fields: [cashierId], references: [id])
-  cashierId    String
-  staffNotes   String?
-  commission   Float? @default(0)
-  
+  cashier          User          @relation(fields: [cashierId], references: [id])
+  cashierId        String
+  staffNotes       String?
+  commission       Float?        @default(0)
   // Sale status and tracking
-  status    SaleStatus @default(COMPLETED)
-  isVoided  Boolean    @default(false)
-  voidReason String?
-  
+  status           SaleStatus    @default(COMPLETED)
+  isVoided         Boolean       @default(false)
+  voidReason       String?
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
   // Relations
-  items     SaleItem[]
-  payments  Payment[]
-  auditLogs AuditLog[]
-  
+  items            SaleItem[]
+  payments         Payment[]
+  auditLogs        AuditLog[]
+
   @@index([receiptNumber])
   @@index([cashierId])
   @@index([createdAt])
@@ -294,67 +268,56 @@ model Sale {
 }
 
 model SaleItem {
-  id       String @id @default(cuid())
-  sale     Sale   @relation(fields: [saleId], references: [id])
-  saleId   String
-  product  Product @relation(fields: [productId], references: [id])
-  productId String
-  
-  quantity         Int
-  basePrice        Float  // Original base price at time of sale
-  negotiatedPrice  Float  // Final price after negotiation
-  totalPrice       Float  // negotiatedPrice * quantity
-  
+  id                 String   @id @default(cuid())
+  sale               Sale     @relation(fields: [saleId], references: [id])
+  saleId             String
+  product            Product  @relation(fields: [productId], references: [id])
+  productId          String
+  quantity           Int
+  basePrice          Float // Original base price at time of sale
+  negotiatedPrice    Float // Final price after negotiation
+  totalPrice         Float // negotiatedPrice * quantity
   // Discount tracking
-  discountAmount      Float  @default(0) // basePrice - negotiatedPrice
-  discountPercentage  Float  @default(0) // Calculated percentage
-  discountReason      String @default("none") // Reason for discount
-  
+  discountAmount     Float    @default(0) // basePrice - negotiatedPrice
+  discountPercentage Float    @default(0) // Calculated percentage
+  discountReason     String   @default("none") // Reason for discount
   // Approval tracking for below-minimum sales
-  approvedBy    String? // User ID who approved below-minimum sale
-  approver      User?   @relation("ApprovedBy", fields: [approvedBy], references: [id])
-  approvalNotes String?
-  
+  approvedBy         String? // User ID who approved below-minimum sale
+  approver           User?    @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  approvalNotes      String?
   // Legacy discount field (will be deprecated)
-  discount    Float @default(0)
-  
+  discount           Float    @default(0)
   // Product snapshot at time of sale
-  productName String
-  productSku  String
-  
-  createdAt DateTime @default(now())
-  
+  productName        String
+  productSku         String
+  createdAt          DateTime @default(now())
+
   @@index([saleId])
   @@index([productId])
   @@map("sale_items")
 }
 
 model Payment {
-  id              String        @id @default(cuid())
-  sale            Sale          @relation(fields: [saleId], references: [id])
-  saleId          String
-  
-  amount          Float
-  paymentMethod   PaymentMethod
-  currency        Currency
-  
+  id               String        @id @default(cuid())
+  sale             Sale          @relation(fields: [saleId], references: [id])
+  saleId           String
+  amount           Float
+  paymentMethod    PaymentMethod
+  currency         Currency
   // MTN Mobile Money specific
-  mtnPhoneNumber    String?
-  mtnTransactionId  String?
-  mtnStatus         String?
-  mtnReferenceId    String?
-  
+  mtnPhoneNumber   String?
+  mtnTransactionId String?
+  mtnStatus        String?
+  mtnReferenceId   String?
   // Bank transfer specific
-  bankReference     String?
-  bankAccount       String?
-  
-  status          PaymentStatus @default(PENDING)
-  processedAt     DateTime?
-  failureReason   String?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  bankReference    String?
+  bankAccount      String?
+  status           PaymentStatus @default(PENDING)
+  processedAt      DateTime?
+  failureReason    String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
   @@index([saleId])
   @@map("payments")
 }
@@ -364,44 +327,37 @@ model Payment {
 // =============================================
 
 model DiscountApproval {
-  id            String         @id @default(cuid())
-  
+  id              String         @id @default(cuid())
   // Request details
-  requestedBy   User           @relation("RequestedDiscounts", fields: [requestedById], references: [id])
-  requestedById String
-  
+  requestedBy     User           @relation("RequestedDiscounts", fields: [requestedById], references: [id])
+  requestedById   String
   // Sale information
-  saleId        String?        // If part of a sale
-  productId     String
-  productName   String
-  productSku    String
-  
+  saleId          String? // If part of a sale
+  productId       String
+  productName     String
+  productSku      String
   // Pricing details
-  basePrice         Float
-  requestedPrice    Float
-  minimumPrice      Float
-  discountAmount    Float
-  discountPercent   Float
-  
+  basePrice       Float
+  requestedPrice  Float
+  minimumPrice    Float
+  discountAmount  Float
+  discountPercent Float
   // Request details
-  reason            String
-  customerContext   String?
-  businessCase      String?
-  
+  reason          String
+  customerContext String?
+  businessCase    String?
   // Approval workflow
-  status            ApprovalStatus @default(PENDING)
-  approvedBy        String?
-  approver          User?          @relation("ApprovedDiscountRequests", fields: [approvedBy], references: [id])
-  approvalNotes     String?
-  approvedAt        DateTime?
-  
+  status          ApprovalStatus @default(PENDING)
+  approvedBy      String?
+  approver        User?          @relation("ApprovedDiscountRequests", fields: [approvedBy], references: [id])
+  approvalNotes   String?
+  approvedAt      DateTime?
   // Metadata
-  currency          Currency       @default(RWF)
-  quantity          Int            @default(1)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  currency        Currency       @default(RWF)
+  quantity        Int            @default(1)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
   @@index([status])
   @@index([requestedById])
   @@index([approvedBy])
@@ -410,59 +366,51 @@ model DiscountApproval {
 }
 
 model Customer {
-  id      String  @id @default(cuid())
-  name    String
-  phone   String? @unique
-  email   String? @unique
-  address String?
-  
+  id             String     @id @default(cuid())
+  name           String
+  phone          String?    @unique
+  email          String?    @unique
+  address        String?
   // Photo documentation
-  photoUrl String?
-  
+  photoUrl       String?
   // Customer status
-  isActive       Boolean @default(true)
-  creditLimit    Float   @default(0)
-  currentBalance Float   @default(0)
-  
+  isActive       Boolean    @default(true)
+  creditLimit    Float      @default(0)
+  currentBalance Float      @default(0)
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
   // Relations
-  loans     Loan[]
-  auditLogs AuditLog[]
-  
+  loans          Loan[]
+  auditLogs      AuditLog[]
+
   @@index([phone])
   @@index([email])
   @@map("customers")
 }
 
 model Loan {
-  id         String @id @default(cuid())
-  customer   Customer @relation(fields: [customerId], references: [id])
-  customerId String
-  
+  id              String        @id @default(cuid())
+  customer        Customer      @relation(fields: [customerId], references: [id])
+  customerId      String
   // Loan details
   principalAmount Float
-  interestRate    Float    @default(0)
+  interestRate    Float         @default(0)
   totalAmount     Float
-  paidAmount      Float    @default(0)
+  paidAmount      Float         @default(0)
   remainingAmount Float
-  currency        Currency @default(RWF)
-  
+  currency        Currency      @default(RWF)
   // Loan terms
-  dueDate     DateTime
-  status      LoanStatus @default(ACTIVE)
-  notes       String?
-  
+  dueDate         DateTime
+  status          LoanStatus    @default(ACTIVE)
+  notes           String?
   // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   // Relations
-  payments  LoanPayment[]
-  auditLogs AuditLog[]
-  
+  payments        LoanPayment[]
+  auditLogs       AuditLog[]
+
   @@index([customerId])
   @@index([status])
   @@index([dueDate])
@@ -470,18 +418,16 @@ model Loan {
 }
 
 model LoanPayment {
-  id       String @id @default(cuid())
-  loan     Loan   @relation(fields: [loanId], references: [id])
-  loanId   String
-  
+  id            String        @id @default(cuid())
+  loan          Loan          @relation(fields: [loanId], references: [id])
+  loanId        String
   amount        Float
-  currency      Currency @default(RWF)
+  currency      Currency      @default(RWF)
   paymentMethod PaymentMethod
   receiptNumber String?
   notes         String?
-  
-  createdAt DateTime @default(now())
-  
+  createdAt     DateTime      @default(now())
+
   @@index([loanId])
   @@map("loan_payments")
 }
@@ -491,25 +437,22 @@ model LoanPayment {
 // =============================================
 
 model StockMovement {
-  id        String @id @default(cuid())
-  product   Product @relation(fields: [productId], references: [id])
-  productId String
-  user      User    @relation(fields: [userId], references: [id])
-  userId    String
-  
+  id          String       @id @default(cuid())
+  product     Product      @relation(fields: [productId], references: [id])
+  productId   String
+  user        User         @relation(fields: [userId], references: [id])
+  userId      String
   type        MovementType
   quantity    Int
   unitCost    Float?
   totalCost   Float?
   reason      String?
   reference   String? // Could be sale ID, purchase order, etc.
-  
   // Stock levels after movement
   stockBefore Int
   stockAfter  Int
-  
-  createdAt DateTime @default(now())
-  
+  createdAt   DateTime     @default(now())
+
   @@index([productId])
   @@index([type])
   @@index([createdAt])
@@ -521,18 +464,16 @@ model StockMovement {
 // =============================================
 
 model AuditLog {
-  id       String @id @default(cuid())
-  user     User?  @relation(fields: [userId], references: [id])
-  userId   String?
-  
-  action      String
-  entity      String // Product, Sale, Customer, etc.
-  entityId    String
-  oldValues   Json?
-  newValues   Json?
-  ipAddress   String?
-  userAgent   String?
-  
+  id         String    @id @default(cuid())
+  user       User?     @relation(fields: [userId], references: [id])
+  userId     String?
+  action     String
+  entity     String // Product, Sale, Customer, etc.
+  entityId   String
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?
+  userAgent  String?
   // Related entities
   sale       Sale?     @relation(fields: [saleId], references: [id])
   saleId     String?
@@ -540,9 +481,8 @@ model AuditLog {
   customerId String?
   loan       Loan?     @relation(fields: [loanId], references: [id])
   loanId     String?
-  
-  createdAt DateTime @default(now())
-  
+  createdAt  DateTime  @default(now())
+
   @@index([userId])
   @@index([entity, entityId])
   @@index([createdAt])
@@ -550,22 +490,20 @@ model AuditLog {
 }
 
 model SystemAlert {
-  id          String      @id @default(cuid())
-  type        AlertType
-  severity    AlertSeverity @default(INFO)
-  title       String
-  message     String
-  isRead      Boolean     @default(false)
-  isResolved  Boolean     @default(false)
-  resolvedAt  DateTime?
-  resolvedBy  String?
-  
+  id         String        @id @default(cuid())
+  type       AlertType
+  severity   AlertSeverity @default(INFO)
+  title      String
+  message    String
+  isRead     Boolean       @default(false)
+  isResolved Boolean       @default(false)
+  resolvedAt DateTime?
+  resolvedBy String?
   // Alert metadata
-  metadata    Json?
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  metadata   Json?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
   @@index([type])
   @@index([severity])
   @@index([isRead])
@@ -578,30 +516,25 @@ model SystemAlert {
 // =============================================
 
 model ErrorLog {
-  id            String   @id @default(cuid())
-  errorType     String   // Error class/type name
-  errorMessage  String   // Error message
-  errorStack    String?  @db.Text // Full stack trace
-  errorCode     String   // Hash for grouping similar errors
-  
+  id           String   @id @default(cuid())
+  errorType    String // Error class/type name
+  errorMessage String // Error message
+  errorStack   String?  @db.Text // Full stack trace
+  errorCode    String // Hash for grouping similar errors
   // Context information
-  component     String   // Which component/service
-  operation     String   // What operation was being performed
-  
+  component    String // Which component/service
+  operation    String // What operation was being performed
   // Request information
-  ipAddress     String?
-  userAgent     String?
-  
+  ipAddress    String?
+  userAgent    String?
   // Error metadata
-  severity      String   @default("error") // info, warning, error, critical
-  status        String   @default("new")   // new, investigating, resolved, ignored
-  
+  severity     String   @default("error") // info, warning, error, critical
+  status       String   @default("new") // new, investigating, resolved, ignored
   // Additional details stored as JSON
-  details       Json?    // Context, user info, request data, etc.
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  details      Json? // Context, user info, request data, etc.
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@index([errorCode])
   @@index([component])
   @@index([severity])
@@ -651,12 +584,12 @@ enum LoanStatus {
 }
 
 enum MovementType {
-  SALE          // Stock decrease from sale
-  RESTOCK       // Stock increase from purchase
-  ADJUSTMENT    // Manual stock adjustment
-  DAMAGE        // Stock decrease due to damage
-  RETURN        // Stock increase from return
-  TRANSFER      // Stock transfer between locations
+  SALE // Stock decrease from sale
+  RESTOCK // Stock increase from purchase
+  ADJUSTMENT // Manual stock adjustment
+  DAMAGE // Stock decrease due to damage
+  RETURN // Stock increase from return
+  TRANSFER // Stock transfer between locations
 }
 
 enum AlertType {
@@ -687,16 +620,16 @@ enum ApprovalStatus {
 // =============================================
 
 model MomoTransaction {
-  id                      String   @id @default(cuid())
+  id                     String   @id @default(cuid())
   referenceId            String   @unique
-  externalId             String   // Sale ID or order ID
+  externalId             String // Sale ID or order ID
   phoneNumber            String
   amount                 Float
   currency               String   @default("RWF")
   status                 String   @default("PENDING") // PENDING, SUCCESSFUL, FAILED
-  financialTransactionId String?  // MTN's transaction ID
-  requestData            Json?    // Original request payload
-  responseData           Json?    // MTN's response
+  financialTransactionId String? // MTN's transaction ID
+  requestData            Json? // Original request payload
+  responseData           Json? // MTN's response
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 

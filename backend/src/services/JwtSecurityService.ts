@@ -7,7 +7,7 @@
 export class JwtSecurityService {
   static validateToken(token: string): boolean {
     // Basic token validation - implement as needed
-    return token && token.length > 0;
+    return Boolean(token && token.length > 0);
   }
   
   static extractPayload(token: string): any {
