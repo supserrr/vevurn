@@ -5,20 +5,21 @@ services:
     env: node
     plan: starter
     buildCommand: |
-      echo "🔧 Building Vevurn Backend..."
+      echo "🚀 Building Vevurn Backend on Render..."
       corepack enable
       corepack prepare pnpm@9.14.4 --activate
-      cd backend
+      echo "📥 Installing dependencies..."
       pnpm install --no-frozen-lockfile
-      echo "🔄 Generating Prisma client..."
-      pnpm prisma generate
-      echo "🔨 Building TypeScript..."
-      pnpm build
+      echo "🛠️ Building shared package..."
+      pnpm --filter @vevurn/shared build
+      echo "🔨 Building backend..."
+      pnpm --filter @vevurn/backend build
+      echo "📊 Verifying build artifacts..."
+      ls -la backend/dist/
       echo "✅ Build complete"
     startCommand: |
       echo "🚀 Starting Vevurn Backend..."
-      cd backend
-      pnpm start
+      cd backend && NODE_ENV=production node dist/src/index.js
     envVars:
       # Core Configuration
       - key: NODE_ENV
@@ -41,34 +42,48 @@ services:
           property: connectionString
       - key: REDIS_URL
         fromService:
-          type: redis
           name: vevurn-redis
+          type: redis
           property: connectionString
-      
-      # Security
+          
+      # Authentication Secrets (set these in Render dashboard)
       - key: BETTER_AUTH_SECRET
         generateValue: true
-      - key: DEVICE_SALT
+      - key: AUTH_SECRET
         generateValue: true
-      - key: ENCRYPTION_KEY
-        generateValue: true
-      
-      # OAuth (add these manually in Render dashboard)
-      # - key: GOOGLE_CLIENT_ID
-      #   value: "your-google-client-id"
-      # - key: GOOGLE_CLIENT_SECRET
-      #   value: "your-google-client-secret"
-    
-    healthCheckPath: "/health"
+        
+      # Google OAuth (configure in Render dashboard)
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+        
+      # Stripe (configure in Render dashboard if using payments)
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+        
+      # Optional Email Configuration
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
 
+# Associated services
 databases:
   - name: vevurn-postgres
-    plan: starter
-    databaseName: vevurn_pos
-    user: vevurn_user
+    databaseName: vevurn
+    user: vevurn
+    region: oregon
 
 services:
   - type: redis
     name: vevurn-redis
+    region: oregon
     plan: starter
-    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
