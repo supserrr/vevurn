@@ -1,5 +1,5 @@
 import { createClient, RedisClientType, RedisClientOptions } from 'redis'
-import { config } from '../config/environment'
+import { config } from '../config/environment.js'
 import { logger } from '../utils/logger'
 
 interface CacheOptions {

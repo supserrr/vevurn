@@ -7,7 +7,7 @@ import { databaseHooks } from "./database-hooks"
 import { databaseConfig } from "./database-config"
 import { authHooks } from "./auth-hooks"
 import { sendEmail, createVerificationEmailTemplate, createPasswordResetEmailTemplate, createWelcomeEmailTemplate } from "./email-service"
-import { config, getAllowedOrigins } from "../config/environment"
+import { config, getAllowedOrigins } from "../config/environment.js"
 import { getBetterAuthRateLimitConfig } from "./rate-limit-config"
 
 const prisma = new PrismaClient()

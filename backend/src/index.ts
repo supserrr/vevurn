@@ -14,7 +14,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Import configuration
-import { config, getAllowedOrigins, getBaseUrl } from './config/environment';
+import { config, getAllowedOrigins, getBaseUrl } from './config/environment.js';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
@@ -38,9 +38,6 @@ import authRoutes from './routes/authRoutes';
 
 // Import authentication middleware
 import { requireAuth, requireEmailVerified } from './middleware/authMiddleware';
-
-// Import testing utilities (only in non-production)
-const createTestRoute = process.env.NODE_ENV === 'production' ? null : require('./utils/betterAuthExpressTest').createTestRoute;
 
 // Import services
 import { RedisService } from './services/RedisService';
@@ -287,9 +284,7 @@ app.get('/api/me', async (req, res) => {
 });
 
 // Better Auth integration test endpoint (only in non-production)
-if (process.env.NODE_ENV !== 'production' && createTestRoute) {
-  app.get('/api/test/auth-integration', createTestRoute());
-}
+// Removed to avoid ES module issues in production deployment
 
 app.get('/api/health', async (_req, res) => {
   try {
