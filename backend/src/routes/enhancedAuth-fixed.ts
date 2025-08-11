@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
@@ -159,7 +159,7 @@ const getSessionData = async (userId: string, sessionId: string): Promise<any | 
 };
 
 // Enhanced login endpoint - creates JWT from Better Auth session
-router.post('/login', enhancedLoginLimiter, async (req, res) => {
+router.post('/login', enhancedLoginLimiter, async (req: Request, res: Response) => {
   try {
     const validation = enhancedLoginSchema.safeParse(req.body);
     if (!validation.success) {
@@ -296,7 +296,7 @@ router.post('/login', enhancedLoginLimiter, async (req, res) => {
 });
 
 // Token refresh endpoint
-router.post('/refresh', refreshTokenLimiter, async (req, res) => {
+router.post('/refresh', refreshTokenLimiter, async (req: Request, res: Response) => {
   try {
     const validation = refreshTokenSchema.safeParse(req.body);
     if (!validation.success) {
@@ -445,7 +445,7 @@ router.post('/refresh', refreshTokenLimiter, async (req, res) => {
 });
 
 // Logout endpoint
-router.post('/logout', async (req, res) => {
+router.post('/logout', async (req: Request, res: Response) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -496,7 +496,7 @@ router.post('/logout', async (req, res) => {
 });
 
 // Logout from all devices
-router.post('/logout-all', async (req, res) => {
+router.post('/logout-all', async (req: Request, res: Response) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -545,7 +545,7 @@ router.post('/logout-all', async (req, res) => {
 });
 
 // Get active sessions
-router.get('/sessions', async (req, res) => {
+router.get('/sessions', async (req: Request, res: Response) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -604,7 +604,7 @@ router.get('/sessions', async (req, res) => {
 });
 
 // Revoke specific session
-router.delete('/sessions/:sessionId', async (req, res) => {
+router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -650,7 +650,7 @@ router.delete('/sessions/:sessionId', async (req, res) => {
 });
 
 // Get user profile with security info
-router.get('/profile', async (req, res) => {
+router.get('/profile', async (req: Request, res: Response) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -744,7 +744,7 @@ router.get('/profile', async (req, res) => {
 });
 
 // Validate token endpoint
-router.get('/validate', async (req, res) => {
+router.get('/validate', async (req: Request, res: Response) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
@@ -851,7 +851,7 @@ router.get('/validate', async (req, res) => {
 });
 
 // Get security events
-router.get('/security-events', async (req, res) => {
+router.get('/security-events', async (req: Request, res: Response) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     

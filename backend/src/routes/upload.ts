@@ -1,5 +1,5 @@
 // backend/src/routes/upload.ts
-import { Router } from 'express'
+import { Router, Request, Response } from 'express'
 import { UploadController, upload } from '../controllers/UploadController'
 import { authMiddleware } from '../middleware/auth'
 

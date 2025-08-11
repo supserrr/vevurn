@@ -1,6 +1,6 @@
 // backend/src/services/EmailService.ts
 
-import * as nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger';
 
 interface EmailOptions {

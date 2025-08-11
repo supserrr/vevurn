@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { MobileMoneyController } from '../controllers/MobileMoneyController';
 import { requireBetterAuth, requireRole } from '../middleware/betterAuth';
 import { rateLimiter } from '../middleware/rateLimiter';
