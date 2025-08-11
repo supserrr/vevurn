@@ -5,7 +5,12 @@
     "removeComments": true,
     "declaration": false,
     "incremental": false,
-    "tsBuildInfoFile": null
+    "tsBuildInfoFile": null,
+    "skipLibCheck": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
+    "importHelpers": true
   },
   "exclude": [
     "node_modules",
