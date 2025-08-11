@@ -1,7 +1,7 @@
 {
-  "name": "vevurn-pos-system",
+  "name": "vevurn-pos",
   "version": "1.0.0",
-  "description": "Vevurn POS System - Clean monorepo with independent deployments (backend/, frontend/, docs/)",
+  "description": "vevurnPOS - Clean monorepo with independent deployments (backend/, frontend/, docs/)",
   "private": true,
   "packageManager": "pnpm@9.14.4",
   "engines": {

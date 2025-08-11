@@ -1,4 +1,4 @@
-# Vevurn POS System
+# vevurnPOS
 
 <div align="center">
   <h1>🏪 Vevurn Point of Sale System</h1>

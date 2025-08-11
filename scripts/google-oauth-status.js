@@ -111,8 +111,8 @@ console.log('2. Enable Google+ API and required APIs');
 console.log('3. Configure OAuth consent screen');
 console.log('4. Create OAuth 2.0 credentials');
 console.log('5. Set authorized redirect URIs:');
-console.log('   - Development: http://localhost:3001/api/auth/callback/google');
-console.log('   - Production: https://yourdomain.com/api/auth/callback/google');
+console.log('   - Development: http://localhost:8000/api/auth/callback/google');
+console.log('   - Production: https://vevurn.onrender.com/api/auth/callback/google');
 
 console.log('\n🔑 Environment Variables to Configure:');
 console.log('GOOGLE_CLIENT_ID="your-google-client-id.googleusercontent.com"');
