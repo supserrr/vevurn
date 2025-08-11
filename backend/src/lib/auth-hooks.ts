@@ -230,7 +230,13 @@ export const createErrorHandler = () => {
           message: "An account with this email already exists. Please use a different email or contact your administrator.",
         }, { status: 400 })
       }
+      
+      // Return the original error for unhandled cases
+      return returned
     }
+    
+    // Continue with normal flow
+    return ctx.context.next()
   })
 }
 
@@ -257,5 +263,8 @@ export const createRedirectHandler = () => {
         return ctx.redirect("/cashier/onboarding")
       }
     }
+    
+    // Continue with normal flow if no redirect needed
+    return ctx.context.next()
   })
 }
