@@ -151,7 +151,7 @@ export const databaseHooks = {
 
         // Business rule: Only admins can change sensitive fields
         const sensitiveFields = ['role', 'isActive', 'maxDiscountAllowed', 'canSellBelowMin']
-        const hasSensitiveUpdates = sensitiveFields.some(field => data.hasOwnProperty(field))
+        const hasSensitiveUpdates = sensitiveFields.some(field => Object.prototype.hasOwnProperty.call(data, field))
         
         if (hasSensitiveUpdates && ctx.context.session?.user?.role !== 'admin') {
           throw new APIError("FORBIDDEN", {
@@ -174,7 +174,7 @@ export const databaseHooks = {
         // Log sensitive field changes
         const sensitiveFields = ['role', 'isActive', 'maxDiscountAllowed', 'canSellBelowMin']
         const updatedSensitiveFields = sensitiveFields.filter(field => 
-          ctx.body && ctx.body.hasOwnProperty(field)
+          ctx.body && Object.prototype.hasOwnProperty.call(ctx.body, field)
         )
         
         if (updatedSensitiveFields.length > 0) {

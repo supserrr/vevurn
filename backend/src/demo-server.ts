@@ -34,7 +34,7 @@ app.use(helmet());
 app.use(compression() as unknown as express.RequestHandler);
 app.use(cors({
   origin: process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' 
-    ? 'https://vevurn-frontend.vercel.app' 
+    ? 'https://vevurn.vercel.app' 
     : "http://localhost:3001"),
   credentials: true
 }));

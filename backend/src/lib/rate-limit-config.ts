@@ -62,8 +62,8 @@ function getCustomRules(isProduction: boolean): Record<string, { window: number;
       max: 3 * multiplier, // 3 login attempts per 10 seconds per IP
     },
     "/sign-up/email": {
-      window: 300, // 5 minutes
-      max: 3 * multiplier, // Only 3 signup attempts per 5 minutes
+      window: 3600, // 1 hour = 3600 seconds (changed from 300)
+      max: 3 * multiplier, // Only 3 signup attempts per hour
     },
     "/reset-password": {
       window: 300, // 5 minutes  

@@ -45,7 +45,7 @@ import { WebSocketService } from './services/WebSocketService';
 
 // Initialize services with better error handling and connection pooling
 let prisma: PrismaClient;
-let redis: Redis;
+let redis: Redis | null;
 
 // Production-optimized Prisma configuration
 try {
@@ -65,31 +65,35 @@ try {
 
 // Production-optimized Redis configuration
 try {
-  redis = new Redis(config.REDIS_URL, {
-    connectTimeout: 10000,
-    lazyConnect: true,
-    maxRetriesPerRequest: process.env.NODE_ENV === 'production' ? 2 : 3,
-    commandTimeout: process.env.NODE_ENV === 'production' ? 5000 : 10000,
-    enableOfflineQueue: true, // Allow offline queuing
-    family: 4 // Force IPv4
-  });
+  if (config.REDIS_URL) {
+    redis = new Redis(config.REDIS_URL, {
+      connectTimeout: 10000,
+      lazyConnect: true,
+      maxRetriesPerRequest: process.env.NODE_ENV === 'production' ? 2 : 3,
+      commandTimeout: process.env.NODE_ENV === 'production' ? 5000 : 10000,
+      enableOfflineQueue: true, // Allow offline queuing
+      family: 4 // Force IPv4
+    });
 
-  // Handle Redis connection events
-  redis.on('error', (error) => {
-    console.error('Redis connection error:', error);
-  });
+    // Handle Redis connection events
+    redis.on('error', (error) => {
+      console.error('Redis connection error:', error);
+    });
 
-  redis.on('connect', () => {
-    console.log('Redis connected');
-  });
+    redis.on('connect', () => {
+      console.log('Redis connected');
+    });
 
-  redis.on('ready', () => {
-    console.log('Redis ready');
-  });
-
+    redis.on('ready', () => {
+      console.log('Redis ready');
+    });
+  } else {
+    console.warn('⚠️ Redis URL not configured, skipping Redis initialization');
+    redis = null;
+  }
 } catch (error) {
   console.error('❌ Failed to initialize Redis Client:', error);
-  process.exit(1);
+  redis = null;
 }
 
 // Create Express app
@@ -507,8 +511,10 @@ async function startServer() {
           console.log('✅ Database disconnected');
           
           // Disconnect from Redis
-          redis.disconnect();
-          console.log('✅ Redis disconnected');
+          if (redis) {
+            redis.disconnect();
+            console.log('✅ Redis disconnected');
+          }
           
           clearTimeout(shutdownTimeout);
           console.log('✅ Graceful shutdown complete');

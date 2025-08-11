@@ -1,8 +1,9 @@
 // Vevurn POS System Database Schema
-// This is your Prisma schema file
+// Enhanced schema with Better Auth compatibility and modern POS features
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
 }
 
 datasource db {

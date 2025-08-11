@@ -4,8 +4,7 @@
  * Advanced database operations and utilities following Better Auth patterns
  */
 
-import { PrismaClient } from "@prisma/client"
-import type { User } from "@prisma/client"
+import { PrismaClient, type User } from "@prisma/client"
 
 const prisma = new PrismaClient()
 

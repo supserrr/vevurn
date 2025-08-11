@@ -12,33 +12,37 @@ import { config } from '../config/environment.js'
 let redis: Redis | null = null
 
 try {
-  redis = new Redis(config.REDIS_URL, {
-    maxRetriesPerRequest: 3,
-    lazyConnect: true,
-    connectTimeout: 10000,
-    commandTimeout: 5000,
-    // Connection pool settings
-    family: 4, // Use IPv4
-    keepAlive: 30000,
-    enableOfflineQueue: true
-  })
+  if (config.REDIS_URL) {
+    redis = new Redis(config.REDIS_URL, {
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+      connectTimeout: 10000,
+      commandTimeout: 5000,
+      // Connection pool settings
+      family: 4, // Use IPv4
+      keepAlive: 30000,
+      enableOfflineQueue: true
+    })
 
-  // Enhanced Redis event handling
-  redis.on('error', (err) => {
-    console.error('❌ Redis secondary storage error:', err)
-  })
+    // Enhanced Redis event handling
+    redis.on('error', (err) => {
+      console.error('❌ Redis secondary storage error:', err)
+    })
 
-  redis.on('connect', () => {
-    console.log('✅ Connected to Redis for Better Auth secondary storage')
-  })
+    redis.on('connect', () => {
+      console.log('✅ Connected to Redis for Better Auth secondary storage')
+    })
 
-  redis.on('ready', () => {
-    console.log('🚀 Redis is ready for Better Auth operations')
-  })
+    redis.on('ready', () => {
+      console.log('🚀 Redis is ready for Better Auth operations')
+    })
 
-  redis.on('close', () => {
-    console.warn('⚠️ Redis secondary storage connection closed')
-  })
+    redis.on('close', () => {
+      console.warn('⚠️ Redis secondary storage connection closed')
+    })
+  } else {
+    console.warn('⚠️ Redis URL not configured, secondary storage will be unavailable')
+  }
 } catch (error) {
   console.error('❌ Failed to initialize Redis secondary storage:', error)
   redis = null
