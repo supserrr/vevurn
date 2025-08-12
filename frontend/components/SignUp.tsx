@@ -18,6 +18,7 @@ import { signUp, getErrorMessage } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import GoogleOAuthButton from "./GoogleOAuthButton";
+import { convertImageToBase64 } from "@/lib/image-utils";
 
 export default function SignUp() {
 	const [firstName, setFirstName] = useState("");
@@ -76,21 +77,18 @@ export default function SignUp() {
 		setLoading(true);
 
 		try {
-			// Prepare the registration data with Better Auth required fields
+			// Convert image to base64 if present
+			const imageBase64 = image ? await convertImageToBase64(image) : undefined;
+
+			// Clean registration data - let backend handle role and permissions
 			const registrationData = {
 				email: email.trim(),
 				password,
 				name: `${firstName.trim()} ${lastName.trim()}`,
 				firstName: firstName.trim(),
 				lastName: lastName.trim(),
-				image: image ? await convertImageToBase64(image) : undefined,
+				image: imageBase64,
 				callbackURL: "/dashboard",
-				// Additional Better Auth fields required by our backend
-				role: "cashier", // Default role for new users
-				employeeId: "", // Will be set by admin later
-				isActive: true,
-				maxDiscountAllowed: 0,
-				canSellBelowMin: false
 			};
 
 			console.log('Registration payload:', registrationData);
@@ -263,13 +261,4 @@ export default function SignUp() {
 			</CardFooter>
 		</Card>
 	);
-}
-
-async function convertImageToBase64(file: File): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const reader = new FileReader();
-		reader.onloadend = () => resolve(reader.result as string);
-		reader.onerror = reject;
-		reader.readAsDataURL(file);
-	});
 }
