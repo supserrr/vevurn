@@ -1,11 +1,9 @@
 import { authClient } from './auth-client';
 
-// Base URL configuration
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
                     process.env.NEXT_PUBLIC_BACKEND_URL || 
                     'https://vevurn.onrender.com';
 
-// Better Auth-compatible API client
 class APIClient {
   private baseURL: string;
 
@@ -15,16 +13,13 @@ class APIClient {
 
   private async getAuthHeaders(): Promise<HeadersInit> {
     try {
-      const session = await authClient.getSession();
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
       };
       
       // Better Auth handles auth headers automatically via cookies
-      // No manual token management needed
       return headers;
     } catch (error) {
-      console.error('Error getting auth headers:', error);
       return {
         'Content-Type': 'application/json',
       };
