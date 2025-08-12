@@ -34,11 +34,11 @@ export const authClient = createAuthClient({
         });
       }
     },
-    onRequest: (ctx) => {
-      console.log('🌐 Auth request:', ctx.request.method, ctx.request.url);
+    onRequest: (request) => {
+      console.log('🌐 Auth request:', request.method, request.url);
     },
-    onSuccess: (ctx) => {
-      console.log('✅ Auth request successful:', ctx.request.url);
+    onSuccess: (response) => {
+      console.log('✅ Auth request successful:', response.request.url);
     }
   }
 });
