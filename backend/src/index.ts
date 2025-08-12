@@ -550,4 +550,15 @@ async function startServer() {
 // Call the start function
 startServer();
 
+// Import OAuth testing utilities in development
+if (process.env.NODE_ENV === 'development') {
+  import('./utils/oauth-test.js').then(({ testGoogleOAuth, logOAuthDebugInfo }) => {
+    // Make testing functions available globally in development
+    (global as any).testGoogleOAuth = testGoogleOAuth;
+    (global as any).logOAuthDebugInfo = logOAuthDebugInfo;
+  }).catch(() => {
+    // Ignore import errors in case the file doesn't exist
+  });
+}
+
 export default app;

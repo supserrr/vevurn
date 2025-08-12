@@ -132,23 +132,82 @@ export const authHooks = {
   }),
   
   after: createAuthMiddleware(async (ctx) => {
-    // Handle OAuth errors
+    // Enhanced OAuth and authentication error handling
     if (ctx.context.error) {
-      console.error('❌ OAuth Error:', {
-        error: ctx.context.error,
+      const error = ctx.context.error;
+      const errorMessage = typeof error === 'string' ? error : error?.message || 'Unknown error';
+      
+      console.error('❌ Authentication Error:', {
+        error: errorMessage,
         path: ctx.path,
-        timestamp: new Date().toISOString()
+        method: ctx.method,
+        provider: ctx.path.includes('google') ? 'google' : ctx.path.includes('callback') ? 'oauth' : 'email',
+        timestamp: new Date().toISOString(),
+        body: ctx.body ? Object.keys(ctx.body) : []
       });
       
-      // Specifically check for "unable_to_create_user" error
-      if (ctx.context.error.message?.includes("unable_to_create_user")) {
-        console.error('🚨 UNABLE TO CREATE USER ERROR DETECTED:', {
+      // Specific error handling patterns
+      if (errorMessage.includes("unable_to_create_user")) {
+        console.error('🚨 UNABLE TO CREATE USER ERROR:', {
           path: ctx.path,
-          body: ctx.body,
-          provider: ctx.path.includes('google') ? 'google' : 'unknown',
-          timestamp: new Date().toISOString()
+          possibleCauses: [
+            'Database validation failed',
+            'Required fields missing',
+            'Rate limiting active',
+            'Profile mapping issues'
+          ],
+          debugInfo: {
+            body: ctx.body,
+            query: ctx.query
+          }
         });
       }
+      
+      if (errorMessage.includes("access_denied")) {
+        console.error('🚫 OAuth Access Denied:', {
+          provider: ctx.path.includes('google') ? 'google' : 'unknown',
+          message: 'User denied OAuth permission or consent screen issue',
+          possibleSolutions: [
+            'User needs to accept all permissions',
+            'Check OAuth consent screen configuration',
+            'Verify redirect URLs match exactly'
+          ]
+        });
+      }
+      
+      if (errorMessage.includes("rate_limit") || errorMessage.includes("too_many_requests")) {
+        console.error('⏰ Rate Limit Error:', {
+          path: ctx.path,
+          message: 'Too many authentication attempts',
+          solution: 'Wait 5-10 minutes before trying again'
+        });
+      }
+    }
+
+    // Success handling for OAuth sign-in
+    if (ctx.path.startsWith("/sign-in/social/") && ctx.context.newSession) {
+      const user = ctx.context.newSession.user;
+      const provider = ctx.path.split('/').pop();
+      
+      console.log('✅ OAuth Sign-in Successful:', {
+        provider: provider,
+        user: user.email,
+        name: user.name,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Success handling for callback
+    if (ctx.path.startsWith("/callback/") && ctx.context.newSession) {
+      const user = ctx.context.newSession.user;
+      const provider = ctx.path.split('/').pop();
+      
+      console.log('✅ OAuth Callback Successful:', {
+        provider: provider,
+        user: user.email,
+        userId: user.id,
+        timestamp: new Date().toISOString()
+      });
     }
     
     // User registration success handling (following documentation example)
