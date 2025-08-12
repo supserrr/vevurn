@@ -1,6 +1,6 @@
 "use client"
 
-import { useSession, signOut } from "../lib/auth-client"
+import { useSession, signOut } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 
 export default function AuthComponent() {
@@ -55,7 +55,7 @@ export default function AuthComponent() {
             onClick={() => signOut({
               fetchOptions: {
                 onSuccess: () => {
-                  router.push("/auth/signin") // redirect to login page
+                  router.push("/login")
                 },
               },
             })}
@@ -74,16 +74,10 @@ export default function AuthComponent() {
       <p className="text-gray-600">Please sign in to access the POS system</p>
       <div className="space-x-4">
         <button 
-          onClick={() => router.push("/auth/signin")}
+          onClick={() => router.push("/login")}
           className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
         >
           Sign In
-        </button>
-        <button 
-          onClick={() => router.push("/auth/signup")}
-          className="px-6 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
-        >
-          Create Account
         </button>
       </div>
     </div>

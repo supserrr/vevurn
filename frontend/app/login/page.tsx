@@ -25,9 +25,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { apiClient } from "@/lib/api-client";
-import { useStore } from "@/lib/store";
-import GoogleOAuthButton from "@/components/GoogleOAuthButton";
+import { signIn, signUp } from "@/lib/auth-client";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -48,7 +46,6 @@ const signupSchema = z.object({
 export default function AuthPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const setUser = useStore((state) => state.setUser);
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -73,8 +70,6 @@ export default function AuthPage() {
     setIsLoading(true);
     
     try {
-      // Use Better Auth signin
-      const { signIn } = await import('@/lib/auth-client')
       const { data, error } = await signIn.email({
         email: values.email,
         password: values.password,
@@ -82,32 +77,28 @@ export default function AuthPage() {
         rememberMe: true
       }, {
         onRequest: () => {
-          console.log('Login request started')
+          console.log('Login request started');
         },
         onSuccess: () => {
-          console.log('Login successful, redirecting to dashboard')
+          console.log('Login successful, redirecting to dashboard');
           toast.success("Login successful!");
           router.push("/dashboard");
         },
-        onError: (ctx: any) => {
-          console.error('Login error context:', ctx)
+        onError: (ctx) => {
+          console.error('Login error:', ctx);
           toast.error(ctx.error?.message || "Login failed");
-          setIsLoading(false)
-        }
+          setIsLoading(false);
+        },
       });
 
       if (error) {
-        console.error('Sign in error:', error)
+        console.error('Login error:', error);
         toast.error(error.message || "Login failed");
-      } else if (data) {
-        console.log('Login successful:', data)
-        // Success handling done in onSuccess callback
+        setIsLoading(false);
       }
-      
     } catch (error: any) {
-      console.error('Unexpected login error:', error)
+      console.error('Unexpected login error:', error);
       toast.error(error.message || "Login failed");
-    } finally {
       setIsLoading(false);
     }
   }
@@ -116,74 +107,56 @@ export default function AuthPage() {
     setIsLoading(true);
     
     try {
-      const { confirmPassword, ...signupData } = values;
-      
-      // Log the exact request being sent for debugging
-      const requestData = {
-        email: signupData.email,
-        password: signupData.password,
-        name: `${signupData.firstName} ${signupData.lastName}`,
-        firstName: signupData.firstName,
-        lastName: signupData.lastName,
+      const { data, error } = await signUp.email({
+        email: values.email,
+        password: values.password,
+        name: `${values.firstName} ${values.lastName}`,
         callbackURL: "/dashboard",
-        // Additional Better Auth fields
-        role: "cashier", // Default role
-        employeeId: "", // Will be set by admin later
-        isActive: true,
-        maxDiscountAllowed: 0,
-        canSellBelowMin: false
-      }
-      
-      console.log('Registration payload:', requestData)
-      
-      // Use Better Auth signup
-      const { signUp } = await import('@/lib/auth-client')
-      const { data, error } = await signUp.email(requestData, {
-        onSuccess: () => {
-          toast.success("Account created successfully! Redirecting to dashboard...");
-          signupForm.reset();
+      }, {
+        onRequest: () => {
+          console.log('Signup request started');
         },
-        onError: (ctx: any) => {
-          console.error('Registration error context:', ctx)
-          toast.error(ctx.error?.message || "Registration failed");
-        }
-      })
-      
+        onSuccess: () => {
+          console.log('Signup successful');
+          toast.success("Account created successfully!");
+          router.push("/dashboard");
+        },
+        onError: (ctx) => {
+          console.error('Signup error:', ctx);
+          toast.error(ctx.error?.message || "Signup failed");
+          setIsLoading(false);
+        },
+      });
+
       if (error) {
-        console.error('Sign up error:', error)
-        toast.error(error.message || "Registration failed");
-      } else if (data) {
-        // Registration successful, user should be redirected by onSuccess
-        console.log('Registration successful:', data)
+        console.error('Signup error:', error);
+        toast.error(error.message || "Signup failed");
+        setIsLoading(false);
       }
-      
     } catch (error: any) {
-      console.error('Unexpected registration error:', error)
-      toast.error(error.message || "Registration failed");
-    } finally {
+      console.error('Unexpected signup error:', error);
+      toast.error(error.message || "Signup failed");
       setIsLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <Card className="w-[400px]">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Vevurn POS
-          </CardTitle>
-          <CardDescription className="text-center">
-            Access your point of sale system
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login" className="space-y-4">
+    <div className="container mx-auto max-w-md py-10">
+      <Tabs defaultValue="login" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="login">Login</TabsTrigger>
+          <TabsTrigger value="signup">Sign Up</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="login">
+          <Card>
+            <CardHeader>
+              <CardTitle>Login</CardTitle>
+              <CardDescription>
+                Enter your email below to login to your account
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <Form {...loginForm}>
                 <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                   <FormField
@@ -193,12 +166,7 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="user@example.com"
-                            type="email"
-                            disabled={isLoading}
-                            {...field}
-                          />
+                          <Input placeholder="m@example.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -211,79 +179,61 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="••••••••"
-                            type="password"
-                            disabled={isLoading}
-                            {...field}
-                          />
+                          <Input type="password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    {isLoading && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Sign In
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Login
                   </Button>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-white text-gray-500">Or continue with</span>
-                    </div>
-                  </div>
-
-                  <GoogleOAuthButton mode="signin" disabled={isLoading} />
                 </form>
               </Form>
-            </TabsContent>
-            
-            <TabsContent value="signup" className="space-y-4">
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="signup">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Account</CardTitle>
+              <CardDescription>
+                Enter your information to create an account
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <Form {...signupForm}>
                 <form onSubmit={signupForm.handleSubmit(onSignup)} className="space-y-4">
-                  <FormField
-                    control={signupForm.control}
-                    name="firstName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="John"
-                            disabled={isLoading}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={signupForm.control}
-                    name="lastName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Doe"
-                            disabled={isLoading}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={signupForm.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={signupForm.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                   <FormField
                     control={signupForm.control}
                     name="email"
@@ -291,12 +241,7 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="user@example.com"
-                            type="email"
-                            disabled={isLoading}
-                            {...field}
-                          />
+                          <Input placeholder="john@example.com" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -309,12 +254,7 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="••••••••"
-                            type="password"
-                            disabled={isLoading}
-                            {...field}
-                          />
+                          <Input type="password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -327,44 +267,22 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="••••••••"
-                            type="password"
-                            disabled={isLoading}
-                            {...field}
-                          />
+                          <Input type="password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    {isLoading && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create Account
                   </Button>
-
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-gray-300" />
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-white text-gray-500">Or continue with</span>
-                    </div>
-                  </div>
-
-                  <GoogleOAuthButton mode="signup" disabled={isLoading} />
                 </form>
               </Form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

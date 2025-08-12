@@ -14,6 +14,8 @@ This directory contains all documentation for the Vevurn POS System, organized b
 - `BETTER_AUTH_*.md` - Better Auth implementation docs
 - `ENHANCED_AUTH_*.md` - Enhanced authentication system
 - `ENHANCED_SECURITY_*.md` - Security integration guides
+- `GOOGLE_OAUTH_REDIRECT_UPDATE.md` - Google OAuth configuration updates
+- `OAUTH_IMPLEMENTATION_COMPLETE.md` - OAuth implementation guide
 
 ### `/backend/` - Backend System Documentation
 - `BACKEND_README.md` - Backend overview and setup
@@ -21,14 +23,22 @@ This directory contains all documentation for the Vevurn POS System, organized b
 - `IMPLEMENTATION_SUMMARY_ANALYTICS_EXPORT.md` - Analytics export features
 
 ### `/build/` - Build System Documentation
+- `README.md` - Build system overview
+- `ESLINT_WARNINGS_RESOLVED.md` - ESLint configuration and fixes
 - Build processes and configurations
 - Deployment build instructions
+
+### `/configuration/` - Configuration Documentation
+- `REDIS_CONFIG.md` - Redis configuration guide
+- System configuration files and setup
 
 ### `/deployment/` - Deployment Documentation
 - `DEPLOYMENT.md` - Main deployment guide
 - `DEPLOYMENT_CHECKLIST.md` - Pre-deployment checklist
 - `DEPLOYMENT_COMPREHENSIVE.md` - Comprehensive deployment guide
 - `RENDER_DEPLOYMENT.md` - Render-specific deployment
+- `RENDER_DEPLOYMENT_FIXED.md` - Render deployment fixes
+- `RENDER_DEPLOYMENT_FINAL_FIX.md` - Final render deployment fix
 - `MANUAL-RENDER-SETUP.md` - Manual Render setup instructions
 - `DEPLOYMENT_FRONTEND.md` - Frontend deployment specifics
 - `DEPLOYMENT_SUCCESS.md` - Deployment completion guide
@@ -36,6 +46,8 @@ This directory contains all documentation for the Vevurn POS System, organized b
 ### `/project/` - Project Documentation
 - `PROJECT_STATUS.md` - Current project status and progress
 - `DOCUMENTATION_ORGANIZATION.md` - Documentation structure guide
+- `CONTRIBUTING.md` - Contribution guidelines and development workflow
+- `REGENERATION_SUMMARY.md` - Project regeneration and modernization summary
 
 ### `/scripts/` - Script Documentation
 - `README.md` - Scripts overview and usage instructions
@@ -77,6 +89,11 @@ This directory contains all documentation for the Vevurn POS System, organized b
 ### `/implementations/` - Implementation Details
 - `ProductController-Summary.md` - Product controller implementation
 - `ProductService-Implementation.md` - Product service implementation
+- `POS_IMPLEMENTATION.md` - Point of Sale system implementation
+- `BETTER_AUTH_COMPLETE.md` - Better Auth implementation complete
+- `ENHANCED_AUTH_COMPLETE.md` - Enhanced authentication implementation
+- `S3_IMPLEMENTATION_COMPLETE.md` - S3 integration implementation
+- `REDIS_IMPLEMENTATION_COMPLETE.md` - Redis implementation
 - `MINOR_ISSUE_RESOLUTION.md` - Issue resolution notes
 
 ### `/archive/` - Historical Documents

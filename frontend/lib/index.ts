@@ -2,34 +2,23 @@
  * Main Auth Export File
  * 
  * This file provides a single entry point for all authentication functionality
- * in the Vevurn POS system. Import everything you need from here.
+ * in the Vevurn POS system using Better Auth only.
  */
 
-// Core auth client and functions
+// Core Better Auth client and functions
 export {
   authClient,
-  client,
   signIn,
   signUp,
   signOut,
   useSession,
   getSession,
   updateUser,
-  changePassword,
-  resetPassword,
-} from './auth';
+  getErrorMessage,
+} from './auth-client';
 
 // Type definitions
-export type { VevurnUser, VevurnSession, User, Session } from './auth';
+export type { User, Session } from './auth-client';
 
-// React hooks and components
-export {
-  useVevurnAuth,
-  useRequireAuth,
-  useRequireRole,
-  useDiscountPermission,
-  useBelowMinimumPermission,
-  useAuthActions,
-  ProtectedRoute,
-  UserProfile,
-} from './auth-hooks';
+// API Client
+export { apiClient } from './api-client';

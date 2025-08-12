@@ -33,7 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/lib/store";
+import { useSession, signOut } from "@/lib/auth-client";
 import { toast } from "sonner";
 
 const navigation = [
@@ -54,15 +54,38 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const user = useStore((state) => state.user);
+  const { data: session, isPending } = useSession();
 
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    useStore.getState().setUser(null);
-    toast.success("Logged out successfully");
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Logged out successfully");
+            router.push("/login");
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error("Logout failed");
+    }
   };
+
+  // Show loading state while checking session
+  if (isPending) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!session) {
+    router.push("/login");
+    return null;
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -122,12 +145,12 @@ export default function DashboardLayout({
           <div className={cn("flex items-center", sidebarOpen ? "space-x-3" : "justify-center")}>
             <Avatar className="h-8 w-8">
               <AvatarImage src="/avatar.png" />
-              <AvatarFallback>{user?.name?.[0] || "U"}</AvatarFallback>
+              <AvatarFallback>{session?.user?.name?.[0] || "U"}</AvatarFallback>
             </Avatar>
             {sidebarOpen && (
               <div className="flex-1">
-                <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-gray-500">{user?.role}</p>
+                <p className="text-sm font-medium">{session?.user?.name}</p>
+                <p className="text-xs text-gray-500">{(session?.user as any)?.role || 'User'}</p>
               </div>
             )}
           </div>
@@ -173,9 +196,9 @@ export default function DashboardLayout({
                   <Button variant="ghost" className="flex items-center space-x-2">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src="/avatar.png" />
-                      <AvatarFallback>{user?.name?.[0] || "U"}</AvatarFallback>
+                      <AvatarFallback>{session?.user?.name?.[0] || "U"}</AvatarFallback>
                     </Avatar>
-                    <span className="hidden md:inline">{user?.name}</span>
+                    <span className="hidden md:inline">{session?.user?.name}</span>
                     <ChevronDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>

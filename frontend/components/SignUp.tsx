@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import Image from "next/image";
 import { Loader2, X } from "lucide-react";
-import { signUp, handleAuthError, getErrorMessage } from "@/lib/auth-client";
+import { signUp, getErrorMessage } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import GoogleOAuthButton from "./GoogleOAuthButton";
@@ -106,7 +106,7 @@ export default function SignUp() {
 				},
 				onError: (ctx) => {
 					console.error('Registration error context:', ctx);
-					const errorMessage = handleAuthError(ctx.error);
+					const errorMessage = getErrorMessage(ctx.error);
 					toast.error(errorMessage);
 					setLoading(false);
 				}
@@ -114,7 +114,7 @@ export default function SignUp() {
 
 			if (error) {
 				console.error('Sign up error:', error);
-				const errorMessage = handleAuthError(error);
+				const errorMessage = getErrorMessage(error);
 				toast.error(errorMessage);
 			}
 		} catch (error) {

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { signIn, handleAuthError } from "@/lib/auth-client"
+import { signIn, getErrorMessage } from "@/lib/auth-client"
 import { toast } from "sonner"
 
 interface MicrosoftOAuthButtonProps {
@@ -38,14 +38,14 @@ export default function MicrosoftOAuthButton({
         },
         onError: (ctx) => {
           console.error('Microsoft OAuth error context:', ctx);
-          const errorMessage = handleAuthError(ctx.error);
+          const errorMessage = getErrorMessage(ctx.error);
           toast.error(errorMessage);
           setIsLoading(false);
         }
       });
     } catch (error) {
       console.error('Microsoft OAuth error:', error);
-      const errorMessage = handleAuthError(error);
+      const errorMessage = getErrorMessage(error);
       toast.error(errorMessage);
       setIsLoading(false);
     }

@@ -38,6 +38,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
+import { useSession } from "@/lib/auth-client";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,11 @@ export default function SalesPage() {
   const [amountReceived, setAmountReceived] = useState("");
   
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart, setCustomer } = useStore();
+  const { data: session, isPending } = useSession();
+
+  // Redirect if not authenticated
+  if (isPending) return <div>Loading...</div>;
+  if (!session) return <div>Please login</div>;
 
   useEffect(() => {
     fetchProducts();

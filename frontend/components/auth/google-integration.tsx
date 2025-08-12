@@ -25,7 +25,7 @@ import {
   ExternalLink,
   RefreshCw
 } from 'lucide-react'
-import { googleAuth, useSession, listAccounts } from '@/lib/auth-client'
+import { signIn, useSession, listAccounts } from '@/lib/auth-client'
 import { toast } from '@/hooks/use-toast'
 
 interface GoogleAccount {
@@ -90,7 +90,10 @@ export function GoogleIntegration({ className }: GoogleIntegrationProps) {
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true)
-      await googleAuth.signInWithGoogle('/dashboard?google-connected=true')
+      await signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard?google-connected=true"
+      })
     } catch (error) {
       console.error('Google sign-in failed:', error)
       toast({
@@ -106,7 +109,13 @@ export function GoogleIntegration({ className }: GoogleIntegrationProps) {
   const handleRequestScope = async (scopeUrl: string, scopeName: string) => {
     try {
       setLoadingScope(scopeUrl)
-      await googleAuth.requestAdditionalScopes([scopeUrl])
+      // Note: Additional scopes would need to be handled through Better Auth configuration
+      toast({
+        title: "Scope Request",
+        description: "Additional scopes need to be configured in Better Auth settings",
+        variant: "destructive"
+      })
+      return
       
       // Reload account info to show new scopes
       await loadGoogleAccount()
