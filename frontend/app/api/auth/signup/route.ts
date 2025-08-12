@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     
     // For now, proxy to your existing Better Auth endpoint
     // In the future, you could use the server-side auth.api methods here
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8001';
     
     const response = await fetch(`${backendUrl}/api/auth/sign-up/email`, {
       method: 'POST',

@@ -6,10 +6,10 @@ import { createAuthClient } from "better-auth/react";
 const getBaseURL = () => {
   if (typeof window !== "undefined") {
     return window.location.origin.includes("localhost") 
-      ? "http://localhost:8000" 
+      ? "http://localhost:8001" 
       : "https://vevurn.onrender.com";
   }
-  return process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+  return process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8001";
 };
 
 // Better Auth client configuration
