@@ -26,9 +26,9 @@ export const authClient = createAuthClient({
       });
       
       // Enhanced error logging for OAuth issues
-      if (ctx.request.url.includes('/social/') || ctx.request.url.includes('/callback/')) {
+      if (ctx.request.url.toString().includes('/social/') || ctx.request.url.toString().includes('/callback/')) {
         console.error('🔍 OAuth Error Details:', {
-          provider: ctx.request.url.includes('google') ? 'google' : 'unknown',
+          provider: ctx.request.url.toString().includes('google') ? 'google' : 'unknown',
           errorType: ctx.error?.message || 'Unknown OAuth error',
           requestUrl: ctx.request.url
         });
