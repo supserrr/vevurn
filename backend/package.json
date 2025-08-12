@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Vevurn POS Backend API",
-  "main": "dist/index.js",
+  "main": "dist/src/index.js",
   "packageManager": "pnpm@9.14.4",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -11,7 +11,7 @@
     "prebuild": "echo '🔧 Pre-build: Generating Prisma client...' && prisma generate",
     "build": "echo '🔨 Building TypeScript backend for production...' && tsc --project tsconfig.prod.json && tsc-esm-fix --target=dist && echo '✅ Production build complete'",
     "build:analyze": "tsc --project tsconfig.prod.json --listFiles --showConfig",
-    "start": "NODE_ENV=production node dist/index.js",
+    "start": "NODE_ENV=production node dist/src/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:email": "tsx scripts/test-email.ts",
