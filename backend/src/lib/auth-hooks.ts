@@ -12,6 +12,23 @@ import { createAuthMiddleware, APIError } from "better-auth/api"
  */
 export const authHooks = {
   before: createAuthMiddleware(async (ctx) => {
+    // Add comprehensive OAuth debugging
+    console.log(`🌐 Auth request: ${ctx.method} ${ctx.path}`);
+    console.log(`🔍 Request body keys:`, Object.keys(ctx.body || {}));
+    
+    // OAuth sign-in debugging
+    if (ctx.path.startsWith("/sign-in/social/") || ctx.path.includes("google")) {
+      const provider = ctx.path.split("/").pop();
+      console.log(`🌐 OAuth sign-in attempt with: ${provider}`);
+    }
+    
+    // OAuth callback debugging
+    if (ctx.path.startsWith("/callback/")) {
+      const provider = ctx.path.split("/").pop();
+      console.log(`📞 OAuth callback from: ${provider}`);
+      console.log(`🔍 Query params:`, ctx.query);
+    }
+    
     // Enhanced validation for POS system
     if (ctx.path === "/sign-up/email") {
       const body = ctx.body as any
@@ -115,6 +132,25 @@ export const authHooks = {
   }),
   
   after: createAuthMiddleware(async (ctx) => {
+    // Handle OAuth errors
+    if (ctx.context.error) {
+      console.error('❌ OAuth Error:', {
+        error: ctx.context.error,
+        path: ctx.path,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Specifically check for "unable_to_create_user" error
+      if (ctx.context.error.message?.includes("unable_to_create_user")) {
+        console.error('🚨 UNABLE TO CREATE USER ERROR DETECTED:', {
+          path: ctx.path,
+          body: ctx.body,
+          provider: ctx.path.includes('google') ? 'google' : 'unknown',
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
     // User registration success handling (following documentation example)
     if (ctx.path.startsWith("/sign-up")) {
       const newSession = ctx.context.newSession

@@ -306,10 +306,17 @@ export const auth = betterAuth({
         prompt: "select_account+consent", // Always ask for account selection and consent
         // This ensures we get refresh tokens on every authorization
         mapProfileToUser: (profile) => {
-          return {
+          console.log('🔍 Google profile data:', JSON.stringify(profile, null, 2));
+          
+          const mappedUser = {
             firstName: profile.given_name || profile.name?.split(' ')[0] || '',
             lastName: profile.family_name || profile.name?.split(' ').slice(1).join(' ') || '',
-          }
+            // Don't set employeeId for OAuth users - let the system auto-generate it
+            // Don't require terms acceptance for OAuth - this might be the issue
+          };
+          
+          console.log('🔍 Mapped user data:', JSON.stringify(mappedUser, null, 2));
+          return mappedUser;
         },
       }
     }),

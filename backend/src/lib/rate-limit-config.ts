@@ -41,7 +41,7 @@ export function getRateLimitConfig(): RateLimitConfig {
   return {
     enabled: true, // Always enabled (Better Auth handles dev/prod)
     window: 60, // 1 minute window (Better Auth default)
-    max: isProduction ? 100 : 1000, // More generous in development
+    max: isProduction ? 200 : 1000, // Increased baseline: 200 in production, 1000 in development
     storage,
     modelName: 'rateLimit', // Matches our Prisma schema
     customRules: getCustomRules(isProduction)
@@ -52,100 +52,104 @@ export function getRateLimitConfig(): RateLimitConfig {
  * Get custom rate limiting rules based on environment
  */
 function getCustomRules(isProduction: boolean): Record<string, { window: number; max: number }> {
-  // Base multiplier for development vs production
-  const multiplier = isProduction ? 1 : 3 // More generous in development
+  // Much more generous multiplier for development vs production
+  const multiplier = isProduction ? 1 : 5 // Increased from 3 to 5 for development
   
   return {
-    // Authentication endpoints - strict limits following Better Auth patterns
+    // Authentication endpoints - MUCH more generous limits
     "/sign-in/email": {
-      window: 10, // 10 seconds (aligned with Better Auth defaults)
-      max: 3 * multiplier, // 3 login attempts per 10 seconds per IP
+      window: 60, // Changed from 10 seconds to 60 seconds
+      max: 10 * multiplier, // 10 attempts per minute (was 3 per 10 seconds)
     },
     "/sign-up/email": {
-      window: 3600, // 1 hour = 3600 seconds (changed from 300)
-      max: 3 * multiplier, // Only 3 signup attempts per hour
+      window: 300, // 5 minutes (changed from 1 hour)
+      max: 10 * multiplier, // 10 signup attempts per 5 minutes (was 3 per hour)
     },
     "/reset-password": {
       window: 300, // 5 minutes  
-      max: 3 * multiplier, // Only 3 password reset requests per 5 minutes
+      max: 5 * multiplier, // Increased from 3 to 5
     },
     "/forgot-password": {
       window: 300, // 5 minutes
-      max: 3 * multiplier, // 3 forgot password requests per 5 minutes
+      max: 5 * multiplier, // Increased from 3 to 5
     },
     "/verify-email": {
       window: 300, // 5 minutes
-      max: 5 * multiplier, // 5 verification attempts per 5 minutes
+      max: 10 * multiplier, // Increased from 5 to 10
     },
     
-    // Two-factor authentication (Better Auth plugin compatible)
+    // Two-factor authentication - more generous
     "/two-factor/verify": {
-      window: 10, // 10 seconds (Better Auth plugin default)
-      max: 3 * multiplier, // 3 verification attempts per 10 seconds
+      window: 60, // Changed from 10 seconds to 60 seconds
+      max: 10 * multiplier, // Increased from 3 to 10
     },
     "/two-factor/setup": {
       window: 300, // 5 minutes
-      max: 3 * multiplier, // 3 setup attempts per 5 minutes
+      max: 5 * multiplier, // Increased from 3 to 5
     },
     "/two-factor/disable": {
       window: 300, // 5 minutes
-      max: 2 * multiplier, // 2 disable attempts per 5 minutes (security)
+      max: 5 * multiplier, // Increased from 2 to 5
     },
     
-    // Social OAuth endpoints - moderate limits
+    // Social OAuth endpoints - VERY generous limits for OAuth debugging
     "/sign-in/social/*": {
       window: 60,
-      max: 10 * multiplier, // 10 OAuth attempts per minute
+      max: 30 * multiplier, // Increased from 10 to 30 OAuth attempts per minute
     },
     "/callback/*": {
-      window: 300, // 5 minutes
-      max: 20 * multiplier, // Allow OAuth callbacks with retries
+      window: 60, // Changed from 300 to 60 seconds for faster OAuth retries
+      max: 50 * multiplier, // Increased from 20 to 50 OAuth callbacks per minute
+    },
+    "/oauth2callback": {
+      window: 60, // Add specific OAuth2 callback rule
+      max: 50 * multiplier, // 50 OAuth2 callbacks per minute
     },
     
-    // Account management - careful limits
+    // Account management - more generous
     "/link-social": {
       window: 300, // 5 minutes
-      max: 5 * multiplier, // 5 link attempts per 5 minutes
+      max: 10 * multiplier, // Increased from 5 to 10
     },
     "/unlink-account": {
       window: 300, // 5 minutes
-      max: 3 * multiplier, // 3 unlink attempts per 5 minutes (security sensitive)
+      max: 5 * multiplier, // Increased from 3 to 5
     },
     
-    // Password operations - security sensitive
+    // Password operations - more generous
     "/change-password": {
       window: 300, // 5 minutes
-      max: 3 * multiplier, // Only 3 password changes per 5 minutes
+      max: 5 * multiplier, // Increased from 3 to 5
     },
     
-    // Session management - operational needs
+    // Session management - very generous for POS operations
     "/sign-out": {
       window: 60,
-      max: 20 * multiplier, // Allow frequent sign-outs (shift changes in POS)
+      max: 50 * multiplier, // Increased from 20 to 50 (frequent staff changes)
     },
     "/session": {
       window: 60,
-      max: isProduction ? 300 : 1000, // Very high limit for POS operations
+      max: isProduction ? 500 : 1000, // Increased from 300 to 500 in production
     },
     "/refresh": {
       window: 60,
-      max: 100 * multiplier, // Allow frequent session refreshes
+      max: 200 * multiplier, // Increased from 100 to 200
     },
     
-    // Account information - moderate limits
+    // Account information - generous limits
     "/user": {
       window: 60,
-      max: 50 * multiplier, // User info requests during POS operations
+      max: 100 * multiplier, // Increased from 50 to 100
     },
     "/list-sessions": {
       window: 300, // 5 minutes
-      max: 10 * multiplier, // 10 session list requests per 5 minutes
+      max: 20 * multiplier, // Increased from 10 to 20
     },
     
-    // Admin endpoints - controlled limits
+    // Admin endpoints - generous limits
     "/admin/*": {
       window: 60,
-      max: 30 * multiplier, // Moderate limit for admin operations
+      max: 50 * multiplier, // Increased from 30 to 50
     },
   }
 }

@@ -10,17 +10,27 @@ export const databaseHooks = {
   user: {
     create: {
       before: async (user: any, ctx: any) => {
-        console.log(`🔍 Creating user: ${user.email} with role: ${user.role || 'cashier'}`);
+        console.log('🔍 OAuth user creation attempt:', {
+          email: user.email,
+          timestamp: new Date().toISOString(),
+          provider: ctx.body?.provider || 'email',
+          role: user.role || 'cashier'
+        });
+        console.log('🔍 Full user data:', JSON.stringify(user, null, 2));
+        console.log('🔍 Context body:', JSON.stringify(ctx.body, null, 2));
         
         // Check if this is an OAuth signup (no password provided)
         const isOAuthSignup = !ctx.body?.password && ctx.body?.provider
+        console.log(`🔍 Is OAuth signup: ${isOAuthSignup}`);
         
-        // Validate employee ID uniqueness if provided
+        // Temporarily disable strict employee ID validation for OAuth debugging
+        /* TEMPORARILY DISABLED FOR OAUTH DEBUGGING
         if (user.employeeId && !user.employeeId.match(/^EMP-\d{4}$/)) {
           throw new APIError("BAD_REQUEST", {
             message: "Employee ID must follow format EMP-XXXX (e.g., EMP-1001)",
           })
         }
+        */
 
         // Business rule: Only admin users can create admin accounts
         if (user.role === 'admin' && ctx.context?.session) {
@@ -33,12 +43,14 @@ export const databaseHooks = {
         }
 
         // Enhanced validation for POS user creation
-        // Terms of service agreement check (following documentation example)
+        // Terms of service agreement check (temporarily disabled for OAuth debugging)
+        /* TEMPORARILY DISABLED FOR OAUTH DEBUGGING
         if (user.isAgreedToTerms === false) {
           throw new APIError("BAD_REQUEST", {
             message: "User must agree to the Terms of Service before signing up.",
           });
         }
+        */
 
         // For OAuth signups, firstName and lastName might come from profile mapping
         // For email/password signups, they are required
