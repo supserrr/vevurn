@@ -12,11 +12,48 @@ import { createAuthMiddleware, APIError } from "better-auth/api"
  */
 export const authHooks = {
   before: createAuthMiddleware(async (ctx) => {
-    // Email domain restriction for admin accounts (following documentation example)
+    // Enhanced validation for POS system
     if (ctx.path === "/sign-up/email") {
       const body = ctx.body as any
       const email = body?.email
       const role = body?.role || 'cashier'
+      
+      // Add debugging to see what Better Auth is actually receiving
+      console.log('=== BACKEND VALIDATION DEBUG ===');
+      console.log('Received body keys:', Object.keys(body || {}));
+      console.log('firstName value:', JSON.stringify(body?.firstName));
+      console.log('lastName value:', JSON.stringify(body?.lastName));
+      console.log('name value:', JSON.stringify(body?.name));
+      console.log('=== END BACKEND DEBUG ===');
+      
+      // Better Auth might use 'name' field, so let's check both patterns
+      const firstName = body?.firstName;
+      const lastName = body?.lastName;
+      const name = body?.name;
+      
+      // If Better Auth processes the name field, extract from there
+      let extractedFirstName = firstName;
+      let extractedLastName = lastName;
+      
+      if (!firstName && !lastName && name) {
+        const nameParts = name.split(' ');
+        extractedFirstName = nameParts[0];
+        extractedLastName = nameParts.slice(1).join(' ');
+        console.log('Extracted from name field - firstName:', extractedFirstName, 'lastName:', extractedLastName);
+      }
+      
+      // Enhanced validation with better error messages
+      if (!extractedFirstName || extractedFirstName.trim().length === 0) {
+        throw new APIError("BAD_REQUEST", {
+          message: "First name is required and cannot be empty",
+        })
+      }
+      
+      if (!extractedLastName || extractedLastName.trim().length === 0) {
+        throw new APIError("BAD_REQUEST", {
+          message: "Last name is required and cannot be empty", 
+        })
+      }
       
       // Corporate email validation for admin accounts
       if (role === 'admin') {
@@ -28,16 +65,6 @@ export const authHooks = {
             message: `Admin accounts must use corporate email domains: ${corporateDomains.join(', ')}`,
           })
         }
-      }
-      
-      // Enhanced validation for POS system
-      const firstName = body?.firstName
-      const lastName = body?.lastName
-      
-      if (!firstName || !lastName) {
-        throw new APIError("BAD_REQUEST", {
-          message: "First name and last name are required for POS system registration",
-        })
       }
       
       // Employee ID validation if provided

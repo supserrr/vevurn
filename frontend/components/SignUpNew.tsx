@@ -91,7 +91,13 @@ export default function SignUp() {
 				callbackURL: "/dashboard",
 			};
 
-			console.log('Registration payload:', registrationData);
+			console.log('=== REGISTRATION DEBUG ===');
+			console.log('Frontend values:');
+			console.log('- firstName:', `"${firstName.trim()}"`, 'length:', firstName.trim().length);
+			console.log('- lastName:', `"${lastName.trim()}"`, 'length:', lastName.trim().length);
+			console.log('- email:', `"${email.trim()}"`);
+			console.log('Full payload:', JSON.stringify(registrationData, null, 2));
+			console.log('=== END DEBUG ===');
 
 			const { data, error } = await signUp.email(registrationData, {
 				onRequest: () => {

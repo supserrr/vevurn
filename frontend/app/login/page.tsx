@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { signIn, signUp } from "@/lib/auth-client";
+import GoogleOAuthButton from "@/components/GoogleOAuthButton";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -191,6 +192,19 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </Form>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+              
+              <GoogleOAuthButton mode="signin" disabled={isLoading} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -279,6 +293,19 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </Form>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+              
+              <GoogleOAuthButton mode="signup" disabled={isLoading} />
             </CardContent>
           </Card>
         </TabsContent>
