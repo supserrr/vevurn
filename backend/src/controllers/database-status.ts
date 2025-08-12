@@ -23,7 +23,7 @@ export const getDatabaseStatus = async (req: Request, res: Response) => {
         accounts: {
           select: {
             providerId: true,
-            providerAccountId: true,
+            accountId: true,
           }
         },
         sessions: {
@@ -63,7 +63,7 @@ export const getDatabaseStatus = async (req: Request, res: Response) => {
     console.error('❌ Database status error:', error);
     res.status(500).json({ 
       error: 'Database query failed', 
-      message: error.message 
+      message: error instanceof Error ? error.message : String(error)
     });
   }
 };
