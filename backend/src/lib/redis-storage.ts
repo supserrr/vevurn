@@ -21,12 +21,18 @@ try {
       // Connection pool settings
       family: 4, // Use IPv4
       keepAlive: 30000,
-      enableOfflineQueue: true
+      enableOfflineQueue: false, // Don't queue commands when disconnected
+      // Retry configuration
+      retryStrategy: (times) => {
+        const delay = Math.min(times * 50, 2000);
+        console.log(`Retrying Redis connection attempt ${times}, delay: ${delay}ms`);
+        return delay;
+      }
     })
 
     // Enhanced Redis event handling
     redis.on('error', (err) => {
-      console.error('❌ Redis secondary storage error:', err)
+      console.error('❌ Redis secondary storage error:', err.message)
     })
 
     redis.on('connect', () => {
@@ -39,6 +45,10 @@ try {
 
     redis.on('close', () => {
       console.warn('⚠️ Redis secondary storage connection closed')
+    })
+
+    redis.on('reconnecting', () => {
+      console.log('🔄 Reconnecting to Redis secondary storage...')
     })
   } else {
     console.warn('⚠️ Redis URL not configured, secondary storage will be unavailable')

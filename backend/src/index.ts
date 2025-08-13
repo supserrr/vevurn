@@ -21,6 +21,9 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
 
+// Import Redis services
+import { RedisService } from './services/RedisService.js';
+
 // Import route handlers
 import userRoutes from './routes/users.js';
 import productRoutes from './routes/products.js';
@@ -104,7 +107,10 @@ app.get('/', (_req, res) => {
 });
 
 // Health check endpoint
-app.get('/health', (_req, res) => {
+app.get('/health', async (_req, res) => {
+  const redisService = new RedisService();
+  const redisHealth = await redisService.healthCheck();
+  
   res.json({
     success: true,
     status: 'healthy',
@@ -114,18 +120,26 @@ app.get('/health', (_req, res) => {
     services: {
       database: 'connected', // You can add actual health checks here
       auth: 'active',
+      redis: redisHealth ? 'connected' : 'unavailable',
       server: 'running'
     }
   });
 });
 
-// API health check
-app.get('/api/health', (_req, res) => {
+// API health check with Redis status
+app.get('/api/health', async (_req, res) => {
+  const redisService = new RedisService();
+  const redisHealth = await redisService.healthCheck();
+  
   res.json({
     success: true,
     message: 'API is working!',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    services: {
+      redis: redisHealth ? 'connected' : 'unavailable',
+      rateLimit: redisHealth ? 'redis' : 'memory_fallback'
+    }
   });
 });
 
@@ -273,23 +287,43 @@ process.on('SIGINT', () => {
   });
 });
 
-// Start server
-server.listen(PORT, '0.0.0.0', () => {
-  console.log('🎉 Vevurn POS Backend Started Successfully!');
-  console.log(`📡 Server: http://0.0.0.0:${PORT}`);
-  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log('✅ Better Auth: Configured & Ready');
-  console.log('✅ Socket.IO: Real-time communication active');
-  console.log('✅ CORS: Cross-origin requests enabled');
-  console.log('✅ Security: Helmet protection active');
-  console.log('');
-  console.log('🔗 Available Endpoints:');
-  console.log(`   📍 Root: http://localhost:${PORT}/`);
-  console.log(`   💚 Health: http://localhost:${PORT}/health`);
-  console.log(`   🔐 Auth: http://localhost:${PORT}/api/auth/*`);
-  console.log(`   📊 Auth Status: http://localhost:${PORT}/api/auth-status`);
-  console.log(`   🧪 Test Signup: http://localhost:${PORT}/api/test/signup`);
-  console.log('');
+// Start server with Redis initialization
+async function startServer() {
+  // Initialize Redis connections
+  const redisService = new RedisService();
+  
+  try {
+    console.log('🔄 Initializing Redis connections...');
+    await redisService.connect();
+    console.log('✅ Redis: Connected successfully');
+  } catch (error) {
+    console.warn('⚠️ Redis: Failed to connect, rate limiting will use memory fallback');
+    console.warn('Redis error:', error);
+  }
+
+  // Start HTTP server
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log('🎉 Vevurn POS Backend Started Successfully!');
+    console.log(`📡 Server: http://0.0.0.0:${PORT}`);
+    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log('✅ Better Auth: Configured & Ready');
+    console.log('✅ Socket.IO: Real-time communication active');
+    console.log('✅ CORS: Cross-origin requests enabled');
+    console.log('✅ Security: Helmet protection active');
+    console.log('');
+    console.log('🔗 Available Endpoints:');
+    console.log(`   📍 Root: http://localhost:${PORT}/`);
+    console.log(`   💚 Health: http://localhost:${PORT}/api/health`);
+    console.log(`   🔐 Auth: http://localhost:${PORT}/api/auth/*`);
+    console.log(`   📊 Auth Status: http://localhost:${PORT}/api/auth-status`);
+    console.log(`   🧪 Test Signup: http://localhost:${PORT}/api/test/signup`);
+    console.log('');
+  });
+}
+
+startServer().catch((error) => {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
 });
 
 export default app;

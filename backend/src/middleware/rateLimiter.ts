@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import { RedisService } from '../services/RedisService';
 import { logger } from '../utils/logger';
 
+// In-memory fallback store for when Redis is unavailable
+const memoryStore = new Map<string, { count: number; resetTime: number }>();
+
 const redis = new RedisService();
 
 interface RateLimitOptions {
@@ -33,7 +36,7 @@ class RateLimiter {
           return next();
         }
 
-        const key = this.options.keyGenerator!(req);
+        const key = this.options.keyGenerator ? this.options.keyGenerator(req) : (req.ip || 'unknown');
         const windowMs = this.options.windowMs;
         const maxRequests = this.options.max;
 
@@ -41,9 +44,34 @@ class RateLimiter {
         const windowStart = Math.floor(Date.now() / windowMs) * windowMs;
         const redisKey = `rate_limit:${key}:${windowStart}`;
 
-        // Get current count
-        const currentVal = await redis.get(redisKey);
-        let count = currentVal ? parseInt(currentVal) : 0;
+        let count = 0;
+        let useRedis = false;
+
+        try {
+          // Try Redis first
+          if (redis.isRedisConnected()) {
+            const currentVal = await redis.get(redisKey);
+            count = currentVal ? parseInt(currentVal) : 0;
+            useRedis = true;
+          } else {
+            throw new Error('Redis not connected');
+          }
+        } catch (redisError) {
+          // Fallback to memory store
+          logger.warn('Redis unavailable, using memory store for rate limiting');
+          const memoryKey = `${key}:${windowStart}`;
+          const memoryData = memoryStore.get(memoryKey);
+          
+          if (memoryData) {
+            if (memoryData.resetTime > Date.now()) {
+              count = memoryData.count;
+            } else {
+              // Expired, clean up
+              memoryStore.delete(memoryKey);
+              count = 0;
+            }
+          }
+        }
 
         // Check if limit exceeded
         if (count >= maxRequests) {
@@ -69,9 +97,23 @@ class RateLimiter {
           return;
         }
 
-        // Increment counter using the RedisService method
+        // Increment counter
         count = count + 1;
-        await redis.set(redisKey, count.toString(), { ttl: Math.ceil(windowMs / 1000) });
+        
+        try {
+          if (useRedis) {
+            await redis.set(redisKey, count.toString(), { ttl: Math.ceil(windowMs / 1000) });
+          } else {
+            // Store in memory with expiration
+            const memoryKey = `${key}:${windowStart}`;
+            memoryStore.set(memoryKey, {
+              count,
+              resetTime: windowStart + windowMs
+            });
+          }
+        } catch (error) {
+          logger.error('Error storing rate limit count:', error);
+        }
 
         // Set rate limit headers
         res.set({
@@ -86,13 +128,30 @@ class RateLimiter {
             if (res.statusCode < 400) {
               // Decrement counter for successful requests
               try {
-                const currentCount = await redis.get(redisKey);
-                if (currentCount && parseInt(currentCount) > 0) {
-                  const newCount = parseInt(currentCount) - 1;
-                  if (newCount > 0) {
-                    await redis.set(redisKey, newCount.toString(), { ttl: Math.ceil(windowMs / 1000) });
-                  } else {
-                    await redis.del(redisKey);
+                if (useRedis) {
+                  const currentCount = await redis.get(redisKey);
+                  if (currentCount && parseInt(currentCount) > 0) {
+                    const newCount = parseInt(currentCount) - 1;
+                    if (newCount > 0) {
+                      await redis.set(redisKey, newCount.toString(), { ttl: Math.ceil(windowMs / 1000) });
+                    } else {
+                      await redis.del(redisKey);
+                    }
+                  }
+                } else {
+                  // Update memory store
+                  const memoryKey = `${key}:${windowStart}`;
+                  const memoryData = memoryStore.get(memoryKey);
+                  if (memoryData && memoryData.count > 0) {
+                    const newCount = memoryData.count - 1;
+                    if (newCount > 0) {
+                      memoryStore.set(memoryKey, {
+                        count: newCount,
+                        resetTime: memoryData.resetTime
+                      });
+                    } else {
+                      memoryStore.delete(memoryKey);
+                    }
                   }
                 }
               } catch (error) {
@@ -194,3 +253,24 @@ export const salesRateLimiter = new RateLimiter({
     return req.method !== 'POST';
   }
 }).middleware();
+
+// Memory store cleanup function to prevent memory leaks
+function cleanupMemoryStore(): void {
+  const now = Date.now();
+  const keysToDelete: string[] = [];
+  
+  for (const [key, data] of memoryStore.entries()) {
+    if (data.resetTime <= now) {
+      keysToDelete.push(key);
+    }
+  }
+  
+  keysToDelete.forEach(key => memoryStore.delete(key));
+  
+  if (keysToDelete.length > 0) {
+    logger.debug(`Cleaned up ${keysToDelete.length} expired rate limit entries from memory store`);
+  }
+}
+
+// Run cleanup every 5 minutes
+setInterval(cleanupMemoryStore, 5 * 60 * 1000);
