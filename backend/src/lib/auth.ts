@@ -1,14 +1,49 @@
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
-import { APIError } from "better-auth/api"
 import { PrismaClient } from "@prisma/client"
 import { redisStorage } from "./redis-storage"
 import { databaseHooks } from "./database-hooks"
-import { databaseConfig } from "./database-config"
 import { authHooks } from "./auth-hooks"
 import { sendEmail, createVerificationEmailTemplate, createPasswordResetEmailTemplate, createWelcomeEmailTemplate } from "./email-service"
 import { config, getAllowedOrigins } from "../config/environment.js"
 import { getBetterAuthRateLimitConfig } from "./rate-limit-config"
+
+const validateUserRegistration = (userData: any) => {
+    const errors: string[] = [];
+
+    // Validate firstName
+    if (!userData.firstName || typeof userData.firstName !== 'string') {
+        errors.push('firstName is required and must be a string');
+    } else {
+        const trimmedFirstName = userData.firstName.trim();
+        if (trimmedFirstName.length === 0) {
+            errors.push('firstName cannot be empty');
+        } else if (trimmedFirstName.length > 50) {
+            errors.push('firstName cannot exceed 50 characters');
+        } else if (!/^[a-zA-Z\s'-]+$/.test(trimmedFirstName)) {
+            errors.push('firstName contains invalid characters');
+        }
+    }
+
+    // Validate lastName
+    if (!userData.lastName || typeof userData.lastName !== 'string') {
+        errors.push('lastName is required and must be a string');
+    } else {
+        const trimmedLastName = userData.lastName.trim();
+        if (trimmedLastName.length === 0) {
+            errors.push('lastName cannot be empty');
+        } else if (trimmedLastName.length > 50) {
+            errors.push('lastName cannot exceed 50 characters');
+        } else if (!/^[a-zA-Z\s'-]+$/.test(trimmedLastName)) {
+            errors.push('lastName contains invalid characters');
+        }
+    }
+
+    return {
+        isValid: errors.length === 0,
+        errors
+    };
+};
 
 const prisma = new PrismaClient()
 
@@ -109,7 +144,7 @@ export const auth = betterAuth({
     // Reset password token expiration (1 hour)
     resetPasswordTokenExpiresIn: 60 * 60, // 1 hour in seconds
     // Password reset email functionality
-    sendResetPassword: async ({ user, url, token }, _request) => {
+    sendResetPassword: async ({ user, url }, _request) => {
       const template = createPasswordResetEmailTemplate(user.name || user.email, url)
       await sendEmail({
         to: user.email,
@@ -120,7 +155,7 @@ export const auth = betterAuth({
       console.log(`Password reset email sent to ${user.email}`)
     },
     // Callback after successful password reset
-    onPasswordReset: async ({ user }, _request) => {
+    onPasswordReset: ({ user }, _request) => {
       console.log(`Password successfully reset for user: ${user.email} (ID: ${user.id})`)
       // Here you could add additional logic:
       // - Send confirmation email
@@ -265,7 +300,7 @@ export const auth = betterAuth({
         // Log the deletion attempt for audit purposes
         console.log(`User deletion initiated for: ${user.email} (ID: ${user.id})`)
       },
-      afterDelete: async (user, _request) => {
+      afterDelete: (user, _request) => {
         // Clean up any user-related data that wasn't automatically deleted
         console.log(`User successfully deleted: ${user.email} (ID: ${user.id})`)
         
@@ -300,24 +335,58 @@ export const auth = betterAuth({
       google: {
         clientId: config.GOOGLE_CLIENT_ID,
         clientSecret: config.GOOGLE_CLIENT_SECRET,
-        scope: ["email", "profile"], // Keep only basic scopes
-        // Simplified configuration for debugging - removed:
-        // accessType: "offline", 
-        // prompt: "select_account+consent",
-        
-        // Simplified profile mapping
         mapProfileToUser: (profile) => {
-          console.log('🔍 Google profile received:', JSON.stringify(profile, null, 2));
-          
-          const mappedUser = {
-            firstName: profile.given_name || profile.name?.split(' ')[0] || '',
-            lastName: profile.family_name || profile.name?.split(' ').slice(1).join(' ') || '',
-          };
-          
-          console.log('🔍 Mapped user data:', JSON.stringify(mappedUser, null, 2));
-          return mappedUser;
-        },
-      }
+            console.log('=== GOOGLE OAUTH PROFILE DEBUG ===');
+            console.log('Raw Google profile:', JSON.stringify(profile, null, 2));
+    
+            let firstName = '';
+            let lastName = '';
+    
+            // Strategy 1: Use Google's structured fields
+            if (profile.given_name) {
+                firstName = profile.given_name.trim();
+            }
+            if (profile.family_name) {
+                lastName = profile.family_name.trim();
+            }
+    
+            // Strategy 2: Parse full name if structured fields missing
+            if (!firstName && profile.name) {
+                const nameParts = profile.name.trim().split(' ').filter(part => part.length > 0);
+                firstName = nameParts[0] || '';
+                lastName = nameParts.slice(1).join(' ') || '';
+            }
+    
+            // Strategy 3: Email prefix fallback
+            if (!firstName && profile.email) {
+                const emailPrefix = profile.email.split('@')[0];
+                firstName = emailPrefix.replace(/[^a-zA-Z]/g, '') || 'User';
+            }
+    
+            // Strategy 4: Absolute fallbacks
+            if (!firstName.trim()) firstName = 'User';
+            if (!lastName.trim()) lastName = 'Account';
+    
+            const mappedUser = {
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
+                name: profile.name || `${firstName} ${lastName}`,
+                email: profile.email,
+                image: profile.picture,
+                // POS-specific defaults
+                role: 'cashier',
+                isActive: true,
+                maxDiscountAllowed: 0,
+                canSellBelowMin: false,
+                employeeId: null,
+            };
+    
+            console.log('Mapped user data:', JSON.stringify(mappedUser, null, 2));
+            console.log('=== END GOOGLE OAUTH DEBUG ===');
+    
+            return mappedUser;
+        }
+    }
     }),
     ...(config.MICROSOFT_CLIENT_ID && config.MICROSOFT_CLIENT_SECRET && {
       microsoft: {

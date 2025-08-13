@@ -30,6 +30,8 @@ export default function SignUp() {
 	const [imagePreview, setImagePreview] = useState<string | null>(null);
 	const router = useRouter();
 	const [loading, setLoading] = useState(false);
+	const [firstNameError, setFirstNameError] = useState("");
+	const [lastNameError, setLastNameError] = useState("");
 
 	const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
@@ -43,59 +45,139 @@ export default function SignUp() {
 		}
 	};
 
+	const handleFirstNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value;
+		setFirstName(value);
+		
+		// Real-time validation
+		if (value.trim().length === 0) {
+			setFirstNameError("First name is required");
+		} else if (value.trim().length > 50) {
+			setFirstNameError("First name cannot exceed 50 characters");
+		} else if (!/^[a-zA-Z\s'-]*$/.test(value)) {
+			setFirstNameError("Only letters, spaces, hyphens, and apostrophes allowed");
+		} else {
+			setFirstNameError("");
+		}
+	};
+	
+	const handleLastNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value;
+		setLastName(value);
+		
+		// Real-time validation
+		if (value.trim().length === 0) {
+			setLastNameError("Last name is required");
+		} else if (value.trim().length > 50) {
+			setLastNameError("Last name cannot exceed 50 characters");
+		} else if (!/^[a-zA-Z\s'-]*$/.test(value)) {
+			setLastNameError("Only letters, spaces, hyphens, and apostrophes allowed");
+		} else {
+			setLastNameError("");
+		}
+	};
+
 	const validateForm = () => {
-		if (!firstName.trim()) {
-			toast.error("First name is required");
+		// Trim and validate firstName
+		const trimmedFirstName = firstName.trim();
+		const trimmedLastName = lastName.trim();
+		const trimmedEmail = email.trim();
+	
+		if (!trimmedFirstName || trimmedFirstName.length < 1) {
+			toast.error("First name is required and cannot be empty");
 			return false;
 		}
-		if (!lastName.trim()) {
-			toast.error("Last name is required");
+	
+		if (trimmedFirstName.length > 50) {
+			toast.error("First name cannot exceed 50 characters");
 			return false;
 		}
-		if (!email.trim()) {
+	
+		// Check for invalid characters in firstName
+		if (!/^[a-zA-Z\s'-]+$/.test(trimmedFirstName)) {
+			toast.error("First name can only contain letters, spaces, hyphens, and apostrophes");
+			return false;
+		}
+	
+		if (!trimmedLastName || trimmedLastName.length < 1) {
+			toast.error("Last name is required and cannot be empty");
+			return false;
+		}
+	
+		if (trimmedLastName.length > 50) {
+			toast.error("Last name cannot exceed 50 characters");
+			return false;
+		}
+	
+		if (!/^[a-zA-Z\s'-]+$/.test(trimmedLastName)) {
+			toast.error("Last name can only contain letters, spaces, hyphens, and apostrophes");
+			return false;
+		}
+	
+		if (!trimmedEmail) {
 			toast.error("Email is required");
 			return false;
 		}
-		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+	
+		if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
 			toast.error("Invalid email format");
 			return false;
 		}
+	
 		if (password.length < 8) {
 			toast.error("Password must be at least 8 characters");
 			return false;
 		}
+	
 		if (password !== passwordConfirmation) {
 			toast.error("Passwords don't match");
 			return false;
 		}
+	
 		return true;
 	};
 
 	const handleSignUp = async () => {
 		if (!validateForm()) return;
-
+	
 		setLoading(true);
-
+	
 		try {
 			// Convert image to base64 if present
 			const imageBase64 = image ? await convertImageToBase64(image) : undefined;
-
-			// Clean registration data - let backend handle role and permissions
+	
+			// Enhanced data cleaning and validation
+			const cleanedFirstName = firstName.trim().replace(/\s+/g, ' '); // Remove extra spaces
+			const cleanedLastName = lastName.trim().replace(/\s+/g, ' ');
+			const cleanedEmail = email.trim().toLowerCase();
+	
+			// Ensure names are not empty after cleaning
+			if (!cleanedFirstName || !cleanedLastName) {
+				toast.error("First name and last name cannot be empty");
+				setLoading(false);
+				return;
+			}
+	
+			// Clean registration data
 			const registrationData = {
-				email: email.trim(),
+				email: cleanedEmail,
 				password,
-				name: `${firstName.trim()} ${lastName.trim()}`,
-				firstName: firstName.trim(),
-				lastName: lastName.trim(),
+				name: `${cleanedFirstName} ${cleanedLastName}`,
+				firstName: cleanedFirstName,
+				lastName: cleanedLastName,
 				image: imageBase64,
 				callbackURL: "/dashboard",
 			};
-
+	
+			// Enhanced debugging
 			console.log('=== REGISTRATION DEBUG ===');
 			console.log('Frontend values:');
-			console.log('- firstName:', `"${firstName.trim()}"`, 'length:', firstName.trim().length);
-			console.log('- lastName:', `"${lastName.trim()}"`, 'length:', lastName.trim().length);
-			console.log('- email:', `"${email.trim()}"`);
+			console.log('- Original firstName:', `"${firstName}"`);
+			console.log('- Cleaned firstName:', `"${cleanedFirstName}"`, 'length:', cleanedFirstName.length);
+			console.log('- Original lastName:', `"${lastName}"`);
+			console.log('- Cleaned lastName:', `"${cleanedLastName}"`, 'length:', cleanedLastName.length);
+			console.log('- Email:', `"${cleanedEmail}"`);
+			console.log('- Full name:', `"${registrationData.name}"`);
 			console.log('Full payload:', JSON.stringify(registrationData, null, 2));
 			console.log('=== END DEBUG ===');
 
@@ -110,8 +192,33 @@ export default function SignUp() {
 				},
 				onError: (ctx) => {
 					console.error('Registration error context:', ctx);
-					const errorMessage = getErrorMessage(ctx.error);
-					toast.error(errorMessage);
+					
+					let errorMessage = "Registration failed";
+					
+					// Parse specific error messages
+					if (ctx.error) {
+						if (typeof ctx.error === 'string') {
+							errorMessage = ctx.error;
+						} else if (ctx.error.message) {
+							errorMessage = ctx.error.message;
+						} else if (ctx.error.error) {
+							errorMessage = ctx.error.error;
+						}
+					}
+				
+					// Handle specific validation errors
+					if (errorMessage.toLowerCase().includes('firstname') || 
+						errorMessage.toLowerCase().includes('first_name') ||
+						errorMessage.toLowerCase().includes('first name')) {
+						toast.error("First name validation failed. Please ensure you entered a valid first name.");
+					} else if (errorMessage.toLowerCase().includes('lastname') || 
+							   errorMessage.toLowerCase().includes('last_name') ||
+							   errorMessage.toLowerCase().includes('last name')) {
+						toast.error("Last name validation failed. Please ensure you entered a valid last name.");
+					} else {
+						toast.error(errorMessage);
+					}
+					
 					setLoading(false);
 				}
 			});
@@ -127,6 +234,19 @@ export default function SignUp() {
 		} finally {
 			setLoading(false);
 		}
+	};
+
+	const resetForm = () => {
+		setFirstName("");
+		setLastName("");
+		setEmail("");
+		setPassword("");
+		setPasswordConfirmation("");
+		setImage(null);
+		setImagePreview(null);
+		setFirstNameError("");
+		setLastNameError("");
+		setLoading(false);
 	};
 
 	return (
@@ -146,11 +266,13 @@ export default function SignUp() {
 								id="first-name"
 								placeholder="Max"
 								required
-								onChange={(e) => {
-									setFirstName(e.target.value);
-								}}
+								onChange={handleFirstNameChange}
 								value={firstName}
+								className={firstNameError ? "border-red-500" : ""}
 							/>
+							{firstNameError && (
+								<span className="text-red-500 text-xs">{firstNameError}</span>
+							)}
 						</div>
 						<div className="grid gap-2">
 							<Label htmlFor="last-name">Last name</Label>
@@ -158,11 +280,13 @@ export default function SignUp() {
 								id="last-name"
 								placeholder="Robinson"
 								required
-								onChange={(e) => {
-									setLastName(e.target.value);
-								}}
+								onChange={handleLastNameChange}
 								value={lastName}
+								className={lastNameError ? "border-red-500" : ""}
 							/>
+							{lastNameError && (
+								<span className="text-red-500 text-xs">{lastNameError}</span>
+							)}
 						</div>
 					</div>
 					<div className="grid gap-2">
@@ -236,18 +360,28 @@ export default function SignUp() {
 							</div>
 						</div>
 					</div>
-					<Button
-						type="submit"
-						className="w-full"
-						disabled={loading}
-						onClick={handleSignUp}
-					>
-						{loading ? (
-							<Loader2 size={16} className="animate-spin" />
-						) : (
-							"Create an account"
-						)}
-					</Button>
+					<div className="flex gap-2">
+						<Button
+							type="submit"
+							className="w-full"
+							disabled={loading}
+							onClick={handleSignUp}
+						>
+							{loading ? (
+								<Loader2 size={16} className="animate-spin" />
+							) : (
+								"Create an account"
+							)}
+						</Button>
+						<Button 
+							type="button" 
+							variant="outline" 
+							onClick={resetForm}
+							disabled={loading}
+						>
+							Reset Form
+						</Button>
+					</div>
 
 					<div className="text-center">
 						<GoogleOAuthButton 
