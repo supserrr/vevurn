@@ -20,6 +20,7 @@
     "test:session": "tsx test-session-management.ts",
     "test:express-integration": "tsx scripts/validate-express-integration.ts",
     "check:express-compliance": "tsx scripts/check-express-compliance.ts",
+    "check:deployment": "tsx scripts/check-deployment.ts",
     "validate:database": "node scripts/validate-database.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
