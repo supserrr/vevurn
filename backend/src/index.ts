@@ -20,6 +20,7 @@ import { toNodeHandler } from 'better-auth/node';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { rateLimiter } from './middleware/rateLimiter.js';
+import { performanceMonitor } from './middleware/performanceMonitor.js';
 
 // Import Redis services
 import { RedisService } from './services/RedisService.js';
@@ -34,6 +35,7 @@ import supplierRoutes from './routes/suppliers.js';
 import loanRoutes from './routes/loans.js';
 import reportRoutes from './routes/reports.js';
 import settingRoutes from './routes/settings.js';
+import monitoringRoutes from './routes/monitoring.js';
 
 // Create Express app
 const app: Application = express();
@@ -70,6 +72,9 @@ app.use(cors(corsOptions));
 
 // Request logging
 app.use(requestLogger);
+
+// Performance monitoring
+app.use(performanceMonitor);
 
 // CRITICAL: Better Auth handler MUST be mounted BEFORE express.json()
 // This handles all /api/auth/* routes including signup, signin, oauth
@@ -209,6 +214,9 @@ app.use('/api/suppliers', supplierRoutes);
 app.use('/api/loans', loanRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingRoutes);
+
+// Monitoring routes (public endpoints for health checks)
+app.use('/api', monitoringRoutes);
 
 // Test endpoint for signup debugging
 app.post('/api/test/signup', (req, res) => {
