@@ -8,8 +8,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:demo": "tsx watch src/demo-server.ts",
-    "prebuild": "echo '🔧 Pre-build: Generating Prisma client...' && prisma generate",
+    "prebuild": "echo '🔧 Pre-build: Generating Prisma client...' && npx prisma generate",
     "build": "echo '🔨 Building TypeScript backend for production...' && tsc --project tsconfig.prod.json && tsc-esm-fix --target=dist && echo '✅ Production build complete'",
+    "build:prod": "echo '🚀 Production build starting...' && npx prisma generate && tsc --project tsconfig.prod.json && tsc-esm-fix --target=dist && echo '✅ Production build complete'",
     "build:analyze": "tsc --project tsconfig.prod.json --listFiles --showConfig",
     "start": "NODE_ENV=production node dist/src/index.js",
     "test": "jest",
@@ -67,6 +68,7 @@
     "nodemailer": "^7.0.5",
     "numeral": "^2.0.6",
     "pdf-lib": "^1.17.1",
+    "prisma": "^6.14.0",
     "redis": "^5.8.1",
     "sharp": "^0.34.3",
     "socket.io": "^4.8.1",
@@ -89,7 +91,6 @@
     "eslint-config-prettier": "^10.1.8",
     "jest": "^30.0.5",
     "node-fetch": "^3.3.2",
-    "prisma": "^6.14.0",
     "ts-jest": "^29.4.1",
     "tsx": "^4.20.4",
     "typescript-eslint": "^8.39.0"
