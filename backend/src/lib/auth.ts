@@ -8,7 +8,7 @@ import { sendEmail, createVerificationEmailTemplate, createPasswordResetEmailTem
 import { config, getAllowedOrigins } from "../config/environment.js"
 import { getBetterAuthRateLimitConfig } from "./rate-limit-config"
 
-const validateUserRegistration = (userData: any) => {
+export const validateUserRegistration = (userData: any) => {
     const errors: string[] = [];
 
     // Validate firstName
@@ -162,6 +162,7 @@ export const auth = betterAuth({
       // - Log security event
       // - Notify admin if needed
       // - Invalidate other sessions for security
+      return Promise.resolve()
     },
   },
   emailVerification: {
@@ -309,6 +310,7 @@ export const auth = betterAuth({
         // - Redis cache entries
         // - External service cleanup
         // - Audit log entry
+        return Promise.resolve()
       },
     },
   },
