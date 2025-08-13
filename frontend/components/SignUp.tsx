@@ -139,63 +139,64 @@ export default function SignUp() {
 
 	const handleSignUp = async () => {
 		if (!validateForm()) return;
-	
+
 		setLoading(true);
-	
+
 		try {
 			// Convert image to base64 if present
 			const imageBase64 = image ? await convertImageToBase64(image) : undefined;
-	
-			// Enhanced data cleaning and validation
-			const cleanedFirstName = firstName.trim().replace(/\s+/g, ' '); // Remove extra spaces
+
+			// CRITICAL: Enhanced data cleaning and validation
+			const cleanedFirstName = firstName.trim().replace(/\s+/g, ' ');
 			const cleanedLastName = lastName.trim().replace(/\s+/g, ' ');
 			const cleanedEmail = email.trim().toLowerCase();
-	
-			// Ensure names are not empty after cleaning
-			if (!cleanedFirstName || !cleanedLastName) {
-				toast.error("First name and last name cannot be empty");
+
+			// CRITICAL: Double-check after cleaning
+			if (!cleanedFirstName || cleanedFirstName.length === 0) {
+				toast.error("First name is required and cannot be empty");
 				setLoading(false);
 				return;
 			}
-	
-			// Clean registration data
+
+			if (!cleanedLastName || cleanedLastName.length === 0) {
+				toast.error("Last name is required and cannot be empty");
+				setLoading(false);
+				return;
+			}
+
+			// Clean registration data - MATCH THE BACKEND SCHEMA EXACTLY
 			const registrationData = {
 				email: cleanedEmail,
-				password,
-				name: `${cleanedFirstName} ${cleanedLastName}`,
+				password: password,
 				firstName: cleanedFirstName,
 				lastName: cleanedLastName,
+				name: `${cleanedFirstName} ${cleanedLastName}`,
 				image: imageBase64,
 				callbackURL: "/dashboard",
 			};
-	
-			// Enhanced debugging
-			console.log('=== REGISTRATION DEBUG ===');
-			console.log('Frontend values:');
-			console.log('- Original firstName:', `"${firstName}"`);
-			console.log('- Cleaned firstName:', `"${cleanedFirstName}"`, 'length:', cleanedFirstName.length);
-			console.log('- Original lastName:', `"${lastName}"`);
-			console.log('- Cleaned lastName:', `"${cleanedLastName}"`, 'length:', cleanedLastName.length);
-			console.log('- Email:', `"${cleanedEmail}"`);
-			console.log('- Full name:', `"${registrationData.name}"`);
-			console.log('Full payload:', JSON.stringify(registrationData, null, 2));
-			console.log('=== END DEBUG ===');
+
+			// CRITICAL: Log exactly what we're sending
+			console.log('🔍 SENDING TO BACKEND:');
+			console.log('- firstName:', `"${registrationData.firstName}"`, 'type:', typeof registrationData.firstName, 'length:', registrationData.firstName.length);
+			console.log('- lastName:', `"${registrationData.lastName}"`, 'type:', typeof registrationData.lastName, 'length:', registrationData.lastName.length);
+			console.log('- email:', `"${registrationData.email}"`);
+			console.log('- Complete payload:', JSON.stringify(registrationData, null, 2));
 
 			const { data, error } = await signUp.email(registrationData, {
 				onRequest: () => {
-					console.log('Registration request started');
+					console.log('🚀 Registration request started');
 				},
 				onSuccess: (ctx) => {
-					console.log('Registration successful, redirecting to dashboard');
+					console.log('✅ Registration successful');
 					toast.success("Account created successfully!");
 					router.push("/dashboard");
 				},
 				onError: (ctx) => {
-					console.error('Registration error context:', ctx);
+					console.error('❌ Registration error:', ctx);
 					
 					let errorMessage = "Registration failed";
 					
-					// Parse specific error messages
+					// Enhanced error parsing
 					if (ctx.error) {
 						if (typeof ctx.error === 'string') {
 							errorMessage = ctx.error;
@@ -205,33 +206,21 @@ export default function SignUp() {
 							errorMessage = ctx.error.error;
 						}
 					}
-				
-					// Handle specific validation errors
-					if (errorMessage.toLowerCase().includes('firstname') || 
-						errorMessage.toLowerCase().includes('first_name') ||
-						errorMessage.toLowerCase().includes('first name')) {
-						toast.error("First name validation failed. Please ensure you entered a valid first name.");
-					} else if (errorMessage.toLowerCase().includes('lastname') || 
-							   errorMessage.toLowerCase().includes('last_name') ||
-							   errorMessage.toLowerCase().includes('last name')) {
-						toast.error("Last name validation failed. Please ensure you entered a valid last name.");
-					} else {
-						toast.error(errorMessage);
-					}
-					
+
+					// Show specific error
+					toast.error(errorMessage);
 					setLoading(false);
 				}
 			});
 
 			if (error) {
-				console.error('Sign up error:', error);
-				const errorMessage = getErrorMessage(error);
-				toast.error(errorMessage);
+				console.error('❌ Sign up error:', error);
+				toast.error(error.message || "Registration failed");
+				setLoading(false);
 			}
 		} catch (error) {
-			console.error('Unexpected registration error:', error);
+			console.error('❌ Unexpected registration error:', error);
 			toast.error("An unexpected error occurred. Please try again.");
-		} finally {
 			setLoading(false);
 		}
 	};

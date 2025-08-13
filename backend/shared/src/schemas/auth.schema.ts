@@ -8,10 +8,18 @@ export const LoginSchema = z.object({
 })
 
 export const RegisterSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  firstName: z.string().min(1).max(100),
-  lastName: z.string().min(1).max(100),
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string()
+    .min(1, "First name is required")
+    .max(100, "First name cannot exceed 100 characters")
+    .transform((val) => val.trim())
+    .refine((val) => val.length > 0, "First name cannot be empty"),
+  lastName: z.string()
+    .min(1, "Last name is required") 
+    .max(100, "Last name cannot exceed 100 characters")
+    .transform((val) => val.trim())
+    .refine((val) => val.length > 0, "Last name cannot be empty"),
   role: z.nativeEnum(UserRole).default(UserRole.CASHIER)
 })
 

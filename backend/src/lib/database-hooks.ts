@@ -10,30 +10,46 @@ export const databaseHooks = {
   user: {
     create: {
       before: async (user: any, ctx: any) => {
+        console.log('🔍 Database hook - before user creation:', JSON.stringify(user, null, 2));
+        
+        // Import and use the validation function from auth.ts
+        const { validateUserRegistration } = await import('./auth')
+        
+        // Validate and clean the user data
+        const validation = validateUserRegistration(user);
+        
+        if (!validation.isValid) {
+          console.error('❌ User validation failed:', validation.errors);
+          throw new APIError("BAD_REQUEST", {
+            message: `Validation failed: ${validation.errors.join(', ')}`,
+          });
+        }
+        
+        // Use the cleaned data
+        const cleanedUser = validation.cleanedData;
+        
+        // Ensure required fields are present
+        if (!cleanedUser.firstName || !cleanedUser.lastName) {
+          throw new APIError("BAD_REQUEST", {
+            message: 'firstName and lastName are required and cannot be empty',
+          });
+        }
+        
+        console.log('✅ User validation passed, cleaned data:', JSON.stringify(cleanedUser, null, 2));
+        
         console.log('🔍 OAuth user creation attempt:', {
-          email: user.email,
+          email: cleanedUser.email,
           timestamp: new Date().toISOString(),
           provider: ctx.body?.provider || 'email',
-          role: user.role || 'cashier'
+          role: cleanedUser.role || 'cashier'
         });
-        console.log('🔍 Full user data:', JSON.stringify(user, null, 2));
-        console.log('🔍 Context body:', JSON.stringify(ctx.body, null, 2));
         
         // Check if this is an OAuth signup (no password provided)
         const isOAuthSignup = !ctx.body?.password && ctx.body?.provider
         console.log(`🔍 Is OAuth signup: ${isOAuthSignup}`);
-        
-        // Temporarily disable strict employee ID validation for OAuth debugging
-        /* TEMPORARILY DISABLED FOR OAUTH DEBUGGING
-        if (user.employeeId && !user.employeeId.match(/^EMP-\d{4}$/)) {
-          throw new APIError("BAD_REQUEST", {
-            message: "Employee ID must follow format EMP-XXXX (e.g., EMP-1001)",
-          })
-        }
-        */
 
         // Business rule: Only admin users can create admin accounts
-        if (user.role === 'admin' && ctx.context?.session) {
+        if (cleanedUser.role === 'admin' && ctx.context?.session) {
           const currentUser = ctx.context.session.user;
           if (currentUser?.role !== 'admin') {
             throw new APIError("FORBIDDEN", {
@@ -42,40 +58,17 @@ export const databaseHooks = {
           }
         }
 
-        // Enhanced validation for POS user creation
-        // Terms of service agreement check (temporarily disabled for OAuth debugging)
-        /* TEMPORARILY DISABLED FOR OAUTH DEBUGGING
-        if (user.isAgreedToTerms === false) {
-          throw new APIError("BAD_REQUEST", {
-            message: "User must agree to the Terms of Service before signing up.",
-          });
-        }
-        */
-
-        // For OAuth signups, firstName and lastName might come from profile mapping
-        // For email/password signups, they are required
-        if (!isOAuthSignup && (!user.firstName || !user.lastName)) {
-          throw new APIError("BAD_REQUEST", {
-            message: "First name and last name are required",
-          })
-        }
-
-        // For OAuth users, try to extract name from the 'name' field if firstName/lastName are missing
-        // Following the documentation pattern for profile mapping
-        if (isOAuthSignup && (!user.firstName || !user.lastName) && user.name) {
-          const nameParts = user.name.split(' ')
-          user.firstName = user.firstName || nameParts[0] || ''
-          user.lastName = user.lastName || nameParts.slice(1).join(' ') || ''
-        }
+        // For OAuth signups, firstName and lastName should already be cleaned by validation
+        // For email/password signups, they are also validated above
 
         // Generate employee ID if not provided (business logic)
-        if (!user.employeeId) {
+        if (!cleanedUser.employeeId) {
           const timestamp = Date.now().toString().slice(-4)
-          user.employeeId = `EMP-${timestamp}`
+          cleanedUser.employeeId = `EMP-${timestamp}`
         }
 
         // Validate POS-specific business rules
-        if (user.maxDiscountAllowed && user.maxDiscountAllowed > 50) {
+        if (cleanedUser.maxDiscountAllowed && cleanedUser.maxDiscountAllowed > 50) {
           throw new APIError("BAD_REQUEST", {
             message: "Maximum discount cannot exceed 50%",
           });
@@ -83,19 +76,19 @@ export const databaseHooks = {
 
         // Email domain validation for corporate accounts
         const corporateDomains = ['vevurn.com', 'company.internal']
-        const emailDomain = user.email.split('@')[1]?.toLowerCase()
+        const emailDomain = cleanedUser.email.split('@')[1]?.toLowerCase()
         
-        if (user.role === 'admin' && corporateDomains.length > 0 && !corporateDomains.includes(emailDomain)) {
-          console.warn(`⚠️ Admin account created with non-corporate email: ${user.email}`)
+        if (cleanedUser.role === 'admin' && corporateDomains.length > 0 && !corporateDomains.includes(emailDomain)) {
+          console.warn(`⚠️ Admin account created with non-corporate email: ${cleanedUser.email}`)
         }
 
         // Set default values for POS-specific fields (following Better Auth patterns)
         const enhancedUser = {
-          ...user,
-          role: user.role || "cashier",
-          isActive: user.isActive ?? true,
-          maxDiscountAllowed: user.maxDiscountAllowed || 0,
-          canSellBelowMin: user.canSellBelowMin || false,
+          ...cleanedUser,
+          role: cleanedUser.role || "cashier",
+          isActive: cleanedUser.isActive ?? true,
+          maxDiscountAllowed: cleanedUser.maxDiscountAllowed || 0,
+          canSellBelowMin: cleanedUser.canSellBelowMin || false,
         }
 
         // Following documentation example: return data object to replace original payload

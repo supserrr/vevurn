@@ -11,37 +11,56 @@ import { getBetterAuthRateLimitConfig } from "./rate-limit-config"
 export const validateUserRegistration = (userData: any) => {
     const errors: string[] = [];
 
-    // Validate firstName
-    if (!userData.firstName || typeof userData.firstName !== 'string') {
-        errors.push('firstName is required and must be a string');
+    console.log('🔍 Validating user registration data:', JSON.stringify(userData, null, 2));
+
+    // Validate firstName with proper trimming
+    if (!userData.firstName) {
+        errors.push('firstName is required');
+    } else if (typeof userData.firstName !== 'string') {
+        errors.push('firstName must be a string');
     } else {
-        const trimmedFirstName = userData.firstName.trim();
+        const trimmedFirstName = userData.firstName.toString().trim();
+        console.log('🔍 Trimmed firstName:', `"${trimmedFirstName}"`, 'length:', trimmedFirstName.length);
+        
         if (trimmedFirstName.length === 0) {
-            errors.push('firstName cannot be empty');
+            errors.push('firstName cannot be empty after trimming');
         } else if (trimmedFirstName.length > 50) {
             errors.push('firstName cannot exceed 50 characters');
         } else if (!/^[a-zA-Z\s'-]+$/.test(trimmedFirstName)) {
-            errors.push('firstName contains invalid characters');
+            errors.push('firstName contains invalid characters (only letters, spaces, hyphens, and apostrophes allowed)');
         }
+        
+        // Update the userData with the trimmed value
+        userData.firstName = trimmedFirstName;
     }
 
-    // Validate lastName
-    if (!userData.lastName || typeof userData.lastName !== 'string') {
-        errors.push('lastName is required and must be a string');
+    // Validate lastName with proper trimming
+    if (!userData.lastName) {
+        errors.push('lastName is required');
+    } else if (typeof userData.lastName !== 'string') {
+        errors.push('lastName must be a string');
     } else {
-        const trimmedLastName = userData.lastName.trim();
+        const trimmedLastName = userData.lastName.toString().trim();
+        console.log('🔍 Trimmed lastName:', `"${trimmedLastName}"`, 'length:', trimmedLastName.length);
+        
         if (trimmedLastName.length === 0) {
-            errors.push('lastName cannot be empty');
+            errors.push('lastName cannot be empty after trimming');
         } else if (trimmedLastName.length > 50) {
             errors.push('lastName cannot exceed 50 characters');
         } else if (!/^[a-zA-Z\s'-]+$/.test(trimmedLastName)) {
-            errors.push('lastName contains invalid characters');
+            errors.push('lastName contains invalid characters (only letters, spaces, hyphens, and apostrophes allowed)');
         }
+        
+        // Update the userData with the trimmed value
+        userData.lastName = trimmedLastName;
     }
 
+    console.log('🔍 Validation result:', { isValid: errors.length === 0, errors });
+    
     return {
         isValid: errors.length === 0,
-        errors
+        errors,
+        cleanedData: userData
     };
 };
 
@@ -338,37 +357,36 @@ export const auth = betterAuth({
         clientId: config.GOOGLE_CLIENT_ID,
         clientSecret: config.GOOGLE_CLIENT_SECRET,
         mapProfileToUser: (profile) => {
-            console.log('=== GOOGLE OAUTH PROFILE DEBUG ===');
-            console.log('Raw Google profile:', JSON.stringify(profile, null, 2));
-    
+            console.log('🔍 Google OAuth - Raw profile:', JSON.stringify(profile, null, 2));
+
             let firstName = '';
             let lastName = '';
-    
+
             // Strategy 1: Use Google's structured fields
-            if (profile.given_name) {
+            if (profile.given_name && typeof profile.given_name === 'string') {
                 firstName = profile.given_name.trim();
             }
-            if (profile.family_name) {
+            if (profile.family_name && typeof profile.family_name === 'string') {
                 lastName = profile.family_name.trim();
             }
-    
+
             // Strategy 2: Parse full name if structured fields missing
-            if (!firstName && profile.name) {
+            if (!firstName && profile.name && typeof profile.name === 'string') {
                 const nameParts = profile.name.trim().split(' ').filter(part => part.length > 0);
                 firstName = nameParts[0] || '';
                 lastName = nameParts.slice(1).join(' ') || '';
             }
-    
+
             // Strategy 3: Email prefix fallback
-            if (!firstName && profile.email) {
+            if (!firstName && profile.email && typeof profile.email === 'string') {
                 const emailPrefix = profile.email.split('@')[0];
                 firstName = emailPrefix.replace(/[^a-zA-Z]/g, '') || 'User';
             }
-    
-            // Strategy 4: Absolute fallbacks
-            if (!firstName.trim()) firstName = 'User';
-            if (!lastName.trim()) lastName = 'Account';
-    
+
+            // Strategy 4: Absolute fallbacks - ENSURE NEVER EMPTY
+            if (!firstName || firstName.trim().length === 0) firstName = 'User';
+            if (!lastName || lastName.trim().length === 0) lastName = 'Account';
+
             const mappedUser = {
                 firstName: firstName.trim(),
                 lastName: lastName.trim(),
@@ -382,11 +400,17 @@ export const auth = betterAuth({
                 canSellBelowMin: false,
                 employeeId: null,
             };
-    
-            console.log('Mapped user data:', JSON.stringify(mappedUser, null, 2));
-            console.log('=== END GOOGLE OAUTH DEBUG ===');
-    
-            return mappedUser;
+
+            console.log('✅ Google OAuth - Mapped user:', JSON.stringify(mappedUser, null, 2));
+
+            // CRITICAL: Validate before returning
+            const validation = validateUserRegistration(mappedUser);
+            if (!validation.isValid) {
+                console.error('❌ Google OAuth user validation failed:', validation.errors);
+                throw new Error(`OAuth validation failed: ${validation.errors.join(', ')}`);
+            }
+
+            return validation.cleanedData;
         }
     }
     }),
