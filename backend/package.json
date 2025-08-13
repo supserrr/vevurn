@@ -9,7 +9,7 @@
     "dev": "tsx watch src/index.ts",
     "dev:demo": "tsx watch src/demo-server.ts",
     "prebuild": "echo '🔧 Pre-build: Generating Prisma client...' && npx prisma generate",
-    "build": "echo '🔨 Building TypeScript backend for production...' && tsc --project tsconfig.prod.json && tsc-esm-fix --target=dist && echo '✅ Production build complete'",
+    "build": "echo '🔨 Building TypeScript backend for production...' && npx prisma generate && tsc --project tsconfig.prod.json && tsc-esm-fix --target=dist && echo '✅ Production build complete'",
     "build:prod": "echo '🚀 Production build starting...' && npx prisma generate && tsc --project tsconfig.prod.json && tsc-esm-fix --target=dist && echo '✅ Production build complete'",
     "build:analyze": "tsc --project tsconfig.prod.json --listFiles --showConfig",
     "start": "NODE_ENV=production node dist/src/index.js",
