@@ -12,7 +12,9 @@ services:
       pnpm install --no-frozen-lockfile
       echo "🛠️ Building shared package..."
       pnpm --filter @vevurn/shared build
-      echo "🔨 Building backend..."
+      echo "� Generating Prisma client..."
+      npx prisma generate
+      echo "�🔨 Building backend..."
       pnpm --filter @vevurn/backend build
       echo "📊 Verifying build artifacts..."
       ls -la backend/dist/
