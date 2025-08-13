@@ -83,6 +83,7 @@ router.get('/health/detailed', async (_req: Request, res: Response) => {
     // System Resources
     const memUsage = process.memoryUsage();
     healthReport.services.system = {
+      status: 'healthy', // System is healthy if we can collect metrics
       memory: {
         used: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
         total: Math.round(memUsage.heapTotal / 1024 / 1024), // MB
