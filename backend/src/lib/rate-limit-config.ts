@@ -62,8 +62,8 @@ function getCustomRules(isProduction: boolean): Record<string, { window: number;
       max: 10 * multiplier, // 10 attempts per minute (was 3 per 10 seconds)
     },
     "/sign-up/email": {
-      window: 300, // 5 minutes (changed from 1 hour)
-      max: 10 * multiplier, // 10 signup attempts per 5 minutes (was 3 per hour)
+      window: 300, // 5 minutes
+      max: 10 * multiplier, // 10 attempts per 5 minutes (was 3 per hour)
     },
     "/reset-password": {
       window: 300, // 5 minutes  
@@ -94,12 +94,12 @@ function getCustomRules(isProduction: boolean): Record<string, { window: number;
     
     // Social OAuth endpoints - VERY generous limits for OAuth debugging
     "/sign-in/social/*": {
-      window: 60,
-      max: 30 * multiplier, // Increased from 10 to 30 OAuth attempts per minute
+      window: 60, // 1 minute
+      max: 30 * multiplier, // 30 attempts per minute (was 10)
     },
     "/callback/*": {
-      window: 60, // Changed from 300 to 60 seconds for faster OAuth retries
-      max: 50 * multiplier, // Increased from 20 to 50 OAuth callbacks per minute
+      window: 60, // 1 minute  
+      max: 50 * multiplier, // 50 attempts per minute (was 20 per 5 minutes)
     },
     "/oauth2callback": {
       window: 60, // Add specific OAuth2 callback rule

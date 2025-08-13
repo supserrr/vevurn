@@ -108,10 +108,12 @@ export default function AuthPage() {
     setIsLoading(true);
     
     try {
+      console.log('🔍 Signup values:', values);
+      
       const { data, error } = await signUp.email({
-        email: values.email,
+        email: values.email.trim(),
         password: values.password,
-        name: `${values.firstName} ${values.lastName}`,
+        name: `${values.firstName.trim()} ${values.lastName.trim()}`,
         callbackURL: "/dashboard",
       }, {
         onRequest: () => {
