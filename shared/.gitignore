@@ -1,0 +1,20 @@
+# ===========================================
+# SHARED PACKAGE SPECIFIC IGNORES  
+# ===========================================
+# Note: Common patterns are handled by root .gitignore
+
+# Package build outputs
+/dist/
+/lib/
+/esm/
+/cjs/
+
+# TypeScript build artifacts
+*.tsbuildinfo
+*.d.ts.map
+
+# Package testing
+/coverage/
+
+# Package documentation
+/docs/build/

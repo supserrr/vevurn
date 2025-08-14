@@ -1,0 +1,63 @@
+# ===========================================
+# BACKEND SPECIFIC IGNORES
+# ===========================================
+# Note: Common patterns are handled by root .gitignore
+# This file only contains backend-specific overrides
+
+# Backend build outputs
+/dist/
+/build/
+
+# Backend logs (specific to API server)
+/logs/
+combined.log
+error.log
+access.log
+api.log
+
+# Backend environment files (specific overrides)
+.env.development
+.env.staging
+.env.api
+
+# Database specific
+*.db
+*.sqlite3
+/prisma/dev.db*
+/prisma/test.db*
+
+# Prisma generated files
+/prisma/generated/
+/node_modules/.prisma/
+
+# Backend cache
+/.swc/
+
+# API documentation builds
+/docs/build/
+
+# Upload directories
+/uploads/
+/temp/
+/storage/
+
+# Testing (backend specific)
+/coverage/
+/test-results/
+
+# Performance logs
+/benchmarks/
+/profiling/
+
+# SSL certificates (if stored locally)
+/ssl/
+/certificates/
+*.pem
+*.key
+*.crt
+
+# Session storage
+/sessions/
+
+# PID files
+*.pid

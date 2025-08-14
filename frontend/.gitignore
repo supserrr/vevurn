@@ -1,0 +1,43 @@
+# ===========================================
+# FRONTEND SPECIFIC IGNORES
+# ===========================================
+# Note: Common patterns are handled by root .gitignore
+# This file only contains frontend-specific overrides
+
+# Next.js specific (frontend only)
+/.next/
+/out/
+
+# Frontend build outputs
+/build/
+/dist/
+
+# Frontend dependencies (if different from root)
+# node_modules/ (handled by root)
+
+# Frontend environment files (specific overrides)
+.env.development
+.env.staging
+.env.preview
+
+# Frontend cache
+/.turbo/
+/.swc/
+
+# Generated types (Next.js 15)
+/.next/types/
+/next-env.d.ts
+
+# Static analysis
+/.eslintcache
+/.prettiercache
+
+# Frontend specific temp files
+/public/uploads/
+/public/temp/
+
+# Component library builds
+/packages/ui/dist/
+
+# Storybook (if used in frontend)
+/storybook-static/
