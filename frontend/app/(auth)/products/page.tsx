@@ -1,220 +1,202 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
-  Search,
   Plus,
   Eye,
   Edit,
   Trash2,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
   Package,
-  Folder,
+  MoreHorizontal,
+  AlertTriangle,
+  Download,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { ApiClient } from '@/lib/api-client';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
+import { ProductCard } from '@/components/products/product-card';
+import { ProductFilters } from '@/components/products/product-filters';
+import { StockStatusBadge, getStockStatus } from '@/components/products/stock-status-badge';
 
+// Temporary interfaces until we can import from shared
 interface Product {
   id: string;
   name: string;
   description?: string;
-  category: string;
-  brand?: string;
-  model?: string;
-  retailPrice: number;
-  wholesalePrice: number;
-  costPrice: number;
-  stockQuantity: number;
-  minStockLevel: number;
-  status: 'ACTIVE' | 'INACTIVE' | 'DISCONTINUED';
-  createdAt: string;
+  sku: string;
+  unitPrice: number;
+  currentStock: number;
+  minStock: number;
+  isActive: boolean;
+  category?: {
+    id: string;
+    name: string;
+  };
+  images?: string[];
 }
 
+interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const apiClient = new ApiClient(API_BASE);
+
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [stockFilter, setStockFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   
   const itemsPerPage = 10;
+  const queryClient = useQueryClient();
 
-  // Mock data for demonstration
-  useEffect(() => {
-    const mockProducts: Product[] = [
-      {
-        id: 'P001',
-        name: 'iPhone 15 Pro Max Case',
-        description: 'Premium silicone case for iPhone 15 Pro Max',
-        category: 'Phone Cases',
-        brand: 'Apple',
-        model: 'iPhone 15 Pro Max',
-        retailPrice: 45000,
-        wholesalePrice: 35000,
-        costPrice: 25000,
-        stockQuantity: 25,
-        minStockLevel: 10,
-        status: 'ACTIVE',
-        createdAt: '2024-01-15',
-      },
-      {
-        id: 'P002',
-        name: 'Samsung Galaxy S24 Charger',
-        description: 'Fast charging cable USB-C',
-        category: 'Chargers',
-        brand: 'Samsung',
-        model: 'Galaxy S24',
-        retailPrice: 18000,
-        wholesalePrice: 14000,
-        costPrice: 10000,
-        stockQuantity: 5,
-        minStockLevel: 15,
-        status: 'ACTIVE',
-        createdAt: '2024-01-20',
-      },
-      {
-        id: 'P003',
-        name: 'AirPods Pro 2 Case',
-        description: 'Protective case for AirPods Pro 2nd generation',
-        category: 'Accessories',
-        brand: 'Apple',
-        model: 'AirPods Pro 2',
-        retailPrice: 25000,
-        wholesalePrice: 20000,
-        costPrice: 15000,
-        stockQuantity: 15,
-        minStockLevel: 8,
-        status: 'ACTIVE',
-        createdAt: '2024-01-25',
-      },
-      {
-        id: 'P004',
-        name: 'Universal Phone Stand',
-        description: 'Adjustable phone stand for all devices',
-        category: 'Accessories',
-        brand: 'Generic',
-        retailPrice: 12000,
-        wholesalePrice: 9000,
-        costPrice: 6000,
-        stockQuantity: 30,
-        minStockLevel: 10,
-        status: 'ACTIVE',
-        createdAt: '2024-02-01',
-      },
-      {
-        id: 'P005',
-        name: 'Huawei P60 Screen Protector',
-        description: 'Tempered glass screen protector',
-        category: 'Screen Protectors',
-        brand: 'Huawei',
-        model: 'P60',
-        retailPrice: 8000,
-        wholesalePrice: 6000,
-        costPrice: 4000,
-        stockQuantity: 2,
-        minStockLevel: 20,
-        status: 'ACTIVE',
-        createdAt: '2024-02-05',
-      },
-    ];
-
-    setTimeout(() => {
-      setProducts(mockProducts);
-      setFilteredProducts(mockProducts);
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-
-  // Filter and search functionality
-  useEffect(() => {
-    let filtered = products;
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Category filter
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(product => product.category === selectedCategory);
-    }
-
-    // Status filter
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter(product => product.status === selectedStatus);
-    }
-
-    setFilteredProducts(filtered);
-    setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedStatus, products]);
-
-  const handleDelete = async (productId: string) => {
-    if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      // In real app, call API to delete product
-      console.log('Deleting product:', productId);
+  // Fetch products
+  const { 
+    data: productsResponse, 
+    isLoading: isLoadingProducts, 
+    error: productsError 
+  } = useQuery({
+    queryKey: ['products', currentPage, searchTerm, selectedCategory, selectedStatus],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        ...(searchTerm && { search: searchTerm }),
+        ...(selectedCategory !== 'all' && { categoryId: selectedCategory }),
+        ...(selectedStatus !== 'all' && { status: selectedStatus }),
+      });
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await apiClient.request<{
+        products: Product[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      }>(`/api/products?${params}`);
       
-      // Remove from mock data (in real app, refetch from API)
-      setProducts(prev => prev.filter(p => p.id !== productId));
-    } catch (error: any) {
-      console.error('Failed to delete product:', error);
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch products');
+      }
+      
+      return response.data;
+    },
+  });
+
+  // Fetch categories
+  const { data: categoriesResponse } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await apiClient.request<Category[]>('/api/categories');
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch categories');
+      }
+      return response.data;
+    },
+  });
+
+  // Delete product mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      const response = await apiClient.request(`/api/products/${productId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to delete product');
+      }
+      
+      return response.data;
+    },
+    onSuccess: () => {
+      toast.success('Product deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete product');
+    },
+  });
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      deleteProductMutation.mutate(productId);
     }
   };
 
-  // Pagination
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentProducts = filteredProducts.slice(startIndex, endIndex);
+  // Filter products based on stock status
+  const filteredProducts = useMemo(() => {
+    if (!productsResponse?.products) return [];
+    
+    let filtered = productsResponse.products;
+    
+    if (stockFilter !== 'all') {
+      filtered = filtered.filter(product => {
+        const stockStatus = getStockStatus(product.currentStock, product.minStock);
+        return stockStatus.status === stockFilter;
+      });
+    }
+    
+    return filtered;
+  }, [productsResponse?.products, stockFilter]);
 
-  // Get unique categories
-  const categories = Array.from(new Set(products.map(p => p.category)));
+  const categories = categoriesResponse || [];
 
-  const getStockStatus = (product: Product) => {
-    if (product.stockQuantity === 0) return 'Out of Stock';
-    if (product.stockQuantity <= product.minStockLevel) return 'Low Stock';
-    return 'In Stock';
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory('all');
+    setSelectedStatus('all');
+    setStockFilter('all');
   };
 
-  const getStockBadgeVariant = (product: Product) => {
-    if (product.stockQuantity === 0) return 'destructive';
-    if (product.stockQuantity <= product.minStockLevel) return 'secondary';
-    return 'default';
-  };
-
-  if (isLoading) {
+  if (isLoadingProducts) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Products</h1>
-            <p className="text-muted-foreground">Loading products...</p>
-          </div>
+      <div className="container mx-auto py-6">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2">Loading products...</span>
         </div>
+      </div>
+    );
+  }
+
+  if (productsError) {
+    return (
+      <div className="container mx-auto py-6">
         <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-16 bg-muted rounded animate-pulse" />
-              ))}
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <AlertTriangle className="h-8 w-8 text-destructive mx-auto mb-2" />
+              <p className="text-destructive">Failed to load products</p>
+              <Button 
+                variant="outline" 
+                className="mt-2" 
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
+              >
+                Try Again
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -223,183 +205,248 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Products</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
           <p className="text-muted-foreground">
-            Manage your inventory and product catalog
+            Manage your product inventory and pricing
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button variant="outline" size="sm">
+            <Upload className="h-4 w-4 mr-2" />
+            Import
+          </Button>
           <Button asChild>
             <Link href="/products/new">
               <Plus className="h-4 w-4 mr-2" />
               Add Product
             </Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link href="/categories">
-              <Folder className="h-4 w-4 mr-2" />
-              Manage Categories
-            </Link>
-          </Button>
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Search & Filter</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search products, brands, categories..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{productsResponse?.pagination.total || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">In Stock</CardTitle>
+            <Package className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {filteredProducts.filter(p => p.currentStock > p.minStock).length}
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {filteredProducts.filter(p => p.currentStock <= p.minStock && p.currentStock > 0).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {filteredProducts.filter(p => p.currentStock === 0).length}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-            {/* Category Filter */}
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-input rounded-md bg-background"
-            >
-              <option value="all">All Categories</option>
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+      {/* Filters */}
+      <ProductFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+        selectedStatus={selectedStatus}
+        onStatusChange={setSelectedStatus}
+        stockFilter={stockFilter}
+        onStockFilterChange={setStockFilter}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        categories={categories}
+        onClearFilters={handleClearFilters}
+      />
 
-            {/* Status Filter */}
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 border border-input rounded-md bg-background"
-            >
-              <option value="all">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="DISCONTINUED">Discontinued</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Products List */}
+      {/* Products Content */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Products ({filteredProducts.length})</span>
-            <Badge variant="secondary">
-              <Package className="h-3 w-3 mr-1" />
-              {filteredProducts.length} items
-            </Badge>
-          </CardTitle>
+          <CardTitle>Products</CardTitle>
+          <CardDescription>
+            {productsResponse?.pagination.total} product(s) found
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {currentProducts.length === 0 ? (
-            <div className="text-center py-8">
-              <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No products found</p>
-              <Button asChild className="mt-4">
-                <Link href="/products/new">Add your first product</Link>
-              </Button>
+          {viewMode === 'table' ? (
+            <div className="relative w-full overflow-auto">
+              <table className="w-full caption-bottom text-sm">
+                <thead className="[&_tr]:border-b">
+                  <tr className="border-b transition-colors hover:bg-muted/50">
+                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Product</th>
+                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Category</th>
+                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">SKU</th>
+                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Price</th>
+                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Stock</th>
+                    <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
+                    <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="[&_tr:last-child]:border-0">
+                  {filteredProducts.map((product) => (
+                    <tr key={product.id} className="border-b transition-colors hover:bg-muted/50">
+                      <td className="p-4 align-middle">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                            <Package className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {product.description}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-4 align-middle">
+                        {product.category?.name || 'N/A'}
+                      </td>
+                      <td className="p-4 align-middle font-mono text-sm">
+                        {product.sku}
+                      </td>
+                      <td className="p-4 align-middle">
+                        {formatCurrency(product.unitPrice)}
+                      </td>
+                      <td className="p-4 align-middle">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{product.currentStock}</span>
+                          <StockStatusBadge 
+                            currentStock={product.currentStock} 
+                            minStock={product.minStock}
+                            size="sm" 
+                          />
+                        </div>
+                      </td>
+                      <td className="p-4 align-middle">
+                        <Badge variant={product.isActive ? 'default' : 'secondary'}>
+                          {product.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </td>
+                      <td className="p-4 align-middle text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/products/${product.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/products/${product.id}/edit`}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => handleDeleteProduct(product.id)}
+                              disabled={deleteProductMutation.isPending}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
-            <div className="space-y-4">
-              {currentProducts.map((product) => (
-                <div
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredProducts.map((product) => (
+                <ProductCard
                   key={product.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold">{product.name}</h3>
-                      <Badge variant={getStockBadgeVariant(product)}>
-                        {getStockStatus(product)}
-                      </Badge>
-                      <Badge variant="outline">{product.status}</Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      <p>{product.description}</p>
-                      <p className="mt-1">
-                        {product.brand && `${product.brand} • `}
-                        {product.category} • Stock: {product.stockQuantity}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="text-right mr-4">
-                    <p className="font-semibold">{formatCurrency(product.retailPrice)}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Wholesale: {formatCurrency(product.wholesalePrice)}
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/products/${product.id}`}>
-                        <Eye className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/products/${product.id}/edit`}>
-                        <Edit className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleDelete(product.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                  product={product}
+                  onEdit={(product) => {
+                    // Navigate to edit page
+                    window.location.href = `/products/${product.id}/edit`;
+                  }}
+                  onDelete={handleDeleteProduct}
+                  onDuplicate={(product) => {
+                    // Handle product duplication
+                    toast.success('Product duplication coming soon!');
+                  }}
+                />
               ))}
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <p className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(endIndex, filteredProducts.length)} of{' '}
-                {filteredProducts.length} products
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Previous
-                </Button>
-                <span className="text-sm">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {productsResponse?.pagination && productsResponse.pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+            {Math.min(currentPage * itemsPerPage, productsResponse.pagination.total)} of{' '}
+            {productsResponse.pagination.total} products
+          </p>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <span className="px-3 py-1 text-sm">
+              Page {currentPage} of {productsResponse.pagination.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(productsResponse.pagination.totalPages, prev + 1))}
+              disabled={currentPage === productsResponse.pagination.totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
