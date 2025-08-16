@@ -119,18 +119,6 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Test route
-app.get('/api/test', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Vevurn Backend API is working!',
-    timestamp: new Date().toISOString(),
-    database: 'Connected (PostgreSQL)',
-    environment: env.NODE_ENV,
-    version: '1.0.0',
-  });
-});
-
 // Error handling middleware
 app.use((error: any, req: any, res: any, next: any) => {
   logger.error('Unhandled error:', error);
