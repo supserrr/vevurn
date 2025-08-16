@@ -9,3 +9,6 @@ export const authClient = createAuthClient({
 });
 
 export type Session = typeof authClient.$Infer.Session;
+
+// Export hooks for easier usage
+export const useSession = authClient.useSession;

@@ -50,6 +50,12 @@ export const NAVIGATION = [
     description: 'Overview of your business',
   },
   {
+    title: 'POS',
+    href: '/pos',
+    icon: 'Calculator',
+    description: 'Point of Sale interface',
+  },
+  {
     title: 'Sales',
     href: '/sales',
     icon: 'ShoppingCart',
@@ -68,7 +74,7 @@ export const NAVIGATION = [
     children: [
       { title: 'All Products', href: '/products' },
       { title: 'Add Product', href: '/products/new' },
-      { title: 'Categories', href: '/products/categories' },
+      { title: 'Categories', href: '/categories' },
       { title: 'Stock Levels', href: '/products/stock' },
     ],
   },
@@ -80,6 +86,7 @@ export const NAVIGATION = [
     children: [
       { title: 'All Customers', href: '/customers' },
       { title: 'Add Customer', href: '/customers/new' },
+      { title: 'Loyalty & Credit', href: '/loyalty-credit' },
     ],
   },
   {

@@ -364,6 +364,9 @@ mock-data/
 # Documentation builds
 docs/build/
 
+# GitHub directory (sensitive project files)
+.github/
+
 # Legacy files
 *.old
 *.bkp
