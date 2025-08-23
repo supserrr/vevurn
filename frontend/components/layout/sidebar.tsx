@@ -14,6 +14,7 @@ import {
   CreditCard, 
   BarChart3, 
   Settings,
+  Calculator,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ const iconMap = {
   CreditCard,
   BarChart3,
   Settings,
+  Calculator,
 };
 
 export function Sidebar() {
@@ -62,7 +64,7 @@ export function Sidebar() {
         <nav className="space-y-2">
           {NAVIGATION.map((item) => {
             const Icon = iconMap[item.icon as keyof typeof iconMap];
-            const hasChildren = item.children && item.children.length > 0;
+            const hasChildren = 'children' in item && item.children && item.children.length > 0;
             const itemIsOpen = isItemOpen(item.title);
 
             if (hasChildren) {
@@ -88,7 +90,7 @@ export function Sidebar() {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="ml-6 mt-1 space-y-1">
-                    {item.children.map((child) => (
+                    {('children' in item && item.children) && item.children.map((child) => (
                       <Button
                         key={child.href}
                         variant="ghost"

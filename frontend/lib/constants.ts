@@ -50,6 +50,12 @@ export const NAVIGATION = [
     description: 'Overview of your business',
   },
   {
+    title: 'Business Overview',
+    href: '/overview',
+    icon: 'BarChart3',
+    description: 'Comprehensive business analytics',
+  },
+  {
     title: 'POS',
     href: '/pos',
     icon: 'Calculator',
@@ -75,6 +81,7 @@ export const NAVIGATION = [
       { title: 'All Products', href: '/products' },
       { title: 'Add Product', href: '/products/new' },
       { title: 'Categories', href: '/categories' },
+      { title: 'Inventory Management', href: '/inventory' },
       { title: 'Stock Levels', href: '/products/stock' },
     ],
   },
