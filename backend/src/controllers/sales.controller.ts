@@ -345,4 +345,190 @@ export class SalesController {
       next(error);
     }
   }
+
+  /**
+   * Update sale status or notes
+   */
+  async updateSale(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { status, notes } = req.body;
+
+      const sale = await prisma.sale.findUnique({
+        where: { id }
+      });
+
+      if (!sale) {
+        return res.status(404).json(ApiResponse.error('Sale not found'));
+      }
+
+      const updatedSale = await prisma.sale.update({
+        where: { id },
+        data: {
+          ...(status && { status }),
+          ...(notes && { notes }),
+          updatedAt: new Date()
+        },
+        include: {
+          items: true,
+          customer: true,
+          cashier: { select: { name: true, email: true } }
+        }
+      });
+
+      res.json(ApiResponse.success('Sale updated successfully', updatedSale));
+    } catch (error) {
+      logger.error('Error updating sale:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Void a sale (mark as cancelled)
+   */
+  async voidSale(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      const sale = await prisma.sale.findUnique({
+        where: { id },
+        include: { items: true }
+      });
+
+      if (!sale) {
+        return res.status(404).json(ApiResponse.error('Sale not found'));
+      }
+
+      if (sale.status === 'COMPLETED') {
+        return res.status(400).json(ApiResponse.error('Cannot void completed sale. Create refund instead.'));
+      }
+
+      await prisma.$transaction(async (tx) => {
+        // Update sale status
+        await tx.sale.update({
+          where: { id },
+          data: {
+            status: 'CANCELLED',
+            notes: reason || 'Sale voided',
+            cancelledAt: new Date()
+          }
+        });
+
+        // Restore inventory for each item
+        for (const item of sale.items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stockQuantity: { increment: item.quantity }
+            }
+          });
+
+          // Create inventory movement record
+          await tx.inventoryMovement.create({
+            data: {
+              productId: item.productId,
+              type: 'STOCK_IN',
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              totalValue: item.totalPrice,
+              stockBefore: 0, // Will be calculated
+              stockAfter: 0,  // Will be calculated  
+              referenceType: 'SALE',
+              referenceId: id,
+              reason: 'Sale voided - inventory restored',
+              createdBy: req.user!.id
+            }
+          });
+        }
+      });
+
+      res.json(ApiResponse.success('Sale voided successfully'));
+    } catch (error) {
+      logger.error('Error voiding sale:', error);
+      next(error);
+    }
+  }
+
+  /**
+   * Get receipt data for a sale
+   */
+  async getReceipt(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      const sale = await prisma.sale.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              product: {
+                select: { name: true, sku: true }
+              }
+            }
+          },
+          customer: true,
+          cashier: {
+            select: { name: true, email: true }
+          },
+          payments: true
+        }
+      });
+
+      if (!sale) {
+        return res.status(404).json(ApiResponse.error('Sale not found'));
+      }
+
+      // Format receipt data
+      const receipt = {
+        sale: {
+          id: sale.id,
+          saleNumber: sale.saleNumber,
+          date: sale.createdAt,
+          status: sale.status
+        },
+        customer: sale.customer ? {
+          name: `${sale.customer.firstName} ${sale.customer.lastName || ''}`.trim(),
+          phone: sale.customer.phone,
+          email: sale.customer.email
+        } : null,
+        cashier: {
+          name: sale.cashier.name,
+          email: sale.cashier.email
+        },
+        items: sale.items.map(item => ({
+          name: item.product.name,
+          sku: item.product.sku,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice
+        })),
+        totals: {
+          subtotal: sale.subtotal,
+          taxAmount: sale.taxAmount,
+          discountAmount: sale.discountAmount,
+          totalAmount: sale.totalAmount,
+          amountPaid: sale.amountPaid,
+          changeAmount: sale.changeAmount
+        },
+        payments: sale.payments.map(payment => ({
+          method: payment.method,
+          amount: payment.amount,
+          status: payment.status,
+          processedAt: payment.processedAt
+        })),
+        companyInfo: {
+          name: 'Vevurn POS',
+          address: 'Kigali, Rwanda',
+          phone: '+250 788 000 000',
+          taxNumber: 'TIN: 123456789'
+        }
+      };
+
+      res.json(ApiResponse.success('Receipt retrieved successfully', receipt));
+    } catch (error) {
+      logger.error('Error getting receipt:', error);
+      next(error);
+    }
+  }
 }

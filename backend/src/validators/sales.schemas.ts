@@ -37,3 +37,12 @@ export const saleFilterSchema = z.object({
   maxAmount: decimalSchema.optional(),
   paymentMethod: z.enum(['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'CREDIT']).optional(),
 });
+
+export const updateSaleSchema = z.object({
+  status: z.enum(['DRAFT', 'COMPLETED', 'CANCELLED', 'REFUNDED']).optional(),
+  notes: z.string().max(500).optional(),
+});
+
+export const voidSaleSchema = z.object({
+  reason: z.string().min(1, 'Reason is required').max(500, 'Reason too long'),
+});

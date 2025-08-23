@@ -264,6 +264,206 @@ async function main() {
 
   console.log('⚙️ Created system settings')
 
+  // Create sample customers
+  const customers = [
+    {
+      firstName: 'Jean',
+      lastName: 'Mukamana',
+      email: 'jean.mukamana@gmail.com',
+      phone: '+250788111111',
+      address: 'Nyarugenge, Kigali',
+      city: 'Kigali',
+      preferredPaymentMethod: PaymentMethod.MOBILE_MONEY,
+    },
+    {
+      firstName: 'Marie',
+      lastName: 'Uwimana',
+      email: 'marie.uwimana@gmail.com', 
+      phone: '+250788222222',
+      address: 'Gasabo, Kigali',
+      city: 'Kigali',
+      preferredPaymentMethod: PaymentMethod.CASH,
+    },
+    {
+      firstName: 'Paul',
+      lastName: 'Nkurunziza',
+      phone: '+250788333333',
+      address: 'Kicukiro, Kigali',
+      city: 'Kigali',
+      preferredPaymentMethod: PaymentMethod.MOBILE_MONEY,
+    },
+    {
+      firstName: 'Grace',
+      lastName: 'Uwizeyimana',
+      email: 'grace.uwizeyimana@yahoo.com',
+      phone: '+250788444444',
+      address: 'Musanze',
+      city: 'Musanze',
+      preferredPaymentMethod: PaymentMethod.CASH,
+    },
+    {
+      firstName: 'David',
+      lastName: 'Kagame',
+      email: 'david.kagame@outlook.com',
+      phone: '+250788555555',
+      address: 'Huye',
+      city: 'Huye',
+      preferredPaymentMethod: PaymentMethod.BANK_TRANSFER,
+    },
+  ]
+
+  const createdCustomers: any[] = []
+  for (const customer of customers) {
+    const created = await prisma.customer.upsert({
+      where: { phone: customer.phone },
+      update: {},
+      create: customer,
+    })
+    createdCustomers.push(created)
+  }
+
+  console.log('👥 Created sample customers')
+
+  // Create sample sales
+  const sales = [
+    {
+      customerId: createdCustomers[0].id,
+      cashierId: cashierUser.id,
+      items: [
+        { productId: 'phone-case-1', quantity: 2, unitPrice: 5000 },
+        { productId: 'charger-1', quantity: 1, unitPrice: 8000 },
+      ],
+      paymentMethod: PaymentMethod.MOBILE_MONEY,
+    },
+    {
+      customerId: createdCustomers[1].id,
+      cashierId: cashierUser.id,
+      items: [
+        { productId: 'screen-protector-1', quantity: 3, unitPrice: 3000 },
+      ],
+      paymentMethod: PaymentMethod.CASH,
+    },
+    {
+      customerId: createdCustomers[2].id,
+      cashierId: managerUser.id,
+      items: [
+        { productId: 'phone-case-1', quantity: 1, unitPrice: 5000 },
+        { productId: 'charger-1', quantity: 2, unitPrice: 8000 },
+        { productId: 'screen-protector-1', quantity: 1, unitPrice: 3000 },
+      ],
+      paymentMethod: PaymentMethod.MOBILE_MONEY,
+    },
+  ]
+
+  // Get first few products for sales
+  const products = await prisma.product.findMany({
+    take: 5,
+    where: { status: ProductStatus.ACTIVE },
+  })
+
+  for (let i = 0; i < sales.length; i++) {
+    const saleData = sales[i]
+    
+    // Calculate totals
+    let subtotal = 0
+    const saleItems = saleData.items.map((item, idx) => {
+      const product = products[idx] || products[0] // fallback to first product
+      const unitPrice = item.unitPrice
+      const totalPrice = unitPrice * item.quantity
+      subtotal += totalPrice
+      
+      return {
+        productId: product.id,
+        quantity: item.quantity,
+        unitPrice: unitPrice,
+        totalPrice: totalPrice,
+        unitCost: product.costPrice || 0,
+        totalCost: parseFloat(String(product.costPrice || 0)) * item.quantity,
+      }
+    })
+
+    const taxAmount = subtotal * 0.18 // 18% VAT
+    const totalAmount = subtotal + taxAmount
+
+    // Create sale
+    const sale = await prisma.sale.create({
+      data: {
+        saleNumber: `SL${String(i + 1).padStart(6, '0')}`,
+        customerId: saleData.customerId,
+        cashierId: saleData.cashierId,
+        subtotal: subtotal,
+        taxAmount: taxAmount,
+        totalAmount: totalAmount,
+        amountPaid: totalAmount,
+        status: SaleStatus.COMPLETED,
+        completedAt: new Date(),
+        items: {
+          create: saleItems,
+        },
+        payments: {
+          create: {
+            amount: totalAmount,
+            method: saleData.paymentMethod,
+            referenceNumber: `PAY${String(i + 1).padStart(6, '0')}`,
+            status: 'COMPLETED',
+            processedAt: new Date(),
+          },
+        },
+      },
+    })
+
+    // Update customer metrics
+    await prisma.customer.update({
+      where: { id: saleData.customerId },
+      data: {
+        totalSpent: {
+          increment: totalAmount,
+        },
+        totalPurchases: {
+          increment: 1,
+        },
+        lastPurchaseAt: new Date(),
+      },
+    })
+
+    // Update product stock
+    for (const item of saleItems) {
+      // Get current stock
+      const currentProduct = await prisma.product.findUnique({
+        where: { id: item.productId },
+        select: { stockQuantity: true },
+      })
+      
+      const stockBefore = currentProduct?.stockQuantity || 0
+      const stockAfter = stockBefore - item.quantity
+
+      await prisma.product.update({
+        where: { id: item.productId },
+        data: {
+          stockQuantity: {
+            decrement: item.quantity,
+          },
+        },
+      })
+
+      // Create inventory movement
+      await prisma.inventoryMovement.create({
+        data: {
+          productId: item.productId,
+          type: 'STOCK_OUT',
+          quantity: -item.quantity,
+          stockBefore: stockBefore,
+          stockAfter: stockAfter,
+          referenceType: 'SALE',
+          referenceId: sale.id,
+          notes: `Sale ${sale.saleNumber}`,
+        },
+      })
+    }
+  }
+
+  console.log('🛒 Created sample sales')
+
   // Create audit log entry for seeding
   await prisma.auditLog.create({
     data: {

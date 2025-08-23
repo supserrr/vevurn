@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { SalesController } from '../controllers/sales.controller';
 import { authMiddleware } from '../middlewares';
 import { validateRequest } from '../middlewares/validation.middleware';
-import { createSaleSchema } from '../validators/sales.schemas';
+import { createSaleSchema, updateSaleSchema, voidSaleSchema } from '../validators/sales.schemas';
 
 const router: Router = Router();
 const salesController = new SalesController();
@@ -27,5 +27,20 @@ router.put('/:id/complete', (req, res, next) => salesController.completeSale(req
 
 // GET /api/sales/stats/daily - Daily sales statistics
 router.get('/stats/daily', (req, res, next) => salesController.getDailyStats(req, res, next));
+
+// PUT /api/sales/:id - Update sale
+router.put('/:id', 
+  validateRequest({ body: updateSaleSchema }), 
+  (req, res, next) => salesController.updateSale(req, res, next)
+);
+
+// PUT /api/sales/:id/void - Void a sale
+router.put('/:id/void', 
+  validateRequest({ body: voidSaleSchema }), 
+  (req, res, next) => salesController.voidSale(req, res, next)
+);
+
+// GET /api/sales/:id/receipt - Get receipt data
+router.get('/:id/receipt', (req, res, next) => salesController.getReceipt(req, res, next));
 
 export default router;
