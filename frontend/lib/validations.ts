@@ -39,12 +39,15 @@ export const productSchema = z.object({
   model: z.string().optional(),
   color: z.string().optional(),
   size: z.string().optional(),
-}).refine(data => data.minPrice <= data.wholesalePrice, {
-  message: 'Minimum price cannot be higher than wholesale price',
-  path: ['minPrice'],
-}).refine(data => data.wholesalePrice <= data.retailPrice, {
-  message: 'Wholesale price cannot be higher than retail price',
+}).refine(data => data.costPrice <= data.wholesalePrice, {
+  message: "Cost price must be less than or equal to wholesale price",
   path: ['wholesalePrice'],
+}).refine(data => data.wholesalePrice <= data.retailPrice, {
+  message: "Wholesale price must be less than or equal to retail price", 
+  path: ['retailPrice'],
+}).refine(data => data.minPrice <= data.retailPrice, {
+  message: "Minimum price must be less than or equal to retail price",
+  path: ['minPrice'],
 });
 
 // Customer validations

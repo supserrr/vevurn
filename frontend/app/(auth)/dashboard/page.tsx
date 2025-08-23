@@ -90,14 +90,36 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      // TODO: Replace with actual API calls
-      const mockStats: DashboardStats = {
-        todaysSales: { amount: 2450000, count: 23, change: 12.5 },
-        weekSales: { amount: 15680000, count: 156, change: -3.2 },
-        monthSales: { amount: 48250000, count: 542, change: 8.7 },
-        inventory: { totalProducts: 1247, lowStock: 23, totalValue: 125000000 },
-      };
+      // Fetch all dashboard data in parallel
+      const [statsResponse, transactionsResponse, lowStockResponse, paymentsResponse] = await Promise.all([
+        fetch('/api/dashboard/stats'),
+        fetch('/api/dashboard/recent-transactions'),
+        fetch('/api/dashboard/low-stock'),
+        fetch('/api/dashboard/payment-status')
+      ]);
 
+      if (!statsResponse.ok) throw new Error('Failed to fetch dashboard stats');
+      
+      const stats = await statsResponse.json();
+      const transactions = await transactionsResponse.json();
+      const lowStock = await lowStockResponse.json();
+      const payments = await paymentsResponse.json();
+
+      setStats(stats);
+      setRecentTransactions(transactions);
+      setLowStockItems(lowStock);
+      setPaymentStatuses(payments);
+    } catch (err) {
+      console.error('Dashboard data fetch error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      // Fallback to mock data for development
+      setStats({
+        todaysSales: { amount: 2450000, count: 23, change: 12.5 },
+        weekSales: { amount: 15680000, count: 156, change: 8.3 },
+        monthSales: { amount: 67300000, count: 684, change: 15.2 },
+        inventory: { totalProducts: 1247, lowStock: 23, totalValue: 125000000 }
+      });
+      
       const mockTransactions: RecentTransaction[] = [
         {
           id: '1',
@@ -140,15 +162,9 @@ export default function DashboardPage() {
         { method: 'Bank Transfer', count: 3, amount: 450000, status: 'warning' },
       ];
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      setStats(mockStats);
       setRecentTransactions(mockTransactions);
       setLowStockItems(mockLowStock);
       setPaymentStatuses(mockPaymentStatuses);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
