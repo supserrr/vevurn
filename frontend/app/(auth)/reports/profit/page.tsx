@@ -30,6 +30,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
+import { apiClient } from '@/lib/api-client';
 
 // Types
 interface ProfitData {
@@ -155,24 +156,42 @@ const mockProfitData: ProfitData = {
 };
 
 export default function ProfitAnalysisPage() {
-  const [profitData, setProfitData] = useState<ProfitData>(mockProfitData);
-  const [isLoading, setIsLoading] = useState(false);
+  const [profitData, setProfitData] = useState<ProfitData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState('30d');
 
   useEffect(() => {
     const loadProfitData = async () => {
       setIsLoading(true);
+      setError(null);
       try {
-        // TODO: Replace with actual API call
-        // const response = await fetch('/api/reports/profit');
-        // const data = await response.json();
-        // setProfitData(data);
+        const dateRanges = {
+          '7d': { days: 7 },
+          '30d': { days: 30 },
+          '90d': { days: 90 },
+          '1y': { days: 365 }
+        };
+
+        const range = dateRanges[dateRange as keyof typeof dateRanges] || dateRanges['30d'];
+        const dateTo = new Date().toISOString();
+        const dateFrom = new Date(Date.now() - range.days * 24 * 60 * 60 * 1000).toISOString();
+
+        const response = await apiClient.getProfitReport(dateFrom, dateTo);
         
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setProfitData(mockProfitData);
+        if (response.success) {
+          setProfitData(response.data);
+        } else {
+          throw new Error(response.message || 'Failed to load profit data');
+        }
       } catch (error) {
         console.error('Failed to load profit data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load profit data');
+        
+        // Fallback to mock data in development
+        if (process.env.NODE_ENV === 'development') {
+          setProfitData(mockProfitData);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -212,6 +231,30 @@ export default function ProfitAnalysisPage() {
         </Select>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading profit data...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !profitData && (
+        <div className="flex justify-center items-center py-12">
+          <div className="text-center">
+            <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 font-medium mb-2">Failed to Load Data</p>
+            <p className="text-muted-foreground">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content - Only show if data is available */}
+      {!isLoading && profitData && (
+        <>
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -444,6 +487,8 @@ export default function ProfitAnalysisPage() {
           </div>
         </TabsContent>
       </Tabs>
+      </>
+      )}
     </div>
   );
 }

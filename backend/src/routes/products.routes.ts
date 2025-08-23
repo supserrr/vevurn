@@ -1,14 +1,20 @@
 import { Router } from 'express';
 import { ProductController } from '../controllers/products.controller';
+import { authMiddleware } from '../middlewares';
+import { validateRequest } from '../middlewares/validation.middleware';
+import { createProductSchema, updateProductSchema } from '../validators/products.schemas';
 
 const router: Router = Router();
 const productController = new ProductController();
 
-// Product CRUD - basic routes without middleware for now
+// Apply auth middleware to all routes
+router.use(authMiddleware);
+
+// Product CRUD - with proper middleware
 router.get('/', (req, res, next) => productController.getProducts(req, res, next));
 router.get('/:id', (req, res, next) => productController.getProductById(req, res, next));
-router.post('/', (req, res, next) => productController.createProduct(req, res, next));
-router.put('/:id', (req, res, next) => productController.updateProduct(req, res, next));
+router.post('/', validateRequest({ body: createProductSchema }), (req, res, next) => productController.createProduct(req, res, next));
+router.put('/:id', validateRequest({ body: updateProductSchema }), (req, res, next) => productController.updateProduct(req, res, next));
 router.delete('/:id', (req, res, next) => productController.deleteProduct(req, res, next));
 
 // Product variations

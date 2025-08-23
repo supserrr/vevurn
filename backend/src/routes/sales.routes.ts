@@ -1,0 +1,31 @@
+import { Router } from 'express';
+import { SalesController } from '../controllers/sales.controller';
+import { authMiddleware } from '../middlewares';
+import { validateRequest } from '../middlewares/validation.middleware';
+import { createSaleSchema } from '../validators/sales.schemas';
+
+const router: Router = Router();
+const salesController = new SalesController();
+
+// Apply auth middleware to all routes
+router.use(authMiddleware);
+
+// GET /api/sales - List sales with filters
+router.get('/', (req, res, next) => salesController.getAllSales(req, res, next));
+
+// GET /api/sales/:id - Get sale details
+router.get('/:id', (req, res, next) => salesController.getSaleById(req, res, next));
+
+// POST /api/sales - Create new sale
+router.post('/', 
+  validateRequest({ body: createSaleSchema }), 
+  (req, res, next) => salesController.createSale(req, res, next)
+);
+
+// PUT /api/sales/:id/complete - Complete a sale
+router.put('/:id/complete', (req, res, next) => salesController.completeSale(req, res, next));
+
+// GET /api/sales/stats/daily - Daily sales statistics
+router.get('/stats/daily', (req, res, next) => salesController.getDailyStats(req, res, next));
+
+export default router;

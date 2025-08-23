@@ -1,11 +1,15 @@
 import { Router } from 'express';
 import productRoutes from './products.routes';
+import salesRoutes from './sales.routes';
+import reportRoutes from './reports.routes';
 import { dashboardRoutes } from './dashboard.routes';
 
 const router: Router = Router();
 
 // Mount routes
 router.use('/products', productRoutes);
+router.use('/sales', salesRoutes);
+router.use('/reports', reportRoutes);
 router.use('/dashboard', dashboardRoutes);
 
 // Base routes
