@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { SalesController } from '../controllers/sales.controller';
+import { invoicesController } from '../controllers/invoices.controller';
 import { authMiddleware } from '../middlewares';
 import { validateRequest } from '../middlewares/validation.middleware';
 import { createSaleSchema, updateSaleSchema, voidSaleSchema } from '../validators/sales.schemas';
+import { convertSaleToInvoiceSchema } from '../validators/invoices.schemas';
 
 const router: Router = Router();
 const salesController = new SalesController();
@@ -42,5 +44,11 @@ router.put('/:id/void',
 
 // GET /api/sales/:id/receipt - Get receipt data
 router.get('/:id/receipt', (req, res, next) => salesController.getReceipt(req, res, next));
+
+// POST /api/sales/:id/convert-to-invoice - Convert sale to invoice
+router.post('/:id/convert-to-invoice',
+  validateRequest({ body: convertSaleToInvoiceSchema }),
+  (req, res, next) => invoicesController.convertSaleToInvoice(req, res, next)
+);
 
 export default router;

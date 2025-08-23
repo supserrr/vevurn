@@ -50,6 +50,14 @@ export const generateSaleNumber = (): string => {
   return `VEV${year}${month}${day}${timestamp}`;
 };
 
+export const generateInvoiceNumber = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const timestamp = Date.now().toString().slice(-8); // Last 8 digits for uniqueness
+  
+  return `INV-${year}-${timestamp}`;
+};
+
 export const calculateDiscount = (price: number, discountPercent: number): number => {
   return price * (discountPercent / 100);
 };

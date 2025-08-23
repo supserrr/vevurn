@@ -3,6 +3,7 @@ import productRoutes from './products.routes';
 import salesRoutes from './sales.routes';
 import customersRoutes from './customers.routes';
 import reportRoutes from './reports.routes';
+import invoiceRoutes from './invoices.routes';
 import { dashboardRoutes } from './dashboard.routes';
 
 const router: Router = Router();
@@ -12,6 +13,7 @@ router.use('/products', productRoutes);
 router.use('/sales', salesRoutes);
 router.use('/customers', customersRoutes);
 router.use('/reports', reportRoutes);
+router.use('/invoices', invoiceRoutes);
 router.use('/dashboard', dashboardRoutes);
 
 // Base routes

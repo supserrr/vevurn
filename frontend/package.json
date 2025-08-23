@@ -4,12 +4,12 @@
   "description": "Frontend for Vevurn POS System - Next.js 15 App",
   "private": true,
   "scripts": {
-    "build": "next build",
-    "dev": "next dev --turbo",
-    "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
-    "type-check": "tsc --noEmit",
+    "build": "cd apps/web && next build",
+    "dev": "cd apps/web && next dev",
+    "start": "cd apps/web && next start",
+    "lint": "cd apps/web && next lint",
+    "lint:fix": "cd apps/web && next lint --fix",
+    "type-check": "cd apps/web && tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "clean": "rm -rf .next && rm -rf node_modules"
   },

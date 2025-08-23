@@ -371,3 +371,153 @@ export interface SocketEvents {
     data?: any;
   };
 }
+
+// ==========================================
+// INVOICE & BILLING SYSTEM TYPES
+// ==========================================
+
+export enum InvoiceStatus {
+  DRAFT = 'DRAFT',
+  SENT = 'SENT',
+  OVERDUE = 'OVERDUE',
+  PARTIALLY_PAID = 'PARTIALLY_PAID',
+  PAID = 'PAID',
+  CANCELLED = 'CANCELLED',
+  REFUNDED = 'REFUNDED'
+}
+
+export enum ReminderType {
+  EMAIL = 'EMAIL',
+  SMS = 'SMS',
+  CALL = 'CALL',
+  WHATSAPP = 'WHATSAPP'
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  saleId: string;
+  customerId: string;
+  
+  // Invoice details
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+  amountPaid: number;
+  amountDue: number;
+  
+  // Invoice status
+  status: InvoiceStatus;
+  
+  // Dates
+  issueDate: string;
+  dueDate: string;
+  paidDate?: string;
+  
+  // Consignment specific
+  isConsignment: boolean;
+  consignmentDue?: number;
+  
+  // Communication
+  emailSent: boolean;
+  emailSentAt?: string;
+  smsSent: boolean;
+  smsSentAt?: string;
+  
+  // Payment terms
+  paymentTerms?: string;
+  notes?: string;
+  
+  // Tracking
+  createdAt: string;
+  updatedAt: string;
+  
+  // Relations
+  sale?: Sale;
+  customer?: Customer;
+  reminders?: InvoiceReminder[];
+}
+
+export interface InvoiceReminder {
+  id: string;
+  invoiceId: string;
+  
+  // Reminder details
+  type: ReminderType;
+  message: string;
+  
+  // Status
+  sent: boolean;
+  sentAt?: string;
+  
+  // Scheduling
+  scheduledFor: string;
+  
+  createdAt: string;
+  
+  // Relations
+  invoice?: Invoice;
+}
+
+export interface CreateInvoiceRequest {
+  saleId: string;
+  customerId: string;
+  dueDate: string;
+  paymentTerms?: string;
+  notes?: string;
+  isConsignment?: boolean;
+}
+
+export interface UpdateInvoiceRequest {
+  status?: InvoiceStatus;
+  dueDate?: string;
+  paymentTerms?: string;
+  notes?: string;
+  amountPaid?: number;
+}
+
+export interface InvoiceFilters {
+  status?: InvoiceStatus[];
+  customerId?: string;
+  overdue?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}
+
+export interface CreateReminderRequest {
+  invoiceId: string;
+  type: ReminderType;
+  message: string;
+  scheduledFor: string;
+}
+
+// Extended Customer interface for billing
+export interface CustomerWithBilling extends Customer {
+  companyName?: string;
+  taxNumber?: string;
+  billingAddress?: string;
+  paymentTerms?: string;
+  creditLimit?: number;
+  invoices?: Invoice[];
+}
+
+// Extended Sale interface for invoicing
+export interface SaleWithInvoice extends Sale {
+  isInvoiced: boolean;
+  invoice?: Invoice;
+}
+
+// Invoice summary/statistics
+export interface InvoiceSummary {
+  total: number;
+  draft: number;
+  sent: number;
+  overdue: number;
+  partiallyPaid: number;
+  paid: number;
+  totalAmount: number;
+  paidAmount: number;
+  overdueAmount: number;
+}

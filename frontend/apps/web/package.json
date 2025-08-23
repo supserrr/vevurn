@@ -16,6 +16,7 @@
   "dependencies": {
     "@better-auth/client": "0.0.2-alpha.3",
     "@hookform/resolvers": "^3.8.0",
+    "@radix-ui/react-checkbox": "^1.1.2",
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-separator": "^1.1.7",

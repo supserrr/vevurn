@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, LoginCredentials, AuthTokens, ApiResponse } from '@/lib/types';
+import { User, LoginCredentials, SignupCredentials, AuthTokens, ApiResponse } from '@/lib/types';
 import { apiClient } from '@/lib/api-client';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
+  signup: (credentials: SignupCredentials) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<boolean>;
 }
@@ -65,24 +66,65 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       setIsLoading(true);
       
-      const response = await apiClient.post<ApiResponse<{ user: User; tokens: AuthTokens }>>('/auth/login', credentials);
+      const response = await apiClient.post('/api/auth/sign-in/email', {
+        email: credentials.email,
+        password: credentials.password,
+      });
       
-      if (response.data.success && response.data.data) {
-        const { user: userData, tokens: userTokens } = response.data.data;
+      // Better Auth typically returns user data directly
+      if (response.data && response.data.user) {
+        const userData = response.data.user;
         
         setUser(userData);
-        setTokens(userTokens);
+        // For Better Auth, we might not get explicit tokens, but the session is handled by cookies
+        setTokens({
+          accessToken: 'session-based',
+          refreshToken: 'session-based',
+          tokenType: 'Bearer',
+          expiresIn: 604800 // 7 days as configured in auth.ts
+        });
         
         // Store in localStorage
         localStorage.setItem('authUser', JSON.stringify(userData));
-        localStorage.setItem('authTokens', JSON.stringify(userTokens));
+        localStorage.setItem('authTokens', JSON.stringify({
+          accessToken: 'session-based',
+          refreshToken: 'session-based',
+          tokenType: 'Bearer',
+          expiresIn: 604800
+        }));
         
         toast.success('Login successful!');
       } else {
-        throw new Error(response.data.message || 'Login failed');
+        throw new Error('Login failed - no user data received');
       }
     } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Login failed';
+      toast.error(errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signup = async (credentials: SignupCredentials) => {
+    try {
+      setIsLoading(true);
+      
+      const response = await apiClient.post('/api/auth/sign-up/email', {
+        email: credentials.email,
+        password: credentials.password,
+        name: credentials.name,
+        phoneNumber: credentials.phoneNumber,
+      });
+      
+      // Better Auth signup typically returns success or user data
+      if (response.data) {
+        toast.success('Account created successfully! Please sign in.');
+      } else {
+        throw new Error('Signup failed');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Signup failed';
       toast.error(errorMessage);
       throw error;
     } finally {
@@ -135,6 +177,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isAuthenticated,
     isLoading,
     login,
+    signup,
     logout,
     refreshToken,
   };

@@ -8,6 +8,7 @@ export * from './payments.schemas';
 export * from './inventory.schemas';
 export * from './users.schemas';
 export * from './reports.schemas';
+export * from './invoices.schemas';
 
 // Re-export commonly used schemas for convenience
 export { 

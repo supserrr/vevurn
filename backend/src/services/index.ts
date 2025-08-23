@@ -3,6 +3,7 @@
 // Service exports
 export { momoService } from './momo.service';
 export { paymentService } from './payment.service';
+export { invoiceService } from './invoices.service';
 
 // Export service types
 export type { 
