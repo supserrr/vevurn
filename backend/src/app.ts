@@ -129,4 +129,5 @@ app.all('/api/*', (req, res) => {
 // Global error handler
 app.use(errorMiddleware);
 
+export { app };
 export default app;
