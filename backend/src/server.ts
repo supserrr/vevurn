@@ -2,6 +2,7 @@ import { app } from './app';
 import { createServer } from 'http';
 import { env } from './config/env';
 import { logger } from './utils/logger';
+import { connectDatabase } from './config/database';
 
 const server = createServer(app);
 const port = env.PORT || 5000;
@@ -9,13 +10,16 @@ const host = env.HOSTNAME || 'localhost';
 
 async function startServer() {
   try {
+    // Try to connect to database (non-blocking)
+    const dbConnected = await connectDatabase();
+    
     server.listen(port, host, () => {
       logger.info(`
 🚀 Vevurn POS Backend Server Started
 📍 Environment: ${env.NODE_ENV}
 🌐 Server: http://${host}:${port}
 🔐 Better Auth: http://${host}:${port}/api/auth/*
-💾 Database: Connected (PostgreSQL)
+💾 Database: ${dbConnected ? 'Connected (PostgreSQL)' : 'Not Connected'}
 📊 Logging: ${env.LOG_LEVEL}
       `);
     });

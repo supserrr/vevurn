@@ -187,6 +187,14 @@ export const auth = betterAuth({
     },
   },
 
+  // Social authentication providers
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+  },
+
   // Advanced security configuration
   advanced: {
     crossSubDomainCookies: {

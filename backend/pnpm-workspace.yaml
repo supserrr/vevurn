@@ -1,8 +1,0 @@
-ignoredBuiltDependencies:
-  - '@prisma/client'
-  - '@prisma/engines'
-  - aws-sdk
-  - better-sqlite3
-  - esbuild
-  - prisma
-  - sharp

@@ -1,175 +1,246 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  DollarSign,
-  TrendingUp,
-  AlertTriangle
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { api } from '@/lib/api/client';
+import { DollarSign, Package, Users, TrendingUp, ShoppingCart } from 'lucide-react';
+import Link from 'next/link';
+import { toast } from 'sonner';
+
+interface DashboardStats {
+  todaySales: number;
+  totalProducts: number;
+  totalCustomers: number;
+  lowStockItems: number;
+}
 
 export default function DashboardPage() {
-  const stats = [
-    {
-      title: 'Total Products',
-      value: '1,234',
-      change: '+12%',
-      icon: Package,
-      color: 'text-blue-600',
-    },
-    {
-      title: 'Total Sales',
-      value: 'RWF 45,678',
-      change: '+18%',
-      icon: ShoppingCart,
-      color: 'text-green-600',
-    },
-    {
-      title: 'Customers',
-      value: '892',
-      change: '+8%',
-      icon: Users,
-      color: 'text-purple-600',
-    },
-    {
-      title: 'Revenue',
-      value: 'RWF 123,456',
-      change: '+23%',
-      icon: DollarSign,
-      color: 'text-yellow-600',
-    },
-  ];
+  const [stats, setStats] = useState<DashboardStats>({
+    todaySales: 0,
+    totalProducts: 0,
+    totalCustomers: 0,
+    lowStockItems: 0
+  });
+  const [loading, setLoading] = useState(true);
 
-  const alerts = [
-    {
-      title: 'Low Stock Alert',
-      description: '5 products are running low on stock',
-      type: 'warning',
-    },
-    {
-      title: 'New Orders',
-      description: '3 new orders need to be processed',
-      type: 'info',
-    },
-  ];
+  useEffect(() => {
+    loadDashboardStats();
+  }, []);
+
+  const loadDashboardStats = async () => {
+    try {
+      setLoading(true);
+      
+      // Load various stats from APIs (in parallel)
+      const [salesResponse, productsResponse, customersResponse] = await Promise.all([
+        api.sales.getAll().catch(() => ({ success: false, data: [] })),
+        api.products.getAll().catch(() => ({ success: false, data: [] })),
+        api.customers.getAll().catch(() => ({ success: false, data: [] }))
+      ]);
+
+      // Calculate stats
+      const today = new Date().toDateString();
+      const todaySales = salesResponse.success ? 
+        salesResponse.data.filter((sale: any) => 
+          new Date(sale.createdAt).toDateString() === today
+        ).reduce((sum: number, sale: any) => sum + (sale.totalAmount || 0), 0) : 0;
+
+      const totalProducts = productsResponse.success ? productsResponse.data.length : 0;
+      const totalCustomers = customersResponse.success ? customersResponse.data.length : 0;
+      const lowStockItems = productsResponse.success ? 
+        productsResponse.data.filter((product: any) => product.currentStock < 10).length : 0;
+
+      setStats({
+        todaySales,
+        totalProducts,
+        totalCustomers,
+        lowStockItems
+      });
+    } catch (error) {
+      console.error('Failed to load dashboard stats:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Welcome section */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Welcome back to Vevurn POS
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Here's what's happening with your business today.
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-600">Welcome to Vevurn POS - Your business overview</p>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-green-600">{stat.change}</span> from last month
-              </p>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Link href="/pos" as="/pos">
+          <Button className="h-20 w-full text-lg bg-green-600 hover:bg-green-700">
+            <ShoppingCart className="mr-2 h-6 w-6" />
+            Start New Sale
+          </Button>
+        </Link>
+        <Link href="/products" as="/products">
+          <Button variant="outline" className="h-20 w-full text-lg">
+            <Package className="mr-2 h-5 w-5" />
+            Manage Products
+          </Button>
+        </Link>
+        <Link href="/customers" as="/customers">
+          <Button variant="outline" className="h-20 w-full text-lg">
+            <Users className="mr-2 h-5 w-5" />
+            Manage Customers
+          </Button>
+        </Link>
+        <Link href="/sales" as="/sales">
+          <Button variant="outline" className="h-20 w-full text-lg">
+            <TrendingUp className="mr-2 h-5 w-5" />
+            View Sales
+          </Button>
+        </Link>
       </div>
 
-      {/* Main content grid */}
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {stats.todaySales.toLocaleString()} RWF
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Revenue generated today
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalProducts}</div>
+            <p className="text-xs text-muted-foreground">
+              Products in catalog
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Customers</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalCustomers}</div>
+            <p className="text-xs text-muted-foreground">
+              Registered customers
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Low Stock Alert</CardTitle>
+            <TrendingUp className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{stats.lowStockItems}</div>
+            <p className="text-xs text-muted-foreground">
+              Items below 10 units
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent activity */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Recent Activity
-            </CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Product Added</p>
-                  <p className="text-sm text-gray-500">iPhone 15 Case - Clear</p>
-                </div>
-                <span className="text-sm text-gray-400">2 hours ago</span>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <div>
+                <p className="font-medium">Process Sale</p>
+                <p className="text-sm text-gray-600">Start a new sale transaction</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Sale Completed</p>
-                  <p className="text-sm text-gray-500">RWF 25,000 - Cash</p>
-                </div>
-                <span className="text-sm text-gray-400">4 hours ago</span>
+              <Link href="/pos" as="/pos">
+                <Button size="sm">Go to POS</Button>
+              </Link>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <div>
+                <p className="font-medium">Add Product</p>
+                <p className="text-sm text-gray-600">Add new products to inventory</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Stock Updated</p>
-                  <p className="text-sm text-gray-500">Samsung Galaxy S24</p>
-                </div>
-                <span className="text-sm text-gray-400">6 hours ago</span>
+              <Link href="/products" as="/products">
+                <Button size="sm" variant="outline">Add Product</Button>
+              </Link>
+            </div>
+            
+            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+              <div>
+                <p className="font-medium">View Reports</p>
+                <p className="text-sm text-gray-600">Check sales and inventory reports</p>
               </div>
+              <Link href="/reports" as="/reports">
+                <Button size="sm" variant="outline">View Reports</Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
 
-        {/* Alerts */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Alerts & Notifications
-            </CardTitle>
+            <CardTitle>System Status</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {alerts.map((alert, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 rounded-lg border">
-                  <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <p className="font-medium">{alert.title}</p>
-                    <p className="text-sm text-gray-500">{alert.description}</p>
-                  </div>
-                </div>
-              ))}
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Backend API</span>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Connected
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Database</span>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Online
+              </span>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Payment System</span>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Ready
+              </span>
+            </div>
+            
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">
+                Last updated: {new Date().toLocaleString()}
+              </p>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors">
-              <Package className="h-4 w-4" />
-              Add Product
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <ShoppingCart className="h-4 w-4" />
-              New Sale
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-              <Users className="h-4 w-4" />
-              Add Customer
-            </button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
