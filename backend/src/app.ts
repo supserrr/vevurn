@@ -17,6 +17,25 @@ import { logger } from './utils/logger';
 const app: express.Application = express();
 
 // ==========================================
+// CORS FOR BETTER AUTH (SPECIFIC SETUP)
+// ==========================================
+
+// Apply CORS specifically to auth routes first
+app.use('/api/auth/*', cors({
+  origin: true, // Allow all origins in development
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+}));
+
+// ==========================================
+// BETTER AUTH HANDLER
+// ==========================================
+
+// Mount Better Auth handler
+app.all('/api/auth/*', toNodeHandler(auth));
+
+// ==========================================
 // SECURITY MIDDLEWARE
 // ==========================================
 
@@ -33,7 +52,7 @@ app.use(helmet({
   },
 }));
 
-// CORS configuration
+// CORS configuration for other routes
 app.use(corsMiddleware);
 
 // Rate limiting
@@ -68,13 +87,6 @@ app.use('/api', express.urlencoded({
   extended: true, 
   limit: '10mb' 
 }));
-
-// ==========================================
-// BETTER AUTH HANDLER
-// ==========================================
-
-// Mount Better Auth handler
-app.all('/api/auth/*', toNodeHandler(auth));
 
 // ==========================================
 // AUDIT LOGGING

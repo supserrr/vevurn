@@ -28,38 +28,109 @@ interface DashboardStats {
     amount: number;
     percentage: number;
   }>;
-  recentSales: Array<{
-    id: string;
-    customerName?: string;
-    amount: number;
-    paymentMethod: string;
-    timestamp: string;
-    items: number;
-  }>;
   topProducts: Array<{
     id: string;
     name: string;
     quantitySold: number;
     revenue: number;
+    category: string;
   }>;
-  stockAlerts: Array<{
+  inventoryAlerts: Array<{
     id: string;
     name: string;
     currentStock: number;
-    minStockLevel: number;
+    minStock: number;
+    status: 'LOW_STOCK' | 'OUT_OF_STOCK';
   }>;
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    description: string;
+    amount: number | null;
+    timestamp: string;
+  }>;
+  totalProducts: number;
+  totalStockValue: number;
+  lowStockCount: number;
 }
 
 async function fetchDashboardStats(): Promise<{ data: DashboardStats }> {
-  const response = await fetch('/api/dashboard/stats', {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  
+  // For now, let's fetch products and create mock stats
+  // Later this can be replaced with a real dashboard API endpoint
+  const productsResponse = await fetch(`${baseUrl}/api/products`, {
     credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
   });
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch dashboard stats');
+  if (!productsResponse.ok) {
+    throw new Error('Failed to fetch dashboard data');
   }
 
-  return response.json();
+  const productsData = await productsResponse.json();
+  const products = productsData.data || [];
+  
+  // Calculate basic stats from products
+  const totalProducts = products.length;
+  const totalStockValue = products.reduce((sum: number, product: any) => {
+    return sum + (parseFloat(product.retailPrice) * product.stockQuantity);
+  }, 0);
+  
+  const lowStockProducts = products.filter((product: any) => 
+    product.stockQuantity <= product.minStockLevel
+  );
+
+  // Mock dashboard stats for now
+  const mockStats: DashboardStats = {
+    todaySales: {
+      totalRevenue: 450000, // Mock revenue
+      totalOrders: 12, // Mock orders
+      averageOrderValue: 37500,
+    },
+    paymentMethods: [
+      { method: 'Cash', count: 7, amount: 210000, percentage: 46.7 },
+      { method: 'Mobile Money', count: 4, amount: 180000, percentage: 40.0 },
+      { method: 'Card', count: 1, amount: 60000, percentage: 13.3 },
+    ],
+    topProducts: products.slice(0, 5).map((product: any) => ({
+      id: product.id,
+      name: product.name,
+      quantitySold: Math.floor(Math.random() * 10) + 1, // Mock sales
+      revenue: parseFloat(product.retailPrice) * (Math.floor(Math.random() * 10) + 1),
+      category: product.category.name,
+    })),
+    inventoryAlerts: lowStockProducts.map((product: any) => ({
+      id: product.id,
+      name: product.name,
+      currentStock: product.stockQuantity,
+      minStock: product.minStockLevel,
+      status: product.stockQuantity === 0 ? 'OUT_OF_STOCK' as const : 'LOW_STOCK' as const,
+    })),
+    recentActivity: [
+      { 
+        id: '1', 
+        type: 'SALE', 
+        description: 'Sale completed', 
+        amount: 45000, 
+        timestamp: new Date().toISOString() 
+      },
+      { 
+        id: '2', 
+        type: 'STOCK_UPDATE', 
+        description: 'Stock updated for ' + (products[0]?.name || 'Product'), 
+        amount: null, 
+        timestamp: new Date(Date.now() - 1800000).toISOString() 
+      },
+    ],
+    totalProducts,
+    totalStockValue,
+    lowStockCount: lowStockProducts.length,
+  };
+
+  return { data: mockStats };
 }
 
 export default function DashboardPage() {
@@ -167,7 +238,7 @@ export default function DashboardPage() {
             <AlertTriangle className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.stockAlerts?.length || 0}</div>
+            <div className="text-2xl font-bold">{stats?.inventoryAlerts?.length || 0}</div>
             <p className="text-xs text-gray-600">
               Products low in stock
             </p>
@@ -201,23 +272,25 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stats?.recentSales?.map((sale) => (
-                <div key={sale.id} className="flex items-center justify-between border-b pb-3">
+              {stats?.recentActivity?.map((activity) => (
+                <div key={activity.id} className="flex items-center justify-between border-b pb-3">
                   <div className="flex-1">
-                    <div className="font-medium">{sale.customerName}</div>
+                    <div className="font-medium">{activity.description}</div>
                     <div className="text-sm text-gray-600">
-                      {sale.items} item{sale.items !== 1 ? 's' : ''} • {formatTime(sale.timestamp)}
+                      {activity.type} • {formatTime(activity.timestamp)}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold">{formatCurrency(sale.amount)}</div>
+                    {activity.amount && (
+                      <div className="font-semibold">{formatCurrency(activity.amount)}</div>
+                    )}
                     <Badge variant="outline" className="text-xs">
-                      {sale.paymentMethod.replace('_', ' ')}
+                      {activity.type.replace('_', ' ')}
                     </Badge>
                   </div>
                 </div>
               )) || (
-                <div className="text-center py-4 text-gray-500">No recent sales</div>
+                <div className="text-center py-4 text-gray-500">No recent activity</div>
               )}
             </div>
           </CardContent>
@@ -256,7 +329,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stock Alerts */}
-      {stats?.stockAlerts && stats.stockAlerts.length > 0 && (
+      {stats?.inventoryAlerts && stats.inventoryAlerts.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center text-orange-600">
@@ -266,11 +339,11 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {stats.stockAlerts.map((product) => (
+              {stats.inventoryAlerts.map((product) => (
                 <div key={product.id} className="border border-orange-200 rounded-lg p-4 bg-orange-50">
                   <div className="font-medium">{product.name}</div>
                   <div className="text-sm text-gray-600 mt-1">
-                    Current: {product.currentStock} | Min: {product.minStockLevel}
+                    Current: {product.currentStock} | Min: {product.minStock}
                   </div>
                   <Button 
                     size="sm" 

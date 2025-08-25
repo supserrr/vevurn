@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from '@/lib/auth';
+import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -10,16 +10,16 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = useSession();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!session.isPending && !session.data) {
+    if (!isLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [session.data, session.isPending, router]);
+  }, [isAuthenticated, isLoading, router]);
 
-  if (session.isPending) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -30,7 +30,7 @@ export default function AuthLayout({
     );
   }
 
-  if (!session.data) {
+  if (!isAuthenticated) {
     return null; // Will redirect via useEffect
   }
 

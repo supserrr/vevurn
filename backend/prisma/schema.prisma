@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -29,6 +30,10 @@ model User {
   updatedProducts Product[]  @relation("UpdatedBy")
   sales           Sale[]
   sessions        Session[]
+
+  banned     Boolean?
+  banReason  String?
+  banExpires DateTime?
 
   @@map("users")
 }
@@ -62,6 +67,8 @@ model Session {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  impersonatedBy String?
 
   @@map("sessions")
 }
@@ -204,19 +211,16 @@ model Customer {
   notes                  String?
   tags                   String[]       @default([])
   isActive               Boolean        @default(true)
-  
   // Additional billing fields
-  companyName            String?        // For business customers
-  taxNumber              String?        // Business tax number
-  billingAddress         String?        // Separate billing address
-  paymentTerms           String?        // Default payment terms
+  companyName            String? // For business customers
+  taxNumber              String? // Business tax number
+  billingAddress         String? // Separate billing address
+  paymentTerms           String? // Default payment terms
   creditLimit            Decimal?       @db.Decimal(12, 2)
-  
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
   deletedAt              DateTime?
   sales                  Sale[]
-  
   // Invoice relation
   invoices               Invoice[]
 
@@ -238,10 +242,8 @@ model Sale {
   status         SaleStatus @default(DRAFT)
   notes          String?
   receiptPrinted Boolean    @default(false)
-  
   // Invoice related fields
   isInvoiced     Boolean    @default(false)
-  
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   completedAt    DateTime?
@@ -250,7 +252,6 @@ model Sale {
   items          SaleItem[]
   cashier        User       @relation(fields: [cashierId], references: [id])
   customer       Customer?  @relation(fields: [customerId], references: [id])
-  
   // Invoice relation
   invoice        Invoice?
 
@@ -378,73 +379,60 @@ model AuditLog {
 }
 
 model Invoice {
-  id            String        @id @default(cuid())
-  invoiceNumber String        @unique // INV-2025-0001
-  saleId        String        @unique
-  customerId    String
-  
+  id             String            @id @default(cuid())
+  invoiceNumber  String            @unique // INV-2025-0001
+  saleId         String            @unique
+  customerId     String
   // Invoice details
-  subtotal      Decimal       @db.Decimal(12, 2)
-  taxAmount     Decimal       @default(0) @db.Decimal(12, 2)
-  discountAmount Decimal      @default(0) @db.Decimal(12, 2)
-  totalAmount   Decimal       @db.Decimal(12, 2)
-  amountPaid    Decimal       @default(0) @db.Decimal(12, 2)
-  amountDue     Decimal       @db.Decimal(12, 2)
-  
+  subtotal       Decimal           @db.Decimal(12, 2)
+  taxAmount      Decimal           @default(0) @db.Decimal(12, 2)
+  discountAmount Decimal           @default(0) @db.Decimal(12, 2)
+  totalAmount    Decimal           @db.Decimal(12, 2)
+  amountPaid     Decimal           @default(0) @db.Decimal(12, 2)
+  amountDue      Decimal           @db.Decimal(12, 2)
   // Invoice status
-  status        InvoiceStatus @default(DRAFT)
-  
+  status         InvoiceStatus     @default(DRAFT)
   // Dates
-  issueDate     DateTime      @default(now())
-  dueDate       DateTime      // Payment due date
-  paidDate      DateTime?     // When fully paid
-  
+  issueDate      DateTime          @default(now())
+  dueDate        DateTime // Payment due date
+  paidDate       DateTime? // When fully paid
   // Consignment specific
-  isConsignment Boolean       @default(false)
-  consignmentDue Decimal?     @db.Decimal(12, 2) // Amount owed to consigner
-  
+  isConsignment  Boolean           @default(false)
+  consignmentDue Decimal?          @db.Decimal(12, 2) // Amount owed to consigner
   // Communication
-  emailSent     Boolean       @default(false)
-  emailSentAt   DateTime?
-  smsSent       Boolean       @default(false)
-  smsSentAt     DateTime?
-  
+  emailSent      Boolean           @default(false)
+  emailSentAt    DateTime?
+  smsSent        Boolean           @default(false)
+  smsSentAt      DateTime?
   // Payment terms
-  paymentTerms  String?       // "Net 30", "Due on receipt", etc.
-  notes         String?
-  
+  paymentTerms   String? // "Net 30", "Due on receipt", etc.
+  notes          String?
   // Tracking
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
   // Relations
-  sale          Sale          @relation(fields: [saleId], references: [id])
-  customer      Customer      @relation(fields: [customerId], references: [id])
-  reminders     InvoiceReminder[]
-  
+  sale           Sale              @relation(fields: [saleId], references: [id])
+  customer       Customer          @relation(fields: [customerId], references: [id])
+  reminders      InvoiceReminder[]
+
   @@map("invoices")
 }
 
 model InvoiceReminder {
-  id         String   @id @default(cuid())
-  invoiceId  String
-  
+  id           String       @id @default(cuid())
+  invoiceId    String
   // Reminder details  
-  type       ReminderType // EMAIL, SMS, CALL
-  message    String
-  
+  type         ReminderType // EMAIL, SMS, CALL
+  message      String
   // Status
-  sent       Boolean  @default(false)
-  sentAt     DateTime?
-  
+  sent         Boolean      @default(false)
+  sentAt       DateTime?
   // Scheduling
   scheduledFor DateTime
-  
-  createdAt  DateTime @default(now())
-  
+  createdAt    DateTime     @default(now())
   // Relations
-  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
   @@map("invoice_reminders")
 }
 
@@ -533,18 +521,18 @@ enum TransactionType {
 }
 
 enum InvoiceStatus {
-  DRAFT          // Not yet sent to customer
-  SENT           // Sent to customer, awaiting payment
-  OVERDUE        // Past due date
+  DRAFT // Not yet sent to customer
+  SENT // Sent to customer, awaiting payment
+  OVERDUE // Past due date
   PARTIALLY_PAID // Partial payment received
-  PAID           // Fully paid
-  CANCELLED      // Cancelled/voided
-  REFUNDED       // Refunded
+  PAID // Fully paid
+  CANCELLED // Cancelled/voided
+  REFUNDED // Refunded
 }
 
 enum ReminderType {
   EMAIL
-  SMS  
+  SMS
   CALL
   WHATSAPP
 }

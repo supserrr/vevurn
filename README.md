@@ -141,8 +141,8 @@ Login with email and password.
 **Request Body:**
 ```json
 {
-  "email": "admin@vevurn.com",
-  "password": "password123"
+  "email": "user@example.com",
+  "password": "your_password"
 }
 ```
 

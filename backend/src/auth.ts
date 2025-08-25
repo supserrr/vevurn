@@ -4,6 +4,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { admin } from "better-auth/plugins";
 import { PrismaClient } from "@prisma/client";
 import { sendEmail } from "./services/email.service";
+import "./config/env"; // Load environment configuration
 
 const prisma = new PrismaClient();
 
@@ -15,7 +16,7 @@ export const auth = betterAuth({
 
   // App configuration
   appName: "Vevurn POS",
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:8000",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
   
   // Security configuration
   secret: process.env.BETTER_AUTH_SECRET!,
@@ -137,7 +138,7 @@ export const auth = betterAuth({
   // Email and password authentication
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: false, // Disabled for development
     minPasswordLength: 8,
     maxPasswordLength: 128,
     

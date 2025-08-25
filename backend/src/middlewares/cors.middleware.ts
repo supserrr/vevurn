@@ -3,6 +3,11 @@ import cors from 'cors';
 // CORS middleware configuration
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
+    // In development, be more permissive
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
     const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [
       'http://localhost:3000',
       'http://localhost:3001',

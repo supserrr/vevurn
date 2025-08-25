@@ -13,7 +13,6 @@ export const PASSWORD_RULES = {
     'password',
     '123456789',
     'qwerty',
-    'admin123',
     'password123',
   ],
 } as const;

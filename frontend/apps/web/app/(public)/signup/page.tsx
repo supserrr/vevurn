@@ -71,7 +71,7 @@ export default function SignUp() {
 									<Label htmlFor="first-name">First name</Label>
 									<Input
 										id="first-name"
-										placeholder="Max"
+										placeholder="First name"
 										required
 										onChange={(e) => {
 											setFirstName(e.target.value);
@@ -83,7 +83,7 @@ export default function SignUp() {
 									<Label htmlFor="last-name">Last name</Label>
 									<Input
 										id="last-name"
-										placeholder="Robinson"
+										placeholder="Last name"
 										required
 										onChange={(e) => {
 											setLastName(e.target.value);
@@ -97,7 +97,7 @@ export default function SignUp() {
 								<Input
 									id="email"
 									type="email"
-									placeholder="m@example.com"
+									placeholder="Enter your email"
 									required
 									onChange={(e) => {
 										setEmail(e.target.value);
@@ -113,7 +113,7 @@ export default function SignUp() {
 									value={password}
 									onChange={(e) => setPassword(e.target.value)}
 									autoComplete="new-password"
-									placeholder="Password"
+									placeholder="Enter your password"
 								/>
 							</div>
 							<div className="grid gap-2">
@@ -124,7 +124,7 @@ export default function SignUp() {
 									value={passwordConfirmation}
 									onChange={(e) => setPasswordConfirmation(e.target.value)}
 									autoComplete="new-password"
-									placeholder="Confirm Password"
+									placeholder="Confirm your password"
 								/>
 							</div>
 							<div className="grid gap-2">
@@ -232,6 +232,10 @@ export default function SignUp() {
 											},
 											onError: (ctx) => {
 												toast.error(ctx.error.message || "Google sign-up failed");
+											},
+											onSuccess: () => {
+												toast.success("Successfully signed up with Google!");
+												router.push("/dashboard");
 											},
 										}
 									);

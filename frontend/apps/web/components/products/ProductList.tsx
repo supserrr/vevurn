@@ -22,22 +22,38 @@ interface Product {
   id: string;
   name: string;
   description?: string;
-  category: string;
-  brand: string;
   sku: string;
   barcode?: string;
-  wholesalePrice: number;
-  retailPrice: number;
+  costPrice: string;
+  wholesalePrice: string;
+  retailPrice: string;
   stockQuantity: number;
   minStockLevel: number;
-  imageUrl?: string;
-  isActive: boolean;
+  brand: string;
+  color?: string;
+  size?: string;
+  status: string;
+  isActive?: boolean;
+  category: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  supplier: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
   variations?: Array<{
     id: string;
     name: string;
-    value: string;
-    priceAdjustment: number;
+    sku: string;
+    attributes: Record<string, any>;
+    stockQuantity: number;
+    isActive: boolean;
   }>;
+  images?: Array<any>;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,7 +68,8 @@ async function fetchProducts(search?: string, category?: string): Promise<Produc
   if (search) params.append('search', search);
   if (category) params.append('category', category);
   
-  const response = await fetch(`/api/products?${params.toString()}`, {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const response = await fetch(`${baseUrl}/api/products?${params.toString()}`, {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
@@ -64,11 +81,12 @@ async function fetchProducts(search?: string, category?: string): Promise<Produc
   }
   
   const data = await response.json();
-  return data.products || [];
+  return data.data || []; // Backend returns data in 'data' field
 }
 
 async function deleteProduct(productId: string): Promise<void> {
-  const response = await fetch(`/api/products/${productId}`, {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const response = await fetch(`${baseUrl}/api/products/${productId}`, {
     method: 'DELETE',
     credentials: 'include',
     headers: {
@@ -102,12 +120,13 @@ export default function ProductList({ onEdit, onAdd }: ProductListProps) {
     },
   });
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: string | number) => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('en-RW', {
       style: 'currency',
       currency: 'RWF',
       minimumFractionDigits: 0,
-    }).format(amount);
+    }).format(numAmount);
   };
 
   const getStockStatus = (product: Product) => {
@@ -120,7 +139,7 @@ export default function ProductList({ onEdit, onAdd }: ProductListProps) {
     }
   };
 
-  const categories = Array.from(new Set(products.map(p => p.category)));
+  const categories = Array.from(new Set(products.map(p => p.category.name)));
 
   if (error) {
     return (
@@ -192,9 +211,9 @@ export default function ProductList({ onEdit, onAdd }: ProductListProps) {
                 <CardContent className="p-0">
                   {/* Product Image */}
                   <div className="relative h-48 bg-gray-100">
-                    {product.imageUrl ? (
+                    {product.images && product.images.length > 0 ? (
                       <Image
-                        src={product.imageUrl}
+                        src={product.images[0].url || '/placeholder-product.jpg'}
                         alt={product.name}
                         fill
                         className="object-cover"
@@ -236,7 +255,7 @@ export default function ProductList({ onEdit, onAdd }: ProductListProps) {
                       </div>
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-2">{product.category}</p>
+                    <p className="text-sm text-gray-600 mb-2">{product.category.name}</p>
                     
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
@@ -266,7 +285,7 @@ export default function ProductList({ onEdit, onAdd }: ProductListProps) {
                         <div className="flex flex-wrap gap-1">
                           {product.variations.map((variation) => (
                             <Badge key={variation.id} variant="outline" className="text-xs">
-                              {variation.name}: {variation.value}
+                              {Object.entries(variation.attributes).map(([key, value]) => `${key}: ${value}`).join(', ')}
                             </Badge>
                           ))}
                         </div>
