@@ -1,246 +1,292 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { api } from '@/lib/api/client';
-import { DollarSign, Package, Users, TrendingUp, ShoppingCart } from 'lucide-react';
-import Link from 'next/link';
-import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
+import { 
+  ShoppingCart, 
+  Package, 
+  Users, 
+  TrendingUp,
+  AlertTriangle,
+  DollarSign,
+  Plus
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 interface DashboardStats {
-  todaySales: number;
-  totalProducts: number;
-  totalCustomers: number;
-  lowStockItems: number;
+  todaySales: {
+    totalRevenue: number;
+    totalOrders: number;
+    averageOrderValue: number;
+  };
+  paymentMethods: Array<{
+    method: string;
+    count: number;
+    amount: number;
+    percentage: number;
+  }>;
+  recentSales: Array<{
+    id: string;
+    customerName?: string;
+    amount: number;
+    paymentMethod: string;
+    timestamp: string;
+    items: number;
+  }>;
+  topProducts: Array<{
+    id: string;
+    name: string;
+    quantitySold: number;
+    revenue: number;
+  }>;
+  stockAlerts: Array<{
+    id: string;
+    name: string;
+    currentStock: number;
+    minStockLevel: number;
+  }>;
+}
+
+async function fetchDashboardStats(): Promise<{ data: DashboardStats }> {
+  const response = await fetch('/api/dashboard/stats', {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch dashboard stats');
+  }
+
+  return response.json();
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    todaySales: 0,
-    totalProducts: 0,
-    totalCustomers: 0,
-    lowStockItems: 0
+  const router = useRouter();
+  
+  const {
+    data: statsData,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: fetchDashboardStats,
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadDashboardStats();
-  }, []);
+  const stats = statsData?.data;
 
-  const loadDashboardStats = async () => {
-    try {
-      setLoading(true);
-      
-      // Load various stats from APIs (in parallel)
-      const [salesResponse, productsResponse, customersResponse] = await Promise.all([
-        api.sales.getAll().catch(() => ({ success: false, data: [] })),
-        api.products.getAll().catch(() => ({ success: false, data: [] })),
-        api.customers.getAll().catch(() => ({ success: false, data: [] }))
-      ]);
-
-      // Calculate stats
-      const today = new Date().toDateString();
-      const todaySales = salesResponse.success ? 
-        salesResponse.data.filter((sale: any) => 
-          new Date(sale.createdAt).toDateString() === today
-        ).reduce((sum: number, sale: any) => sum + (sale.totalAmount || 0), 0) : 0;
-
-      const totalProducts = productsResponse.success ? productsResponse.data.length : 0;
-      const totalCustomers = customersResponse.success ? customersResponse.data.length : 0;
-      const lowStockItems = productsResponse.success ? 
-        productsResponse.data.filter((product: any) => product.currentStock < 10).length : 0;
-
-      setStats({
-        todaySales,
-        totalProducts,
-        totalCustomers,
-        lowStockItems
-      });
-    } catch (error) {
-      console.error('Failed to load dashboard stats:', error);
-      toast.error('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
-    }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-RW', {
+      style: 'currency',
+      currency: 'RWF',
+      minimumFractionDigits: 0,
+    }).format(amount);
   };
 
-  if (loading) {
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">Loading dashboard...</p>
+      <div className="p-6">
+        <div className="flex items-center justify-center h-40">
+          <div className="text-gray-500">Loading dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-40">
+          <div className="text-red-500">Failed to load dashboard data</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome to Vevurn POS - Your business overview</p>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Link href="/pos" as="/pos">
-          <Button className="h-20 w-full text-lg bg-green-600 hover:bg-green-700">
-            <ShoppingCart className="mr-2 h-6 w-6" />
-            Start New Sale
-          </Button>
-        </Link>
-        <Link href="/products" as="/products">
-          <Button variant="outline" className="h-20 w-full text-lg">
-            <Package className="mr-2 h-5 w-5" />
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-gray-600">Welcome back! Here's what's happening today.</p>
+        </div>
+        <div className="flex space-x-3">
+          <Button onClick={() => router.push('/products')} variant="outline">
+            <Package className="w-4 h-4 mr-2" />
             Manage Products
           </Button>
-        </Link>
-        <Link href="/customers" as="/customers">
-          <Button variant="outline" className="h-20 w-full text-lg">
-            <Users className="mr-2 h-5 w-5" />
-            Manage Customers
+          <Button onClick={() => router.push('/sales')} className="bg-green-600 hover:bg-green-700">
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            New Sale
           </Button>
-        </Link>
-        <Link href="/sales" as="/sales">
-          <Button variant="outline" className="h-20 w-full text-lg">
-            <TrendingUp className="mr-2 h-5 w-5" />
-            View Sales
-          </Button>
-        </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {stats.todaySales.toLocaleString()} RWF
+            <div className="text-2xl font-bold">{formatCurrency(stats?.todaySales?.totalRevenue || 0)}</div>
+            <p className="text-xs text-gray-600">
+              {stats?.todaySales?.totalOrders || 0} orders today
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Average Order</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(stats?.todaySales?.averageOrderValue || 0)}</div>
+            <p className="text-xs text-gray-600">
+              Per transaction
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Stock Alerts</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.stockAlerts?.length || 0}</div>
+            <p className="text-xs text-gray-600">
+              Products low in stock
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Top Payment</CardTitle>
+            <Users className="h-4 w-4 text-purple-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats?.paymentMethods?.[0]?.method?.replace('_', ' ') || 'N/A'}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Revenue generated today
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalProducts}</div>
-            <p className="text-xs text-muted-foreground">
-              Products in catalog
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Customers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCustomers}</div>
-            <p className="text-xs text-muted-foreground">
-              Registered customers
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Alert</CardTitle>
-            <TrendingUp className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.lowStockItems}</div>
-            <p className="text-xs text-muted-foreground">
-              Items below 10 units
+            <p className="text-xs text-gray-600">
+              {stats?.paymentMethods?.[0]?.percentage || 0}% of sales
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Recent Activity Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Sales */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle className="flex items-center">
+              <ShoppingCart className="w-5 h-5 mr-2" />
+              Recent Sales
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-              <div>
-                <p className="font-medium">Process Sale</p>
-                <p className="text-sm text-gray-600">Start a new sale transaction</p>
-              </div>
-              <Link href="/pos" as="/pos">
-                <Button size="sm">Go to POS</Button>
-              </Link>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-              <div>
-                <p className="font-medium">Add Product</p>
-                <p className="text-sm text-gray-600">Add new products to inventory</p>
-              </div>
-              <Link href="/products" as="/products">
-                <Button size="sm" variant="outline">Add Product</Button>
-              </Link>
-            </div>
-            
-            <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-              <div>
-                <p className="font-medium">View Reports</p>
-                <p className="text-sm text-gray-600">Check sales and inventory reports</p>
-              </div>
-              <Link href="/reports" as="/reports">
-                <Button size="sm" variant="outline">View Reports</Button>
-              </Link>
+          <CardContent>
+            <div className="space-y-4">
+              {stats?.recentSales?.map((sale) => (
+                <div key={sale.id} className="flex items-center justify-between border-b pb-3">
+                  <div className="flex-1">
+                    <div className="font-medium">{sale.customerName}</div>
+                    <div className="text-sm text-gray-600">
+                      {sale.items} item{sale.items !== 1 ? 's' : ''} • {formatTime(sale.timestamp)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold">{formatCurrency(sale.amount)}</div>
+                    <Badge variant="outline" className="text-xs">
+                      {sale.paymentMethod.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                </div>
+              )) || (
+                <div className="text-center py-4 text-gray-500">No recent sales</div>
+              )}
             </div>
           </CardContent>
         </Card>
 
+        {/* Payment Methods */}
         <Card>
           <CardHeader>
-            <CardTitle>System Status</CardTitle>
+            <CardTitle className="flex items-center">
+              <DollarSign className="w-5 h-5 mr-2" />
+              Payment Methods
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Backend API</span>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Connected
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Database</span>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Online
-              </span>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Payment System</span>
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Ready
-              </span>
-            </div>
-            
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">
-                Last updated: {new Date().toLocaleString()}
-              </p>
+          <CardContent>
+            <div className="space-y-4">
+              {stats?.paymentMethods?.map((method) => (
+                <div key={method.method} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 rounded bg-blue-500"></div>
+                    <div>
+                      <div className="font-medium">{method.method.replace('_', ' ')}</div>
+                      <div className="text-sm text-gray-600">{method.count} transactions</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold">{formatCurrency(method.amount)}</div>
+                    <div className="text-sm text-gray-600">{method.percentage}%</div>
+                  </div>
+                </div>
+              )) || (
+                <div className="text-center py-4 text-gray-500">No payment data</div>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Stock Alerts */}
+      {stats?.stockAlerts && stats.stockAlerts.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center text-orange-600">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              Stock Alerts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {stats.stockAlerts.map((product) => (
+                <div key={product.id} className="border border-orange-200 rounded-lg p-4 bg-orange-50">
+                  <div className="font-medium">{product.name}</div>
+                  <div className="text-sm text-gray-600 mt-1">
+                    Current: {product.currentStock} | Min: {product.minStockLevel}
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="mt-2"
+                    onClick={() => router.push('/products')}
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Restock
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

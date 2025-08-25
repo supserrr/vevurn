@@ -11,6 +11,9 @@ export type {
   ApiResponse
 } from '../../../../shared/src/types';
 
+// Import types for local use
+import type { Product, PaymentMethod, Sale } from '../../../../shared/src/types';
+
 // Frontend-specific types
 export interface CartItem {
   product: Product;
