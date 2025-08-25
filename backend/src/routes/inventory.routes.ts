@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { InventoryController } from '../controllers/inventory.controller';
 import { authMiddleware, requireRole } from '../middleware/better-auth.middleware';
-import { validateRequest } from '../middlewares/validation.middleware';
+import { handleValidationErrors } from '../middlewares/express-validator.middleware';
 import { body, query, param } from 'express-validator';
 
 const router: Router = Router();
@@ -24,7 +24,7 @@ router.get('/summary', inventoryController.getInventorySummary);
  */
 router.get('/alerts', [
   query('threshold').optional().isInt({ min: 0 }).withMessage('Threshold must be a positive integer')
-], validateRequest, inventoryController.getStockAlerts);
+], handleValidationErrors, inventoryController.getStockAlerts);
 
 /**
  * @route GET /api/inventory/low-stock
@@ -33,7 +33,7 @@ router.get('/alerts', [
  */
 router.get('/low-stock', [
   query('threshold').optional().isInt({ min: 0 }).withMessage('Threshold must be a positive integer')
-], validateRequest, inventoryController.getLowStock);
+], handleValidationErrors, inventoryController.getLowStock);
 
 /**
  * @route GET /api/inventory/movements
@@ -49,7 +49,7 @@ router.get('/movements', [
   query('dateTo').optional().isISO8601().withMessage('Date to must be a valid date'),
   query('sortBy').optional().isIn(['createdAt', 'quantity', 'type']).withMessage('Invalid sort field'),
   query('sortOrder').optional().isIn(['asc', 'desc']).withMessage('Sort order must be asc or desc')
-], validateRequest, inventoryController.getMovementHistory);
+], handleValidationErrors, inventoryController.getMovementHistory);
 
 /**
  * @route POST /api/inventory/adjust/:productId
@@ -63,7 +63,7 @@ router.post('/adjust/:productId', [
   body('type').isIn(['STOCK_IN', 'STOCK_OUT', 'ADJUSTMENT', 'DAMAGED', 'EXPIRED']).withMessage('Invalid movement type'),
   body('reason').isString().notEmpty().withMessage('Reason is required'),
   body('unitPrice').optional().isFloat({ min: 0 }).withMessage('Unit price must be a positive number')
-], validateRequest, inventoryController.adjustStock);
+], handleValidationErrors, inventoryController.adjustStock);
 
 /**
  * @route POST /api/inventory/restock/:productId
@@ -77,7 +77,7 @@ router.post('/restock/:productId', [
   body('unitPrice').optional().isFloat({ min: 0 }).withMessage('Unit price must be a positive number'),
   body('supplier').optional().isString().withMessage('Supplier must be a string'),
   body('notes').optional().isString().withMessage('Notes must be a string')
-], validateRequest, inventoryController.restockProduct);
+], handleValidationErrors, inventoryController.restockProduct);
 
 /**
  * @route POST /api/inventory/transfer
@@ -91,6 +91,6 @@ router.post('/transfer', [
   body('items').isArray({ min: 1 }).withMessage('Items array is required'),
   body('items.*.productId').isString().notEmpty().withMessage('Product ID is required for each item'),
   body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be a positive integer for each item')
-], validateRequest, inventoryController.transferStock);
+], handleValidationErrors, inventoryController.transferStock);
 
 export { router as inventoryRoutes };

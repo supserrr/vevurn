@@ -35,5 +35,5 @@ export const profitAnalysisSchema = z.object({
 export const exportSchema = z.object({
   format: z.enum(['excel', 'pdf', 'csv']).default('excel'),
   reportType: z.enum(['sales', 'inventory', 'customers', 'profit']),
-  filters: z.record(z.any()).optional(),
+  filters: z.record(z.string(), z.any()).optional(),
 });

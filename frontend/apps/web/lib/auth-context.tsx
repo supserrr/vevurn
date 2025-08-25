@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, ReactNode } from 'react';
-import { useSession } from '@/lib/auth-client';
+import { useSession, signIn, signOut } from '@/lib/auth-client';
 
 interface User {
   id: string;
@@ -14,12 +14,22 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, isPending } = useSession();
+
+  const login = async (email: string, password: string) => {
+    await signIn.email({ email, password });
+  };
+
+  const logout = async () => {
+    await signOut();
+  };
 
   const value: AuthContextType = {
     user: session?.user ? {
@@ -30,6 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } : null,
     isAuthenticated: !!session?.user,
     isLoading: isPending,
+    login,
+    logout,
   };
 
   return (

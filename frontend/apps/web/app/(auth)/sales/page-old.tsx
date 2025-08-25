@@ -19,6 +19,7 @@ import {
 import { toast } from 'react-hot-toast';
 import PaymentModal from '@/components/sales/PaymentModal';
 import CustomerSelector from '@/components/sales/CustomerSelector';
+import { Product, CartItem } from '@/types';
 
 interface ProductVariation {
   id: string;
@@ -26,49 +27,6 @@ interface ProductVariation {
   value: string;
   stock: number;
   price?: number;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  sku: string;
-  barcode?: string;
-  costPrice: string;
-  wholesalePrice: string;
-  retailPrice: string;
-  stockQuantity: number;
-  minStockLevel: number;
-  brand: string;
-  color?: string;
-  size?: string;
-  status: string;
-  category: {
-    id: string;
-    name: string;
-  };
-  variations?: Array<{
-    id: string;
-    name: string;
-    sku: string;
-    attributes: Record<string, any>;
-    stockQuantity: number;
-    isActive: boolean;
-  }>;
-  images?: Array<any>;
-}
-
-interface CartItem {
-  productId: string;
-  product: Product;
-  quantity: number;
-  unitPrice: number;
-  variationId?: string;
-  variation?: {
-    id: string;
-    name: string;
-    value: string;
-  };
 }
 
 interface Customer {
@@ -125,7 +83,7 @@ export default function SalesPage() {
                            product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            product.barcode?.includes(searchTerm);
       
-      const matchesCategory = !selectedCategory || product.category === selectedCategory;
+      const matchesCategory = !selectedCategory || product.category?.name === selectedCategory;
       
       return matchesSearch && matchesCategory;
     });
@@ -177,16 +135,18 @@ export default function SalesPage() {
       }
       setCart(newCart);
     } else {
+      const unitPrice = getProductPrice(product, variationId);
       const newItem: CartItem = {
         productId: product.id,
         product,
         quantity: 1,
-        unitPrice: getProductPrice(product, variationId),
+        unitPrice,
+        totalPrice: unitPrice * 1,
         variationId,
         variation: variation ? {
           id: variation.id,
           name: variation.name,
-          value: variation.value,
+          value: Object.values(variation.attributes).join(', '),
         } : undefined,
       };
       setCart([...cart, newItem]);
@@ -205,8 +165,8 @@ export default function SalesPage() {
     if (!item) return;
     
     const availableStock = item.variation ? 
-      (item.product.variations?.find(v => v.id === item.variationId)?.stock ?? 0) : 
-      item.product.currentStock;
+      (item.product.variations?.find(v => v.id === item.variationId)?.stockQuantity ?? 0) : 
+      item.product.stockQuantity;
     
     if (newQuantity > availableStock) {
       toast.error('Not enough stock available');
@@ -289,8 +249,8 @@ export default function SalesPage() {
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Categories</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {categories.filter(category => category && category.id && category.name).map(category => (
+                  <option key={category.id} value={category.name}>{category.name}</option>
                 ))}
               </select>
             </div>
@@ -317,8 +277,8 @@ export default function SalesPage() {
                               {product.description}
                             </p>
                           </div>
-                          <Badge variant={product.currentStock > product.minStockLevel ? 'default' : 'destructive'}>
-                            {product.currentStock}
+                          <Badge variant={product.stockQuantity > product.minStockLevel ? 'default' : 'destructive'}>
+                            {product.stockQuantity}
                           </Badge>
                         </div>
 
@@ -345,10 +305,10 @@ export default function SalesPage() {
                                   variant="outline"
                                   className="w-full text-xs justify-between"
                                   onClick={() => addToCart(product, variation.id)}
-                                  disabled={variation.stock <= 0}
+                                  disabled={variation.stockQuantity <= 0}
                                 >
-                                  <span>{variation.value}</span>
-                                  <span>({variation.stock})</span>
+                                  <span>{Object.values(variation.attributes).join(', ')}</span>
+                                  <span>({variation.stockQuantity})</span>
                                 </Button>
                               ))}
                             </div>
@@ -357,7 +317,7 @@ export default function SalesPage() {
                               size="sm"
                               className="w-full"
                               onClick={() => addToCart(product)}
-                              disabled={product.currentStock <= 0}
+                              disabled={product.stockQuantity <= 0}
                             >
                               <Plus className="w-3 h-3 mr-1" />
                               Add to Cart

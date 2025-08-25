@@ -1,33 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { Product } from '@/types';
 import ProductList from '@/components/products/ProductList';
 import ProductForm from '@/components/products/ProductForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  category: string;
-  brand: string;
-  sku: string;
-  barcode?: string;
-  wholesalePrice: number;
-  retailPrice: number;
-  stockQuantity: number;
-  minStockLevel: number;
-  imageUrl?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  variations?: Array<{
-    id: string;
-    name: string;
-    value: string;
-    priceAdjustment: number;
-  }>;
-}
 
 export default function ProductsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);

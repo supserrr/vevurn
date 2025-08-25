@@ -17,46 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
-
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  sku: string;
-  barcode?: string;
-  costPrice: string;
-  wholesalePrice: string;
-  retailPrice: string;
-  stockQuantity: number;
-  minStockLevel: number;
-  brand: string;
-  color?: string;
-  size?: string;
-  status: string;
-  isActive?: boolean;
-  category: {
-    id: string;
-    name: string;
-    description?: string;
-  };
-  supplier: {
-    id: string;
-    name: string;
-    email?: string;
-    phone?: string;
-  };
-  variations?: Array<{
-    id: string;
-    name: string;
-    sku: string;
-    attributes: Record<string, any>;
-    stockQuantity: number;
-    isActive: boolean;
-  }>;
-  images?: Array<any>;
-  createdAt: string;
-  updatedAt: string;
-}
+import { Product } from '@/types';
 
 interface ProductListProps {
   onEdit: (product: Product) => void;
@@ -139,7 +100,7 @@ export default function ProductList({ onEdit, onAdd }: ProductListProps) {
     }
   };
 
-  const categories = Array.from(new Set(products.map(p => p.category.name)));
+  const categories = Array.from(new Set(products.map(p => p.category?.name).filter(Boolean)));
 
   if (error) {
     return (
@@ -213,7 +174,7 @@ export default function ProductList({ onEdit, onAdd }: ProductListProps) {
                   <div className="relative h-48 bg-gray-100">
                     {product.images && product.images.length > 0 ? (
                       <Image
-                        src={product.images[0].url || '/placeholder-product.jpg'}
+                        src={typeof product.images[0] === 'string' ? product.images[0] : product.images[0]?.url || '/placeholder-product.jpg'}
                         alt={product.name}
                         fill
                         className="object-cover"
@@ -255,7 +216,7 @@ export default function ProductList({ onEdit, onAdd }: ProductListProps) {
                       </div>
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-2">{product.category.name}</p>
+                    <p className="text-sm text-gray-600 mb-2">{product.category?.name || 'Uncategorized'}</p>
                     
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
@@ -270,11 +231,11 @@ export default function ProductList({ onEdit, onAdd }: ProductListProps) {
                       </div>
                       <div className="flex justify-between">
                         <span>Wholesale:</span>
-                        <span>{formatCurrency(product.wholesalePrice)}</span>
+                        <span>{formatCurrency(parseInt(product.wholesalePrice || '0'))}</span>
                       </div>
                       <div className="flex justify-between font-semibold">
                         <span>Retail:</span>
-                        <span>{formatCurrency(product.retailPrice)}</span>
+                        <span>{formatCurrency(parseInt(product.retailPrice || '0'))}</span>
                       </div>
                     </div>
 

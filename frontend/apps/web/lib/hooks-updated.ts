@@ -188,13 +188,12 @@ export function useLowStockProducts() {
 export function useUpdateStock() {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutation<{ success: boolean }, Error, { productId: string; quantity: number }>({
     mutationFn: ({ productId, quantity }: { productId: string; quantity: number }) =>
       enhancedApiService.updateStock(productId, quantity),
-    onSuccess: (data: Product) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.products });
       queryClient.invalidateQueries({ queryKey: queryKeys.lowStock });
-      queryClient.setQueryData(queryKeys.product(data.id), data);
     },
   });
 }

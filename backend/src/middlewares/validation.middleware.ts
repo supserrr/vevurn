@@ -1,30 +1,30 @@
 import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
+import { ZodSchema, ZodError } from 'zod';
 import { ApiResponse } from '../utils/response';
 
 export const validateRequest = (schema: {
-  body?: AnyZodObject;
-  query?: AnyZodObject;
-  params?: AnyZodObject;
+  body?: ZodSchema;
+  query?: ZodSchema;
+  params?: ZodSchema;
 }) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (schema.body) {
-        req.body = await schema.body.parseAsync(req.body);
+        req.body = schema.body.parse(req.body);
       }
       
       if (schema.query) {
-        req.query = await schema.query.parseAsync(req.query);
+        req.query = schema.query.parse(req.query) as any;
       }
       
       if (schema.params) {
-        req.params = await schema.params.parseAsync(req.params);
+        req.params = schema.params.parse(req.params) as any;
       }
       
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const validationErrors = error.errors.map(err => ({
+        const validationErrors = error.issues.map((err: any) => ({
           field: err.path.join('.'),
           message: err.message,
         }));
@@ -37,4 +37,17 @@ export const validateRequest = (schema: {
       next(error);
     }
   };
+};
+
+// Simplified validation middleware for easier usage
+export const validateBody = (schema: ZodSchema) => {
+  return validateRequest({ body: schema });
+};
+
+export const validateQuery = (schema: ZodSchema) => {
+  return validateRequest({ query: schema });
+};
+
+export const validateParams = (schema: ZodSchema) => {
+  return validateRequest({ params: schema });
 };

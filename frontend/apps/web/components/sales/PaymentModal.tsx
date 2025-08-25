@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { CartItem } from '@/types';
 import { 
   CreditCard, 
   Smartphone, 
@@ -16,24 +17,6 @@ import {
   Loader2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-
-interface CartItem {
-  productId: string;
-  product: {
-    id: string;
-    name: string;
-    retailPrice: number;
-    wholesalePrice: number;
-  };
-  quantity: number;
-  unitPrice: number;
-  variationId?: string;
-  variation?: {
-    id: string;
-    name: string;
-    value: string;
-  };
-}
 
 interface Customer {
   id: string;
@@ -138,7 +121,7 @@ export default function PaymentModal({
 
     const saleData: ProcessSaleRequest = {
       items: cartItems.map(item => ({
-        productId: item.productId,
+        productId: item.productId || item.product.id,
         variationId: item.variationId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,

@@ -14,29 +14,30 @@ export const formatCurrency = (amount: number, currency: string = 'RWF'): string
 export const formatDate = (date: string | Date, format: 'short' | 'medium' | 'long' = 'medium'): string => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
-  const options: Intl.DateTimeFormatOptions = {
+  const formatOptions = {
     short: { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+      year: 'numeric' as const, 
+      month: 'short' as const, 
+      day: 'numeric' as const 
     },
     medium: { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
+      year: 'numeric' as const, 
+      month: 'short' as const, 
+      day: 'numeric' as const, 
+      hour: '2-digit' as const, 
+      minute: '2-digit' as const 
     },
     long: { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
+      year: 'numeric' as const, 
+      month: 'long' as const, 
+      day: 'numeric' as const, 
+      hour: '2-digit' as const, 
+      minute: '2-digit' as const, 
+      second: '2-digit' as const 
     }
-  }[format];
+  };
 
+  const options: Intl.DateTimeFormatOptions = formatOptions[format];
   return new Intl.DateTimeFormat('en-US', options).format(dateObj);
 };
 

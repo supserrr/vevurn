@@ -249,35 +249,23 @@ export default function SignUp() {
 								</svg>
 								Sign up with Google
 							</Button>
-
-							<div className="mt-6">
-								<div className="relative">
-									<div className="absolute inset-0 flex items-center">
-										<div className="w-full border-t border-gray-300 dark:border-gray-600" />
-									</div>
-									<div className="relative flex justify-center text-sm">
-										<span className="px-2 bg-white dark:bg-gray-800 text-gray-500">
-											Already have an account?
-										</span>
-									</div>
-								</div>
-
-								<div className="mt-6 text-center">
-									<Link
-										href="/login"
-										className="text-sm text-primary hover:text-primary/80 font-medium"
-									>
-										Sign in instead
-									</Link>
-								</div>
-							</div>
 						</div>
 					</CardContent>
 					<CardFooter>
-						<div className="flex justify-center w-full border-t py-4">
-							<p className="text-center text-xs text-neutral-500">
-								Secured by <span className="text-orange-400">better-auth.</span>
-							</p>
+						<div className="w-full space-y-3">
+							<div className="text-center">
+								<p className="text-sm text-gray-600 dark:text-gray-400">
+									Already have an account?{" "}
+									<Link href="/login" className="text-primary hover:underline font-medium">
+										Sign in here
+									</Link>
+								</p>
+							</div>
+							<div className="flex justify-center w-full border-t pt-3">
+								<p className="text-center text-xs text-neutral-500">
+									Secured by <span className="text-orange-400">better-auth.</span>
+								</p>
+							</div>
 						</div>
 					</CardFooter>
 				</Card>

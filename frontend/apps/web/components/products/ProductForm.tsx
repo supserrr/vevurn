@@ -24,7 +24,7 @@ const productSchema = z.object({
   stockQuantity: z.number().int().min(0, 'Stock quantity must be non-negative'),
   minStockLevel: z.number().int().min(0, 'Minimum stock level must be non-negative'),
   imageUrl: z.string().url().optional().or(z.literal('')),
-  isActive: z.boolean().default(true),
+  status: z.string().default('active'),
   variations: z.array(z.object({
     name: z.string().min(1, 'Variation name required'),
     value: z.string().min(1, 'Variation value required'),
@@ -114,7 +114,7 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
       stockQuantity: product?.stockQuantity || 0,
       minStockLevel: product?.minStockLevel || 5,
       imageUrl: product?.imageUrl || '',
-      isActive: product?.isActive ?? true,
+      status: product?.status ?? 'active',
       variations: product?.variations?.map(v => ({
         name: v.name,
         value: v.value,
@@ -323,14 +323,17 @@ export default function ProductForm({ product, onSuccess, onCancel }: ProductFor
             )}
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              id="isActive"
-              type="checkbox"
-              {...form.register('isActive')}
-              className="rounded border-gray-300"
-            />
-            <Label htmlFor="isActive">Product is active</Label>
+          <div className="space-y-2">
+            <Label htmlFor="status">Product Status</Label>
+            <select
+              id="status"
+              {...form.register('status')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="discontinued">Discontinued</option>
+            </select>
           </div>
         </CardContent>
       </Card>

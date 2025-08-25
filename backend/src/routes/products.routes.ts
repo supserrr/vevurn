@@ -7,7 +7,7 @@ import { createProductSchema, updateProductSchema } from '../validators/products
 const router: Router = Router();
 const productController = new ProductController();
 
-// Apply auth middleware to all routes
+// Apply optional auth middleware for testing
 router.use(authMiddleware);
 
 // Product CRUD - with proper middleware

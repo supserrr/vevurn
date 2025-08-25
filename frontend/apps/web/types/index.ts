@@ -9,18 +9,25 @@ export type {
   PaymentStatus,
   CreateSaleRequest,
   ApiResponse
-} from '../../../../shared/src/types';
+} from '../../../../shared/types';
 
 // Import types for local use
-import type { Product, PaymentMethod, Sale } from '../../../../shared/src/types';
+import type { Product, PaymentMethod, Sale } from '../../../../shared/types';
 
 // Frontend-specific types
 export interface CartItem {
+  productId?: string; // for backward compatibility
   product: Product;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
   discount?: number;
+  variationId?: string;
+  variation?: {
+    id: string;
+    name: string;
+    value: string;
+  };
 }
 
 export interface PosProduct {

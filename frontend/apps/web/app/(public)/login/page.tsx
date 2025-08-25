@@ -178,6 +178,16 @@ export default function SignIn() {
 
             </div>
           </CardContent>
+          <CardFooter>
+            <div className="w-full text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Don't have an account?{" "}
+                <Link href="/signup" className="text-primary hover:underline font-medium">
+                  Sign up here
+                </Link>
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         <div className="text-center">

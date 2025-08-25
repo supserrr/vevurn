@@ -11,14 +11,10 @@ export default function AuthTestPage() {
 
   const handleLogin = async () => {
     try {
-      const result = await login(email, password);
-      if (result.success) {
-        setMessage('Login successful!');
-      } else {
-        setMessage(`Login failed: ${result.error}`);
-      }
+      await login(email, password);
+      setMessage('Login successful!');
     } catch (error) {
-      setMessage(`Error: ${error}`);
+      setMessage(`Login failed: ${error}`);
     }
   };
 

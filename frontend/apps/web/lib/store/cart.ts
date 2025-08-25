@@ -32,7 +32,7 @@ export const useCart = create<CartStore>((set, get) => ({
       }
       set({ items: newItems });
     } else {
-      const unitPrice = product.unitPrice;
+      const unitPrice = parseFloat(product.retailPrice);
       const newItem: CartItem = {
         product,
         quantity,

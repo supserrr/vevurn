@@ -1,4 +1,4 @@
-# Vevurn POS - Project Intelligence Document
+# PROJECT INTELLIGENCE - Vevurn POS System
 
 ## Project Overview
 **Vevurn POS** is a comprehensive point-of-sale system specifically designed for phone accessories retail businesses in Rwanda. It integrates modern web technologies with local payment methods and business practices.
@@ -17,11 +17,13 @@
 4. **Receipt Printing**: Thermal printer support
 5. **Inventory Management**: Real-time stock tracking
 6. **Role-based Access**: Multiple user roles and permissions
+7. **Invoice & Credit Management**: Comprehensive billing system
+8. **Customer Credit Tracking**: Credit limits and payment terms
 
 ## Technical Architecture
 
 ### Technology Stack
-- **Frontend**: Next.js 14 with App Router, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 15 with App Router, TypeScript, Tailwind CSS
 - **Backend**: Express.js with TypeScript, Prisma ORM
 - **Database**: PostgreSQL with Redis for caching
 - **Authentication**: Better-Auth for modern auth flows
@@ -46,6 +48,7 @@
 - **Payment Processing**: Cash, mobile money, card payments
 - **Receipt Generation**: PDF and thermal printer support
 - **Customer Management**: Quick customer lookup and creation
+- **Invoice Creation**: Direct conversion from sales to invoices
 
 ### 2. Inventory Management
 - **Product Catalog**: Categories, brands, specifications
@@ -59,6 +62,8 @@
 - **Loyalty Program**: Points system and rewards
 - **Customer Analytics**: Purchase patterns and preferences
 - **Communication**: SMS/email notifications
+- **Credit Management**: Credit limits, payment terms, billing info
+- **Business Customer Support**: Company names, tax numbers
 
 ### 4. User Management
 - **Role-based Access**: Super Admin, Admin, Manager, Cashier
@@ -66,165 +71,229 @@
 - **Activity Tracking**: Audit logs for all actions
 - **Shift Management**: Cashier shift tracking and reports
 
-### 5. Reporting & Analytics
+### 5. Invoice & Billing System
+- **Invoice Generation**: Create invoices from completed sales
+- **Invoice Management**: Draft, sent, paid, overdue status tracking
+- **Payment Tracking**: Partial payments, payment history
+- **Credit Sales**: Support for credit transactions with payment terms
+- **Consignment Sales**: Track consignment items and payments
+- **Automated Reminders**: Email, SMS, and call reminders
+- **Payment Terms**: Flexible payment terms configuration
+- **Tax Compliance**: Rwanda VAT compliance (18% tax rate)
+- **Multi-currency Support**: RWF primary with USD support
+
+### 6. Reporting & Analytics
 - **Sales Reports**: Daily, weekly, monthly summaries
 - **Inventory Reports**: Stock levels, movement analysis
 - **Financial Reports**: Revenue, profit margins
 - **Customer Reports**: Purchase patterns, loyalty metrics
+- **Invoice Reports**: Outstanding invoices, aging reports
+- **Credit Reports**: Customer credit utilization and limits
 - **Export Options**: PDF, Excel, CSV formats
 
-### 6. Mobile Money Integration
+### 7. Mobile Money Integration
 - **MTN Mobile Money**: Collection API integration
 - **Airtel Money**: Payment processing
 - **Transaction Tracking**: Real-time payment status
 - **Reconciliation**: Automated payment matching
 - **Webhook Handling**: Payment confirmations
+- **Invoice Payments**: Mobile money payments for invoices
+
+### 8. Communication System
+- **Email Integration**: Automated invoice and receipt sending
+- **SMS Notifications**: Payment reminders and alerts
+- **WhatsApp Integration**: Modern communication channel
+- **Call Reminders**: Manual reminder tracking
+- **Notification Templates**: Customizable message templates
 
 ## Data Model
 
 ### Core Entities
 1. **Users**: Authentication and role management
 2. **Products**: Product catalog with categories and brands
-3. **Customers**: Customer information and loyalty data
-4. **Sales**: Transaction records and line items
-5. **Payments**: Payment tracking and reconciliation
-6. **Inventory**: Stock levels and movements
-7. **Suppliers**: Vendor management
-8. **Settings**: System configuration
+3. **Customers**: Enhanced customer information with billing details
+4. **Sales**: Transaction records with invoice integration
+5. **Invoices**: Complete invoice lifecycle management
+6. **InvoiceReminders**: Automated reminder system
+7. **Payments**: Payment tracking and reconciliation
+8. **Inventory**: Stock levels and movements
+9. **Suppliers**: Vendor management
 
-### Key Relationships
-- Users have multiple Sales (cashier relationship)
-- Sales have multiple SaleItems (product line items)
-- Sales have multiple Payments (payment tracking)
-- Products belong to Categories and Brands
-- Products have StockMovements for inventory tracking
-- Customers have multiple Sales (purchase history)
+### Enhanced Customer Model
+- **Basic Info**: Name, phone, email, address
+- **Business Info**: Company name, tax number, billing address
+- **Credit Management**: Credit limit, current balance, payment terms
+- **Communication Preferences**: Email, SMS, WhatsApp preferences
 
-## Security Considerations
+### Invoice Model
+- **Core Details**: Invoice number, amounts, dates, status
+- **Financial Tracking**: Subtotal, tax, discount, paid amounts
+- **Status Management**: Draft → Sent → Paid/Overdue lifecycle
+- **Communication**: Email/SMS sent tracking
+- **Consignment**: Special handling for consignment sales
 
-### Authentication & Authorization
-- **JWT-based Authentication**: Secure token-based auth
-- **Role-based Access Control**: Granular permissions
-- **Session Management**: Proper session handling
-- **Password Security**: Bcrypt hashing, complexity requirements
+## Business Logic
 
-### Data Protection
-- **Input Validation**: Zod schemas for all inputs
-- **SQL Injection Prevention**: Prisma ORM protection
-- **XSS Protection**: Content Security Policy
-- **Rate Limiting**: API rate limiting middleware
-- **Audit Logging**: Track all system changes
+### Invoice Workflow
+1. **Sale Completion**: Sale marked as completed with customer
+2. **Invoice Creation**: Option to create invoice from sale
+3. **Invoice Processing**: Draft → Sent → Payment tracking
+4. **Payment Management**: Partial payments, overpayments handling
+5. **Status Updates**: Automatic status changes based on payments
+6. **Overdue Management**: Automatic overdue detection and reminders
 
-### API Security
-- **CORS Configuration**: Proper cross-origin setup
-- **HTTPS Enforcement**: SSL/TLS in production
-- **Request Validation**: Comprehensive input validation
-- **Error Handling**: Secure error responses
+### Credit Management
+- **Credit Limits**: Per-customer credit limits
+- **Credit Utilization**: Track current outstanding amounts
+- **Payment Terms**: Net 30, Net 60, custom terms
+- **Credit Alerts**: Notifications when approaching limits
 
-## Performance Considerations
+### Rwanda-Specific Features
+- **Tax Compliance**: 18% VAT rate with proper invoice formatting
+- **Business Registration**: Support for Rwanda business tax numbers
+- **Local Currency**: Rwandan Franc (RWF) with proper formatting
+- **Payment Methods**: Integration with local mobile money providers
 
-### Frontend Optimization
-- **Code Splitting**: Next.js automatic code splitting
-- **Image Optimization**: Next.js image component
-- **Caching Strategy**: React Query for API caching
-- **Bundle Analysis**: Regular bundle size monitoring
+## Project Structure
 
-### Backend Optimization
-- **Database Indexing**: Proper database indexes
-- **Query Optimization**: Efficient Prisma queries
-- **Caching Layer**: Redis for frequently accessed data
-- **Connection Pooling**: PostgreSQL connection management
+### Frontend (Next.js 15)
+```
+frontend/
+├── app/             # App Router pages
+├── components/      # React components
+├── hooks/          # Custom hooks
+├── lib/            # Utilities
+├── store/          # State management
+└── types/          # TypeScript types
+```
 
-### Real-time Features
-- **WebSocket Management**: Socket.io for live updates
-- **Event-driven Architecture**: Pub/sub patterns
-- **Optimistic Updates**: Better user experience
+### Backend (Express)
+```
+src/
+├── controllers/    # Route handlers
+├── services/       # Business logic
+├── repositories/   # Data access
+├── middlewares/    # Express middlewares
+├── utils/          # Helpers
+├── validators/     # Zod schemas
+├── webhooks/       # Webhook handlers
+└── types/          # TypeScript types
+```
 
-## Deployment Strategy
+### Shared Components
+```
+shared/
+├── src/
+│   ├── types/      # Shared TypeScript interfaces
+│   ├── validation/ # Zod schemas
+│   └── utils/      # Common utilities
+└── package.json
+```
 
-### Development Environment
-- **Docker Compose**: Local database and services
-- **Hot Reloading**: Development server with live reload
-- **Environment Variables**: Separate configs per environment
+## Environment Variables Structure
 
-### Production Deployment
-- **Container Strategy**: Docker containers for deployment
-- **Load Balancing**: Nginx reverse proxy
-- **Database**: Managed PostgreSQL service
-- **File Storage**: AWS S3 or equivalent
-- **Monitoring**: Application and infrastructure monitoring
+Follow .env.example template:
+- Never commit real credentials
+- Use strong secrets (32+ characters)
+- Document all variables
+- Validate env vars on startup
 
-### CI/CD Pipeline
-- **Automated Testing**: Unit, integration, e2e tests
-- **Code Quality**: ESLint, Prettier, type checking
-- **Automated Deployment**: GitHub Actions or similar
-- **Database Migrations**: Automated schema updates
+## Current Focus Areas
 
-## Localization & Internationalization
+1. **Invoice System Completion**: Full invoice lifecycle implementation
+2. **Payment Integration**: MTN Mobile Money invoice payment
+3. **Email/SMS System**: Communication infrastructure
+4. **Credit Management**: Customer credit limit enforcement
+5. **Reporting Dashboard**: Invoice and credit analytics
+6. **Mobile Optimization**: Invoice management on mobile devices
 
-### Language Support
-- **Kinyarwanda (rw)**: Primary local language
-- **English (en)**: Business language
-- **French (fr)**: Official language
+## Known Constraints
 
-### Cultural Considerations
-- **Currency Format**: Rwandan Franc (RWF) formatting
-- **Date/Time Format**: Local format preferences
-- **Phone Numbers**: Rwanda-specific validation
-- **Business Hours**: Local business hour defaults
+- Must work reliably with intermittent internet (Rwanda)
+- Support for French and English interfaces (future)
+- Mobile-responsive for tablet POS systems
+- Offline-first capability (future enhancement)
+- Rwanda tax compliance requirements
+- Local business practice integration
 
-## Mobile Money Integration Details
+## Communication Style
+When working on this project:
 
-### MTN Mobile Money
-- **Collection API**: Request to Pay functionality
-- **Status Checking**: Transaction status verification
-- **Webhook Handling**: Payment confirmation callbacks
-- **Reconciliation**: Automated payment matching
+- Be explicit about design decisions
+- Document everything inline and in separate docs
+- Explain the why not just the what
+- Provide examples for complex implementations
+- Suggest improvements when you see opportunities
 
-### Airtel Money
-- **API Integration**: Payment processing
-- **Transaction Tracking**: Status monitoring
-- **Error Handling**: Failed transaction management
+## AI Agent Context
+This project is primarily developed using AI coding assistants. Each new conversation with an AI agent should:
 
-## Compliance & Regulations
+- Start by referencing this PROJECT_INTELLIGENCE.md file
+- Provide specific context about the current task
+- Include relevant error messages in full
+- Share the current file structure if relevant
+- Specify the exact problem to be solved
 
-### Rwanda Regulations
-- **Tax Compliance**: VAT calculation and reporting
-- **Receipt Requirements**: Legal receipt formatting
-- **Data Protection**: Rwanda data protection compliance
-- **Financial Reporting**: Required business reporting
+The AI should always:
 
-### Business Standards
-- **Inventory Tracking**: Proper stock management
-- **Financial Records**: Accurate transaction recording
-- **Customer Data**: Secure customer information handling
+- Prioritize best practices over speed
+- Choose maintainable solutions over clever ones
+- Implement comprehensive error handling
+- Follow the established patterns in the codebase
+- Document all decisions and trade-offs
 
-## Future Enhancements
+## Questions to Always Consider
 
-### Phase 2 Features
-- **Multi-store Support**: Chain store management
-- **Advanced Analytics**: Machine learning insights
-- **Mobile App**: Native mobile application
-- **API Marketplace**: Third-party integrations
+- Is this the most maintainable solution?
+- Will this scale to 1000+ products and 100+ daily transactions?
+- Is the error handling comprehensive?
+- Are we following security best practices?
+- Is the code testable and tested?
+- Will another developer understand this in 6 months?
+- Does this support Rwanda business practices?
+- Is the invoice system compliant with local regulations?
 
-### Scalability Improvements
-- **Microservices Architecture**: Service decomposition
-- **Event Sourcing**: Event-driven data model
-- **API Gateway**: Centralized API management
-- **Horizontal Scaling**: Multi-instance deployment
+## When working with AI:
 
-## Success Metrics
+- Always review generated code for security and best practices
+- Provide clear context using this PROJECT_INTELLIGENCE.md file
+- Test all AI-generated code thoroughly
+- Document AI-assisted sections for future maintainability
+- Verify AI suggestions against project requirements
 
-### Business KPIs
-- **Transaction Volume**: Daily/monthly transaction counts
-- **Revenue Growth**: Monthly revenue tracking
-- **Customer Retention**: Repeat customer metrics
-- **Inventory Turnover**: Stock movement efficiency
+## Code Standards
 
-### Technical KPIs
-- **System Uptime**: 99.9% availability target
-- **Response Time**: Sub-200ms API response times
-- **Error Rate**: <0.1% error rate target
-- **User Satisfaction**: Regular feedback collection
+- Always use TypeScript with strict mode
+- Follow ESLint and Prettier configurations
+- Write tests for critical business logic
+- Document all APIs with clear examples
+- Use conventional commits for version control
 
-This document serves as the single source of truth for the Vevurn POS project specifications and will be updated as the project evolves.
+## Architecture Principles
+
+- **Separation of Concerns**: Clear boundaries between layers
+- **DRY (Don't Repeat Yourself)**: Reuse code through shared packages
+- **SOLID Principles**: Especially Single Responsibility
+- **Error Handling**: Always handle errors at the deepest layer first
+- **Security First**: Validate all inputs, sanitize outputs
+
+## Problem-Solving Approach
+When encountering errors:
+
+1. Simulate the complete user path that led to the error
+2. Identify the deepest layer where the error originates
+3. Fix from the bottom up (database → backend → frontend)
+4. Add tests to prevent regression
+5. Document the solution for future reference
+
+## AI Agent Instructions
+When an AI agent is assisting with this project:
+
+- Always choose the better implementation over the quicker one
+- Simulate user paths when debugging to understand the full context
+- Fix errors from the deepest layer first (database → backend → frontend)
+- Use webhooks for all real-time updates and notifications
+- Follow monorepo structure strictly
+- Document everything with clear examples
+- Consider Rwanda-specific business requirements
+- Ensure invoice system compliance with local practices

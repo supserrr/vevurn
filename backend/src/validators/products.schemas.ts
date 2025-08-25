@@ -61,7 +61,7 @@ export const createProductVariationSchema = z.object({
   name: z.string().min(1).max(200),
   sku: z.string().max(50).optional(),
   barcode: z.string().max(50).optional(),
-  attributes: z.record(z.any()), // Flexible JSON for attributes
+  attributes: z.record(z.string(), z.any()), // Flexible JSON for attributes
   
   // Optional pricing overrides
   costPrice: decimalSchema.optional(),

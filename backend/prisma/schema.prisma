@@ -89,7 +89,9 @@ model Category {
   name        String    @unique
   description String?
   image       String?
+  color       String?   @default("#3B82F6")
   isActive    Boolean   @default(true)
+  deletedAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   products    Product[]

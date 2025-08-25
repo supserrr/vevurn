@@ -6,27 +6,60 @@ export interface Product {
   sku: string;
   barcode?: string;
   categoryId: string;
-  brandId: string;
-  unitPrice: number;
-  costPrice: number;
-  minStock: number;
-  currentStock: number;
-  reorderLevel: number;
-  isActive: boolean;
-  images: string[];
-  specifications?: ProductSpecifications;
-  warranty?: string;
-  weight?: number;
-  dimensions?: ProductDimensions;
+  supplierId: string;
+  costPrice: string;
+  wholesalePrice: string;
+  retailPrice: string;
+  minPrice: string;
+  stockQuantity: number;
+  minStockLevel: number;
+  maxStockLevel?: number;
+  reorderPoint: number;
+  brand?: string;
+  model?: string;
+  color?: string;
+  size?: string;
+  weight?: string;
+  dimensions?: string;
+  status: string;
+  isConsignment: boolean;
+  consignmentRate?: string;
   tags: string[];
   createdAt: string;
   updatedAt: string;
+  createdById: string;
+  updatedById?: string;
+  deletedAt?: string;
   
   // Relations
   category?: Category;
-  brand?: Brand;
-  stockMovements?: StockMovement[];
-  suppliers?: ProductSupplier[];
+  supplier?: Supplier;
+  createdBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  images?: {
+    id: string;
+    url: string;
+    isPrimary: boolean;
+  }[];
+  variations?: {
+    id: string;
+    name: string;
+    sku: string;
+    attributes: Record<string, any>;
+    stockQuantity: number;
+    isActive: boolean;
+  }[];
+  _count?: {
+    variations: number;
+  };
+
+  // Computed fields for compatibility
+  unitPrice?: number; // alias for retailPrice as number
+  currentStock?: number; // alias for stockQuantity
+  minStock?: number; // alias for minStockLevel
 }
 
 export interface ProductSpecifications {
