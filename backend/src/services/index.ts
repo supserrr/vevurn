@@ -4,6 +4,8 @@
 export { momoService } from './momo.service';
 export { paymentService } from './payment.service';
 export { invoiceService } from './invoices.service';
+export { smsService } from './sms.service';
+export { fileUploadService } from './file-upload.service';
 
 // Export service types
 export type { 

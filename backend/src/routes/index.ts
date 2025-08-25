@@ -5,6 +5,8 @@ import customersRoutes from './customers.routes';
 import reportRoutes from './reports.routes';
 import invoiceRoutes from './invoices.routes';
 import { dashboardRoutes } from './dashboard.routes';
+import { inventoryRoutes } from './inventory.routes';
+import { paymentsRoutes } from './payments.routes';
 
 const router: Router = Router();
 
@@ -15,6 +17,8 @@ router.use('/customers', customersRoutes);
 router.use('/reports', reportRoutes);
 router.use('/invoices', invoiceRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/inventory', inventoryRoutes);
+router.use('/payments', paymentsRoutes);
 
 // Base routes
 router.get('/', (req, res) => {
