@@ -31,12 +31,12 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "concurrently": "^8.2.2",
-    "typescript": "^5.5.0",
-    "prettier": "^3.3.0",
-    "eslint": "^8.57.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0"
+    "@typescript-eslint/parser": "^7.18.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0"
   },
   "engines": {
     "node": "22.16.0",
@@ -52,5 +52,9 @@
     "phone-accessories"
   ],
   "author": "Shima Serein",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
 }

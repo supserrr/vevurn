@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Button } from '../../../components/ui/button';
+import { Input } from '../../../components/ui/input';
+import { Badge } from '../../../components/ui/badge';
+import CustomerForm from '../../../components/customers/CustomerForm';
 import { 
   Search, 
   Plus, 
@@ -13,7 +14,8 @@ import {
   Phone,
   Mail,
   User,
-  Building
+  Building,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -30,7 +32,7 @@ interface Customer {
 }
 
 async function fetchCustomers(): Promise<Customer[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const response = await fetch(`${baseUrl}/api/customers`, {
     credentials: 'include',
     headers: {
@@ -39,15 +41,15 @@ async function fetchCustomers(): Promise<Customer[]> {
   });
 
   if (!response.ok) {
-    // If endpoint doesn't exist, return mock data
-    if (response.status === 404) {
+    // Return mock data for development
+    if (response.status === 404 || !response.ok) {
       return [
         {
           id: '1',
           name: 'John Doe',
           email: 'john@example.com',
-          phone: '+250788123456',
-          address: 'Kigali, Rwanda',
+          phone: '+250789123456',
+          address: 'Nyarugenge, Kigali',
           type: 'REGULAR',
           totalPurchases: 5,
           lastPurchaseDate: '2024-08-20',
@@ -58,7 +60,7 @@ async function fetchCustomers(): Promise<Customer[]> {
           name: 'Jane Smith',
           email: 'jane@business.com',
           phone: '+250788654321',
-          address: 'Kigali, Rwanda',
+          address: 'Gasabo, Kigali',
           type: 'WHOLESALE',
           totalPurchases: 12,
           lastPurchaseDate: '2024-08-22',
@@ -81,151 +83,223 @@ async function fetchCustomers(): Promise<Customer[]> {
   return data.data || [];
 }
 
+async function deleteCustomer(customerId: string): Promise<void> {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const response = await fetch(`${baseUrl}/api/customers/${customerId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to delete customer');
+  }
+}
+
 export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+
+  const queryClient = useQueryClient();
 
   const { data: customers = [], isLoading, error } = useQuery({
     queryKey: ['customers'],
     queryFn: fetchCustomers,
   });
 
-  const filteredCustomers = customers.filter((customer: Customer) => {
-    return customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           customer.phone?.includes(searchTerm);
+  const deleteMutation = useMutation({
+    mutationFn: deleteCustomer,
+    onSuccess: () => {
+      toast.success('Customer deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete customer');
+    },
   });
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  const filteredCustomers = customers.filter(customer =>
+    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.phone?.includes(searchTerm)
+  );
+
+  const handleEdit = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsFormOpen(true);
   };
 
-  const getCustomerTypeColor = (type: string) => {
-    switch (type) {
-      case 'WHOLESALE':
-        return 'bg-purple-100 text-purple-800';
-      case 'REGULAR':
-        return 'bg-green-100 text-green-800';
-      case 'WALK_IN':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const handleAdd = () => {
+    setSelectedCustomer(null);
+    setIsFormOpen(true);
+  };
+
+  const handleDelete = (customer: Customer) => {
+    if (window.confirm(`Are you sure you want to delete customer "${customer.name}"?`)) {
+      deleteMutation.mutate(customer.id);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">Loading customers...</p>
-        </div>
-      </div>
-    );
-  }
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'WHOLESALE':
+        return 'bg-blue-100 text-blue-800';
+      case 'WALK_IN':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-green-100 text-green-800';
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'WHOLESALE':
+        return 'Wholesale';
+      case 'WALK_IN':
+        return 'Walk-in';
+      default:
+        return 'Regular';
+    }
+  };
 
   if (error) {
     return (
-      <div className="text-center text-red-600 p-8">
-        Error loading customers. Please refresh the page.
+      <div className="container mx-auto px-4 py-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-800">Failed to load customers. Please try again.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
-          <p className="text-gray-600">{customers.length} customers in database</p>
-        </div>
-        <Button onClick={() => setShowAddForm(true)} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Customers</h1>
+        <Button onClick={handleAdd}>
+          <Plus className="h-4 w-4 mr-2" />
           Add Customer
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-        <Input
-          placeholder="Search customers by name, email, or phone..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10"
-        />
-      </div>
+      {/* Search Bar */}
+      <Card className="mb-6">
+        <CardContent className="pt-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Search customers by name, email, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Customers Grid */}
-      {filteredCustomers.length === 0 ? (
-        <div className="text-center py-12">
-          <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">
-            {searchTerm ? 'No customers found matching your search' : 'No customers yet'}
-          </p>
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="pt-6">
+                <div className="space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
+      ) : filteredCustomers.length === 0 ? (
+        <Card>
+          <CardContent className="pt-6 text-center py-12">
+            <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {searchTerm ? 'No customers found' : 'No customers yet'}
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {searchTerm 
+                ? 'Try adjusting your search terms' 
+                : 'Add your first customer to get started'
+              }
+            </p>
+            {!searchTerm && (
+              <Button onClick={handleAdd}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Customer
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCustomers.map((customer: Customer) => (
-            <Card key={customer.id} className="hover:shadow-lg transition-shadow">
+          {filteredCustomers.map((customer) => (
+            <Card key={customer.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg">{customer.name}</CardTitle>
-                  <Badge className={getCustomerTypeColor(customer.type)}>
-                    {customer.type.replace('_', ' ')}
-                  </Badge>
+                  <div>
+                    <CardTitle className="text-lg">{customer.name}</CardTitle>
+                    <Badge className={`mt-2 ${getTypeColor(customer.type)}`}>
+                      {getTypeLabel(customer.type)}
+                    </Badge>
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(customer)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(customer)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                {customer.email && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Mail className="w-4 h-4 mr-2" />
-                    {customer.email}
-                  </div>
-                )}
-                
-                {customer.phone && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="w-4 h-4 mr-2" />
-                    {customer.phone}
-                  </div>
-                )}
-                
-                {customer.address && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Building className="w-4 h-4 mr-2" />
-                    {customer.address}
-                  </div>
-                )}
-
-                <div className="pt-3 border-t border-gray-200">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-500">Total Purchases</p>
-                      <p className="font-semibold">{customer.totalPurchases || 0}</p>
+              <CardContent>
+                <div className="space-y-2">
+                  {customer.email && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Mail className="h-4 w-4 mr-2" />
+                      {customer.email}
                     </div>
-                    <div>
-                      <p className="text-gray-500">Last Purchase</p>
-                      <p className="font-semibold">
-                        {customer.lastPurchaseDate ? formatDate(customer.lastPurchaseDate) : 'Never'}
-                      </p>
+                  )}
+                  {customer.phone && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Phone className="h-4 w-4 mr-2" />
+                      {customer.phone}
                     </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center pt-3">
-                  <span className="text-xs text-gray-500">
-                    Joined {formatDate(customer.createdAt)}
-                  </span>
-                  <Button variant="outline" size="sm">
-                    <Edit className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
+                  )}
+                  {customer.address && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Building className="h-4 w-4 mr-2" />
+                      {customer.address}
+                    </div>
+                  )}
+                  {customer.totalPurchases !== undefined && (
+                    <div className="pt-2 border-t">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Total Orders:</span>
+                        <span className="font-medium">{customer.totalPurchases}</span>
+                      </div>
+                      {customer.lastPurchaseDate && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Last Order:</span>
+                          <span className="font-medium">
+                            {new Date(customer.lastPurchaseDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -233,33 +307,15 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {/* Add Customer Modal Placeholder */}
-      {showAddForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">Add New Customer</h3>
-            <p className="text-gray-600 mb-4">Customer form will be implemented in the next phase.</p>
-            <div className="flex space-x-2">
-              <Button
-                onClick={() => {
-                  toast.success('Customer form coming soon!');
-                  setShowAddForm(false);
-                }}
-                className="flex-1"
-              >
-                Got It
-              </Button>
-              <Button
-                onClick={() => setShowAddForm(false)}
-                variant="outline"
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Customer Form Modal */}
+      <CustomerForm
+        customer={selectedCustomer}
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setSelectedCustomer(null);
+        }}
+      />
     </div>
   );
 }

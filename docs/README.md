@@ -1,58 +1,103 @@
 # 📚 Vevurn POS Documentation
 
-Welcome to the comprehensive documentation for the Vevurn Point of Sale system.
+Welcome to the comprehensive documentation for the Vevurn Point of Sale system - a modern, feature-rich solution designed specifically for phone accessories retailers in Rwanda.
 
-## 📋 Documentation Structure
+## 🏗️ Project Overview
 
-### 🏗️ Architecture
-- [`PROJECT_INTELLIGENCE.md`](./architecture/PROJECT_INTELLIGENCE.md) - Complete project overview and intelligence
+Vevurn POS is a complete business management solution that combines:
+- **Modern Web Technologies**: Next.js 15, React 18, TypeScript
+- **Robust Backend**: Express.js with Prisma ORM and PostgreSQL
+- **Secure Authentication**: Better Auth with Google OAuth
+- **Payment Integration**: MTN Mobile Money for Rwanda market
+- **Real-time Analytics**: Business intelligence and reporting
 
-### 🚀 Setup & Development
-- [`DEVELOPMENT.md`](./setup/DEVELOPMENT.md) - Development environment setup and guidelines
+## 📁 Documentation Structure
 
-### 🔧 Backend Documentation
-- [`API_ROUTES_DOCUMENTATION.md`](./backend/API_ROUTES_DOCUMENTATION.md) - Complete API routes reference
-- [`AUTH_MIDDLEWARE_CONSOLIDATED.md`](./backend/AUTH_MIDDLEWARE_CONSOLIDATED.md) - Authentication middleware guide
-- [`BETTER_AUTH_README.md`](./backend/BETTER_AUTH_README.md) - Better Auth integration documentation
-- [`COMPLETE_IMPLEMENTATION_SUMMARY.md`](./backend/COMPLETE_IMPLEMENTATION_SUMMARY.md) - Backend implementation overview
-- [`EXPRESS_APP_REPLACEMENT.md`](./backend/EXPRESS_APP_REPLACEMENT.md) - Express app architecture changes
-- [`IMPORT_ERRORS_FIXED.md`](./backend/IMPORT_ERRORS_FIXED.md) - Import issues and resolutions
-- [`MIDDLEWARE_DOCUMENTATION.md`](./backend/MIDDLEWARE_DOCUMENTATION.md) - Middleware system documentation
-- [`PAYMENT_SERVICES_DOCUMENTATION.md`](./backend/PAYMENT_SERVICES_DOCUMENTATION.md) - Payment services guide
-- [`SERVER_REPLACEMENT.md`](./backend/SERVER_REPLACEMENT.md) - Server architecture documentation
-- [`UTILITIES_DOCUMENTATION.md`](./backend/UTILITIES_DOCUMENTATION.md) - Backend utilities reference
-- [`VALIDATION_DOCUMENTATION.md`](./backend/VALIDATION_DOCUMENTATION.md) - Validation system guide
+### 📊 [`/api/`](./api/) - API Documentation
+Complete API reference including endpoints, request/response formats, and integration guides.
+- API Endpoints Guide
+- API Routes Documentation  
+- Invoice API Implementation
+- Payment Services Documentation
 
-### 🎨 Frontend Documentation
-- [`frontend-readme.md`](./frontend/frontend-readme.md) - Frontend project overview
-- [`typescript-config.md`](./frontend/typescript-config.md) - TypeScript configuration guide
-- [`eslint-config.md`](./frontend/eslint-config.md) - ESLint configuration reference
+### 🏗️ [`/architecture/`](./architecture/) - System Architecture
+High-level system design, project structure, and architectural decisions.
+- Project Intelligence
+- Project Structure
 
-## 🏃‍♂️ Quick Start
+### 🔧 [`/backend/`](./backend/) - Backend Documentation
+Backend services, middleware, and implementation details.
+- [`/auth/`](./backend/auth/) - Authentication and authorization
+- [`/implementation/`](./backend/implementation/) - Implementation details and fixes
+- Core backend services documentation
 
-1. **Setup**: Start with [`DEVELOPMENT.md`](./setup/DEVELOPMENT.md) for environment setup
-2. **Architecture**: Review [`PROJECT_INTELLIGENCE.md`](./architecture/PROJECT_INTELLIGENCE.md) for project overview
-3. **Backend**: Explore the backend documentation for API and service details
-4. **Frontend**: Check frontend docs for UI development guidelines
+### 🚀 [`/deployment/`](./deployment/) - Production Deployment
+Production setup, security configurations, and deployment checklists.
+- Production Ready Documentation
+- Demo Removal Checklist
 
-## 🔍 Finding Information
+### 🎨 [`/frontend/`](./frontend/) - Frontend Documentation
+React/Next.js application, components, and configuration.
+- Frontend README
+- TypeScript Configuration
+- ESLint Configuration
 
-- **API Development**: See `/backend/` documentation
-- **UI Development**: See `/frontend/` documentation  
-- **System Setup**: See `/setup/` documentation
-- **Project Overview**: See `/architecture/` documentation
+### 📖 [`/guides/`](./guides/) - User Guides
+Quick references and navigation guides for end users and developers.
+- Quick Reference Guide
+- Navigation Guide
 
-## 📝 Documentation Standards
+### 📋 [`/reference/`](./reference/) - Reference Materials
+Documentation indexes, tables of contents, and navigation aids.
+- Documentation Index
+- Table of Contents
 
-All documentation follows:
-- **Clear headings** and table of contents
-- **Code examples** with syntax highlighting
-- **Step-by-step instructions** for complex processes
-- **Cross-references** between related documents
-- **Regular updates** with code changes
+### ⚙️ [`/setup/`](./setup/) - Development Setup
+Environment setup and development workflow guides.
+- Development Environment Guide
+
+## 🚀 Quick Start
+
+1. **For Developers**: Start with [`/setup/DEVELOPMENT.md`](./setup/DEVELOPMENT.md)
+2. **For API Integration**: See [`/api/API_ENDPOINTS_GUIDE.md`](./api/API_ENDPOINTS_GUIDE.md)
+3. **For Deployment**: Check [`/deployment/PRODUCTION_READY_DOCUMENTATION.md`](./deployment/PRODUCTION_READY_DOCUMENTATION.md)
+4. **For Architecture Overview**: Read [`/architecture/PROJECT_INTELLIGENCE.md`](./architecture/PROJECT_INTELLIGENCE.md)
+
+## 🎯 Key Features Documented
+
+### Core POS Functionality
+- **Product Management**: Inventory, categories, pricing
+- **Sales Processing**: Complete POS interface and workflows
+- **Customer Management**: Customer profiles and history
+- **Payment Processing**: MTN Mobile Money integration
+- **Receipt Generation**: Transaction receipts and printing
+
+### Business Intelligence
+- **Dashboard Analytics**: Real-time sales metrics and KPIs
+- **Reporting System**: Comprehensive business reports
+- **Inventory Tracking**: Stock levels and automated alerts
+- **Customer Analytics**: Purchase patterns and insights
+
+### Administration
+- **User Management**: Role-based access and permissions
+- **System Configuration**: Business settings and customization
+- **Audit Logging**: Complete transaction and system logging
+- **Security**: Authentication, authorization, and data protection
+
+## 🌍 Rwanda Market Features
+
+- **Currency**: Rwandan Franc (RWF) support
+- **Payment**: MTN Mobile Money integration
+- **Phone Format**: Rwanda phone number validation (+250)
+- **Business Registration**: Rwanda business compliance features
+
+## 📞 Support
+
+For technical questions or clarification on any documentation:
+1. Check the relevant section above
+2. Review the `/reference/` directory for navigation help
+3. Consult the `/guides/` for quick answers
 
 ---
 
-**Last Updated**: August 14, 2025  
-**Project**: Vevurn POS System  
-**Version**: Next.js 15 + React 19 Modern Stack
+*This documentation is continuously updated to reflect the latest system features and improvements.*

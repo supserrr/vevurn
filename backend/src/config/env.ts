@@ -1,9 +1,9 @@
 import { config } from 'dotenv';
 import { z } from 'zod';
 
-// Load environment variables
-const envFile = process.env.NODE_ENV === 'production' ? '.env' : '.env.development';
-config({ path: envFile, override: true });
+// Load environment variables - try .env.local first, then .env
+config({ path: '.env.local', override: false });
+config({ path: '.env', override: false });
 
 // Environment schema validation
 const envSchema = z.object({
