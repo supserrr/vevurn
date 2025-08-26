@@ -24,6 +24,29 @@ export const api = {
       fetch(`${API_BASE}/api/products?query=${encodeURIComponent(query)}`, {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+      }).then(r => r.json()),
+
+    create: (product: any) => 
+      fetch(`${API_BASE}/api/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(product)
+      }).then(r => r.json()),
+
+    update: (id: string, product: any) => 
+      fetch(`${API_BASE}/api/products/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(product)
+      }).then(r => r.json()),
+
+    delete: (id: string) => 
+      fetch(`${API_BASE}/api/products/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       }).then(r => r.json())
   },
   
