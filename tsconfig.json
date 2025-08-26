@@ -20,14 +20,14 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./frontend/*"],
-      "@/components/*": ["./frontend/components/*"],
-      "@/lib/*": ["./frontend/lib/*"],
-      "@/types/*": ["./frontend/types/*"],
-      "@/hooks/*": ["./frontend/hooks/*"],
-      "@/store/*": ["./frontend/store/*"],
+      "@/*": ["./frontend/apps/web/*"],
+      "@/components/*": ["./frontend/apps/web/components/*"],
+      "@/lib/*": ["./frontend/apps/web/lib/*"],
+      "@/types/*": ["./frontend/apps/web/types/*", "./shared/types/*"],
+      "@/hooks/*": ["./frontend/apps/web/hooks/*"],
+      "@/store/*": ["./frontend/apps/web/store/*"],
       "@backend/*": ["./backend/src/*"],
-      "@shared/*": ["./shared/*"]
+      "@shared/*": ["./shared/src/*"]
     },
     "forceConsistentCasingInFileNames": true,
     "noImplicitReturns": true,
@@ -37,10 +37,12 @@
     "exactOptionalPropertyTypes": true
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.js",
-    "**/*.jsx"
+    "frontend/apps/web/**/*.ts",
+    "frontend/apps/web/**/*.tsx",
+    "backend/src/**/*.ts",
+    "shared/src/**/*.ts",
+    "scripts/**/*.js",
+    "scripts/**/*.ts"
   ],
   "exclude": [
     "**/node_modules",

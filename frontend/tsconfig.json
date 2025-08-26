@@ -1,6 +1,9 @@
 {
   "extends": "./packages/typescript-config/nextjs.json",
   "compilerOptions": {
+    "composite": true,
+    "noEmit": false,
+    "incremental": true,
     "plugins": [
       {
         "name": "next"
@@ -8,17 +11,18 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["./components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/app/*": ["./app/*"],
-      "@/types/*": ["./types/*"]
+      "@/*": ["./apps/web/*"],
+      "@/components/*": ["./apps/web/components/*"],
+      "@/lib/*": ["./apps/web/lib/*"],
+      "@/app/*": ["./apps/web/app/*"],
+      "@/types": ["../shared/src/types"],
+      "@/shared/*": ["../shared/src/*"]
     }
   },
   "include": [
     "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
+    "apps/web/**/*.ts",
+    "apps/web/**/*.tsx",
     ".next/types/**/*.ts"
   ],
   "exclude": [
