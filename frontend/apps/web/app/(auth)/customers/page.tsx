@@ -21,18 +21,24 @@ import { toast } from 'react-hot-toast';
 
 interface Customer {
   id: string;
-  name: string;
+  firstName: string;
+  lastName?: string;
+  name?: string; // computed field for display
   email?: string;
   phone?: string;
   address?: string;
-  type: 'REGULAR' | 'WHOLESALE' | 'WALK_IN';
+  companyName?: string;
+  taxNumber?: string;
+  type: 'REGULAR' | 'WHOLESALE' | 'BUSINESS' | 'WALK_IN';
   totalPurchases?: number;
   lastPurchaseDate?: string;
+  isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 async function fetchCustomers(): Promise<Customer[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const response = await fetch(`${baseUrl}/api/customers`, {
     credentials: 'include',
     headers: {
@@ -45,11 +51,11 @@ async function fetchCustomers(): Promise<Customer[]> {
   }
 
   const data = await response.json();
-  return data.data || [];
+  return data.data?.customers || [];
 }
 
 async function deleteCustomer(customerId: string): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const response = await fetch(`${baseUrl}/api/customers/${customerId}`, {
     method: 'DELETE',
     credentials: 'include',
@@ -67,10 +73,17 @@ export default function CustomersPage() {
 
   const queryClient = useQueryClient();
 
-  const { data: customers = [], isLoading, error } = useQuery({
+  const { data: rawCustomers = [], isLoading, error } = useQuery({
     queryKey: ['customers'],
     queryFn: fetchCustomers,
   });
+
+  // Transform customers to have computed name field
+  const customers = rawCustomers.map(customer => ({
+    ...customer,
+    name: customer.companyName || `${customer.firstName} ${customer.lastName || ''}`.trim(),
+    type: customer.type || 'REGULAR' // use type field
+  }));
 
   const deleteMutation = useMutation({
     mutationFn: deleteCustomer,
@@ -109,6 +122,8 @@ export default function CustomersPage() {
     switch (type) {
       case 'WHOLESALE':
         return 'bg-blue-100 text-blue-800';
+      case 'BUSINESS':
+        return 'bg-purple-100 text-purple-800';
       case 'WALK_IN':
         return 'bg-gray-100 text-gray-800';
       default:
@@ -120,6 +135,8 @@ export default function CustomersPage() {
     switch (type) {
       case 'WHOLESALE':
         return 'Wholesale';
+      case 'BUSINESS':
+        return 'Business';
       case 'WALK_IN':
         return 'Walk-in';
       default:

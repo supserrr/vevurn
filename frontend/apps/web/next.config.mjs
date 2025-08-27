@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@workspace/ui", "@vevurn/shared"],
+  transpilePackages: ["@vevurn/shared"],
   
   experimental: {
     typedRoutes: true,
@@ -17,7 +17,7 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '8000',
+        port: '5000',
       },
     ],
     formats: ['image/webp', 'image/avif'],
@@ -26,8 +26,8 @@ const nextConfig = {
   // Environment variables
   env: {
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'Vevurn POS',
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
-    NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:8000',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+    NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || 'http://localhost:5000',
   },
 
   // Redirects for authentication
@@ -47,11 +47,11 @@ const nextConfig = {
       return [
         {
           source: '/api/auth/:path*',
-          destination: 'http://localhost:8000/api/auth/:path*',
+          destination: 'http://localhost:5000/api/auth/:path*',
         },
         {
           source: '/api/:path*',
-          destination: 'http://localhost:8000/api/:path*',
+          destination: 'http://localhost:5000/api/:path*',
         },
       ];
     }

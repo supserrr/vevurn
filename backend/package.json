@@ -73,6 +73,8 @@
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.15",
     "@types/puppeteer": "^5.4.7",
+    "@types/twilio": "^3.19.3",
+    "@types/sharp": "^0.32.0",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",

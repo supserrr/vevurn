@@ -1,0 +1,7 @@
+packages:
+  - 'frontend/apps/web'
+  - 'frontend/packages/ui'
+  - 'frontend/packages/eslint-config'
+  - 'frontend/packages/typescript-config'
+  - 'backend'
+  - 'shared'

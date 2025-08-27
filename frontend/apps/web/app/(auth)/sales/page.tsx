@@ -93,7 +93,10 @@ export default function SalesPage() {
     queryFn: fetchProducts,
   });
 
-  const filteredProducts = products.filter((product: Product) => {
+  // Ensure products is always an array before filtering
+  const productsArray = Array.isArray(products) ? products : [];
+  
+  const filteredProducts = productsArray.filter((product: Product) => {
     return product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
            product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
            product.barcode?.includes(searchTerm);

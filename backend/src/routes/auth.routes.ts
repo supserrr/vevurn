@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { AuthenticatedRequest } from '../middleware/better-auth.middleware';
 import { PrismaClient } from '@prisma/client';
 import { requireAdmin, requireAuth } from '../middleware/better-auth.middleware';
 import { ApiResponse } from '../utils/response';
@@ -6,7 +7,7 @@ import { logger } from '../utils/logger';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 
-const router = Router();
+const router: Router = Router();
 const prisma = new PrismaClient();
 
 // Validation schemas
@@ -24,7 +25,7 @@ const updateUserSchema = z.object({
 });
 
 // Admin-only user management routes
-router.post('/admin/create-user', requireAdmin, async (req, res, next) => {
+router.post('/admin/create-user', requireAdmin, async (req: AuthenticatedRequest, res, next) => {
   try {
     const validatedData = createUserSchema.parse(req.body);
 
@@ -128,7 +129,7 @@ router.get('/admin/users', requireAdmin, async (req, res, next) => {
   }
 });
 
-router.put('/admin/users/:id', requireAdmin, async (req, res, next) => {
+router.put('/admin/users/:id', requireAdmin, async (req: AuthenticatedRequest, res, next) => {
   try {
     const { id } = req.params;
     const validatedData = updateUserSchema.parse(req.body);
@@ -170,7 +171,7 @@ router.put('/admin/users/:id', requireAdmin, async (req, res, next) => {
   }
 });
 
-router.delete('/admin/users/:id', requireAdmin, async (req, res, next) => {
+router.delete('/admin/users/:id', requireAdmin, async (req: AuthenticatedRequest, res, next) => {
   try {
     const { id } = req.params;
 
@@ -220,7 +221,7 @@ router.delete('/admin/users/:id', requireAdmin, async (req, res, next) => {
 });
 
 // Profile routes for authenticated users
-router.get('/profile', requireAuth, async (req, res, next) => {
+router.get('/profile', requireAuth, async (req: AuthenticatedRequest, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.id },
@@ -249,7 +250,7 @@ router.get('/profile', requireAuth, async (req, res, next) => {
   }
 });
 
-router.put('/profile', requireAuth, async (req, res, next) => {
+router.put('/profile', requireAuth, async (req: AuthenticatedRequest, res, next) => {
   try {
     const updateProfileSchema = z.object({
       name: z.string().min(1).max(100).optional()

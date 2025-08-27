@@ -86,8 +86,8 @@ export interface Invoice {
   status: InvoiceStatus;
   
   // Dates
-  issueDate: string;
-  dueDate: string;
+  issueDate: string | null;
+  dueDate: string | null;
   paidDate?: string;
   
   // Consignment specific
@@ -219,6 +219,9 @@ export interface Customer {
   dateOfBirth?: Date;
   loyaltyPoints: number;
   isActive: boolean;
+  type: 'REGULAR' | 'WHOLESALE' | 'WALK_IN' | 'BUSINESS';
+  companyName?: string;
+  taxNumber?: string;
   createdAt: Date;
   updatedAt: Date;
 }

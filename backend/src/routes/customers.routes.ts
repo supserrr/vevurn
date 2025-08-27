@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { CustomersController } from '../controllers/customers.controller';
-import { demoDataController } from '../controllers/demo-data.controller';
 import { authMiddleware } from '../middlewares';
 import { validateRequest } from '../middlewares/validation.middleware';
 import { 
@@ -12,8 +11,8 @@ import {
 const router: Router = Router();
 const customersController = new CustomersController();
 
-// Apply auth middleware to all routes (disabled for demo)
-// router.use(authMiddleware);
+// Apply auth middleware to all routes
+router.use(authMiddleware);
 
 // GET /api/customers/search?q=query (must be before /:id route)
 router.get('/search', (req, res, next) => customersController.searchCustomers(req, res, next));
@@ -21,9 +20,9 @@ router.get('/search', (req, res, next) => customersController.searchCustomers(re
 // GET /api/customers/top?limit=10
 router.get('/top', (req, res, next) => customersController.getTopCustomers(req, res, next));
 
-// GET /api/customers - List customers with demo fallback
+// GET /api/customers - List customers
 router.get('/', 
-  (req, res, next) => demoDataController.getCustomers(req, res, next)
+  (req, res, next) => customersController.getAllCustomers(req, res, next)
 );
 
 // GET /api/customers/:id - Get customer details

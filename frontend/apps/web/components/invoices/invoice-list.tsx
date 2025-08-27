@@ -36,7 +36,7 @@ export function InvoiceList() {
       if (search) params.append('search', search);
       if (statusFilter) params.append('status', statusFilter);
 
-      const response = await fetch(`http://localhost:8000/api/invoices?${params}`);
+      const response = await fetch(`http://localhost:5000/api/invoices?${params}`);
       if (!response.ok) throw new Error('Failed to fetch invoices');
       return response.json();
     },
@@ -55,7 +55,7 @@ export function InvoiceList() {
 
   const handleSendEmail = async (invoiceId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/invoices/${invoiceId}/send-email`, {
+      const response = await fetch(`http://localhost:5000/api/invoices/${invoiceId}/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ includePdf: true })
@@ -72,7 +72,7 @@ export function InvoiceList() {
 
   const handleSendSMS = async (invoiceId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/invoices/${invoiceId}/send-sms`, {
+      const response = await fetch(`http://localhost:5000/api/invoices/${invoiceId}/send-sms`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
@@ -89,7 +89,7 @@ export function InvoiceList() {
 
   const handleDownloadPDF = async (invoiceId: string, invoiceNumber: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/invoices/${invoiceId}/pdf`);
+      const response = await fetch(`http://localhost:5000/api/invoices/${invoiceId}/pdf`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);

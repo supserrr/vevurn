@@ -45,8 +45,8 @@ interface Invoice {
   };
   saleId?: string;
   status: 'DRAFT' | 'SENT' | 'VIEWED' | 'PAID' | 'OVERDUE' | 'CANCELLED';
-  issueDate: string;
-  dueDate: string;
+  issueDate: string | null;
+  dueDate: string | null;
   totalAmount: number;
   paidAmount: number;
   remainingAmount: number;

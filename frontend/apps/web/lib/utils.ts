@@ -20,25 +20,51 @@ export function formatCurrency(amount: number): string {
 /**
  * Format a date string for display
  */
-export function formatDate(dateString: string): string {
+export function formatDate(dateString: string | null | undefined): string {
+  // Handle null, undefined, or empty string
+  if (!dateString || dateString.trim() === '') {
+    return 'N/A';
+  }
+
+  // Create date object and check if it's valid
+  const date = new Date(dateString);
+  
+  // Check if date is invalid
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
   return new Intl.DateTimeFormat('en-RW', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
-  }).format(new Date(dateString));
+  }).format(date);
 }
 
 /**
  * Format a date and time string for display
  */
-export function formatDateTime(dateString: string): string {
+export function formatDateTime(dateString: string | null | undefined): string {
+  // Handle null, undefined, or empty string
+  if (!dateString || dateString.trim() === '') {
+    return 'N/A';
+  }
+
+  // Create date object and check if it's valid
+  const date = new Date(dateString);
+  
+  // Check if date is invalid
+  if (isNaN(date.getTime())) {
+    return 'Invalid Date';
+  }
+
   return new Intl.DateTimeFormat('en-RW', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(dateString));
+  }).format(date);
 }
 
 /**

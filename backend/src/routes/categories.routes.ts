@@ -1,22 +1,17 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { demoDataController } from '../controllers/demo-data.controller';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/better-auth.middleware';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
 
-// Apply authentication middleware to all routes (disabled for demo)
-// router.use(authMiddleware);
+// Apply authentication middleware to all routes
+router.use(authMiddleware);
 
 /**
  * GET /api/categories
  * Get all categories with pagination
  */
-router.get('/', (req, res, next) => demoDataController.getCategories(req, res, next));
-
-// Original route with database (commented for demo)
-/*
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page as string) || 1;

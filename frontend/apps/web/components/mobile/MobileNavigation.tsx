@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/lib/auth-context';
 import { 
   Menu, 
   X, 
@@ -40,9 +41,21 @@ interface MobileNavigationProps {
 export function MobileNavigation({ overdueInvoices = 0, lowStockItems = 0 }: MobileNavigationProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      closeMenu();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <>
@@ -193,7 +206,7 @@ export function MobileNavigation({ overdueInvoices = 0, lowStockItems = 0 }: Mob
           <Button 
             variant="ghost" 
             className="w-full justify-start text-gray-700 hover:bg-gray-100"
-            onClick={closeMenu}
+            onClick={handleLogout}
           >
             <LogOut className="h-5 w-5 mr-3" />
             Logout

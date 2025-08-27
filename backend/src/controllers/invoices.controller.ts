@@ -3,6 +3,9 @@ import { AuthenticatedRequest } from '../middleware/better-auth.middleware';
 import { ApiResponse } from '../utils/response';
 import { logger } from '../utils/logger';
 import { invoiceService } from '../services/invoices.service';
+import { PDFService } from '../services/pdf.service';
+import { EmailService } from '../services/email.service';
+import { SMSService } from '../services/sms.service';
 import { 
   invoiceFilterSchema, 
   createInvoiceSchema, 
@@ -120,12 +123,33 @@ export class InvoicesController {
   async sendInvoiceEmail(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const validatedData = sendInvoiceEmailSchema.parse(req.body);
       
-      // TODO: Implement email sending service
-      const result = { sent: true, message: 'Email sending not yet implemented' };
+      const invoice = await invoiceService.getInvoiceById(id);
       
-      res.json(ApiResponse.success('Invoice email sent successfully', result));
+      if (!invoice.customer?.email) {
+        return res.status(400).json(ApiResponse.error('Customer email not found'));
+      }
+      
+      // Generate PDF
+      const pdfBuffer = await PDFService.generateInvoicePDF(invoice);
+      
+      // Send email with PDF attachment
+      const emailSent = await EmailService.sendInvoiceEmail(
+        invoice.customer.email,
+        `${invoice.customer.firstName} ${invoice.customer.lastName || ''}`.trim(),
+        invoice,
+        pdfBuffer
+      );
+      
+      if (emailSent) {
+        // Could add email sent tracking to notes or separate log
+        logger.info('Invoice email sent', { invoiceId: id, recipient: invoice.customer.email });
+      }
+      
+      res.json(ApiResponse.success('Invoice email sent successfully', { 
+        emailSent,
+        recipient: invoice.customer.email 
+      }));
     } catch (error) {
       logger.error('Error sending invoice email:', error);
       next(error);
@@ -139,12 +163,28 @@ export class InvoicesController {
   async sendInvoiceSms(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const validatedData = sendInvoiceSmsSchema.parse(req.body);
       
-      // TODO: Implement SMS sending service
-      const result = { sent: true, message: 'SMS sending not yet implemented' };
+      const invoice = await invoiceService.getInvoiceById(id);
       
-      res.json(ApiResponse.success('Invoice SMS sent successfully', result));
+      if (!invoice.customer?.phone) {
+        return res.status(400).json(ApiResponse.error('Customer phone number not found'));
+      }
+      
+      const smsSent = await SMSService.sendInvoiceSMS(
+        invoice.customer.phone,
+        `${invoice.customer.firstName} ${invoice.customer.lastName || ''}`.trim(),
+        invoice
+      );
+      
+      if (smsSent) {
+        // Could add SMS sent tracking to notes or separate log
+        logger.info('Invoice SMS sent', { invoiceId: id, recipient: invoice.customer.phone });
+      }
+      
+      res.json(ApiResponse.success('Invoice SMS sent successfully', { 
+        smsSent,
+        recipient: invoice.customer.phone 
+      }));
     } catch (error) {
       logger.error('Error sending invoice SMS:', error);
       next(error);
@@ -159,8 +199,12 @@ export class InvoicesController {
     try {
       const { id } = req.params;
       
-      // TODO: Implement PDF generation
-      res.status(501).json(ApiResponse.error('PDF generation not yet implemented'));
+      const invoice = await invoiceService.getInvoiceById(id);
+      const pdfBuffer = await PDFService.generateInvoicePDF(invoice);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=invoice_${invoice.invoiceNumber}.pdf`);
+      res.send(pdfBuffer);
     } catch (error) {
       logger.error('Error generating invoice PDF:', error);
       next(error);
@@ -177,10 +221,95 @@ export class InvoicesController {
       
       const invoice = await invoiceService.getInvoiceById(id);
       
-      // TODO: Generate HTML preview
-      const preview = { html: '<div>Invoice preview not yet implemented</div>' };
+      // Generate HTML preview (same as PDF but without PDF conversion)
+      const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice ${invoice.invoiceNumber} Preview</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .company-name { font-size: 24px; font-weight: bold; color: #2563eb; }
+        .invoice-title { font-size: 20px; margin: 20px 0; }
+        .invoice-details { display: flex; justify-content: space-between; margin: 20px 0; }
+        .customer-info, .invoice-info { flex: 1; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f8f9fa; font-weight: bold; }
+        .total-section { margin-top: 20px; text-align: right; }
+        .total-row { display: flex; justify-content: space-between; margin: 5px 0; }
+        .total-final { font-size: 18px; font-weight: bold; border-top: 2px solid #000; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-name">VEVURN ACCESSORIES</div>
+        <div>Phone Accessories & Electronics</div>
+        <div>Kigali, Rwanda</div>
+    </div>
+
+    <div class="invoice-title">INVOICE #${invoice.invoiceNumber}</div>
+
+    <div class="invoice-details">
+        <div class="customer-info">
+            <h3>Bill To:</h3>
+            <p><strong>${invoice.customer ? `${invoice.customer.firstName} ${invoice.customer.lastName || ''}`.trim() : 'Walk-in Customer'}</strong></p>
+            <p>${invoice.customer?.email || ''}</p>
+            <p>${invoice.customer?.phone || ''}</p>
+        </div>
+        <div class="invoice-info">
+            <p><strong>Issue Date:</strong> ${new Date(invoice.issueDate).toLocaleDateString()}</p>
+            <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</p>
+            <p><strong>Status:</strong> ${invoice.status}</p>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${invoice.sale?.items?.map((item: any) => `
+                <tr>
+                    <td>${item.product?.name || 'Product'}</td>
+                    <td>${item.quantity}</td>
+                    <td>RWF ${Number(item.unitPrice).toLocaleString()}</td>
+                    <td>RWF ${Number(item.totalPrice).toLocaleString()}</td>
+                </tr>
+            `).join('') || ''}
+        </tbody>
+    </table>
+
+    <div class="total-section">
+        <div class="total-row">
+            <span>Subtotal:</span>
+            <span>RWF ${Number(invoice.subtotal).toLocaleString()}</span>
+        </div>
+        <div class="total-row">
+            <span>VAT (18%):</span>
+            <span>RWF ${Number(invoice.taxAmount).toLocaleString()}</span>
+        </div>
+        <div class="total-row total-final">
+            <span>Total Amount:</span>
+            <span>RWF ${Number(invoice.totalAmount).toLocaleString()}</span>
+        </div>
+        <div class="total-row">
+            <span>Amount Due:</span>
+            <span>RWF ${Number(invoice.amountDue).toLocaleString()}</span>
+        </div>
+    </div>
+</body>
+</html>`;
       
-      res.json(ApiResponse.success('Invoice preview generated', preview));
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
     } catch (error) {
       logger.error('Error previewing invoice:', error);
       next(error);

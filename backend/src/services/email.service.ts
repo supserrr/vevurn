@@ -1,135 +1,160 @@
-import * as nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger';
+import { env } from '../config/env';
 
-export interface EmailAttachment {
-  filename: string;
-  path?: string;
-  content?: Buffer;
-  contentType?: string;
-}
+export class EmailService {
+  private static transporter: nodemailer.Transporter | null = null;
 
-export interface EmailOptions {
-  to: string;
-  subject: string;
-  html: string;
-  attachments?: EmailAttachment[];
-}
-
-class EmailService {
-  private transporter: nodemailer.Transporter;
-
-  constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: Number(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
-
-  async sendInvoiceEmail(to: string, invoiceData: any, options: { includePdf?: boolean; pdfPath?: string } = {}) {
-    try {
-      const mailOptions: EmailOptions = {
-        to,
-        subject: `Invoice ${invoiceData.invoiceNumber} - Vevurn POS`,
-        html: this.generateInvoiceEmailTemplate(invoiceData),
-        attachments: []
-      };
-
-      if (options.includePdf && options.pdfPath) {
-        mailOptions.attachments!.push({
-          filename: `invoice-${invoiceData.invoiceNumber}.pdf`,
-          path: options.pdfPath,
-          contentType: 'application/pdf'
-        });
+  private static getTransporter(): nodemailer.Transporter {
+    if (!this.transporter) {
+      if (!env.SMTP_HOST) {
+        throw new Error('Email service not configured. Please set SMTP environment variables.');
       }
 
-      const result = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        ...mailOptions
+      this.transporter = nodemailer.createTransport({
+        host: env.SMTP_HOST,
+        port: env.SMTP_PORT || 587,
+        secure: env.SMTP_SECURE || false,
+        auth: {
+          user: env.SMTP_USER,
+          pass: env.SMTP_PASS,
+        },
       });
+    }
+    return this.transporter!;
+  }
 
+  static async sendInvoiceEmail(
+    recipientEmail: string,
+    recipientName: string,
+    invoiceData: any,
+    pdfBuffer: Buffer
+  ): Promise<boolean> {
+    try {
+      const transporter = this.getTransporter();
+      
+      const mailOptions = {
+        from: env.SMTP_FROM || 'noreply@vevurn.com',
+        to: recipientEmail,
+        subject: `Invoice ${invoiceData.invoiceNumber} from Vevurn Accessories`,
+        html: this.generateInvoiceEmailHTML(recipientName, invoiceData),
+        attachments: [
+          {
+            filename: `invoice_${invoiceData.invoiceNumber}.pdf`,
+            content: pdfBuffer,
+            contentType: 'application/pdf'
+          }
+        ]
+      };
+
+      const result = await transporter.sendMail(mailOptions);
+      
       logger.info('Invoice email sent successfully', { 
-        messageId: result.messageId, 
-        to,
-        invoiceNumber: invoiceData.invoiceNumber
+        messageId: result.messageId,
+        invoice: invoiceData.invoiceNumber,
+        recipient: recipientEmail 
       });
       
-      return { sent: true, messageId: result.messageId };
+      return true;
     } catch (error) {
       logger.error('Failed to send invoice email:', error);
-      throw error;
+      return false;
     }
   }
 
-  private generateInvoiceEmailTemplate(invoiceData: any): string {
-    const customer = invoiceData.customer || {};
-    const dueDate = new Date(invoiceData.dueDate).toLocaleDateString();
-    const issueDate = new Date(invoiceData.createdAt).toLocaleDateString();
-
+  private static generateInvoiceEmailHTML(recipientName: string, invoice: any): string {
     return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Invoice ${invoiceData.invoiceNumber}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
-            .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-            .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #2563eb; padding-bottom: 20px; }
-            .company-name { color: #2563eb; font-size: 28px; font-weight: bold; margin: 0; }
-            .amount { font-size: 20px; font-weight: bold; color: #059669; }
-            .payment-info { background: #ecfdf5; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #10b981; }
-            .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1 class="company-name">Vevurn POS</h1>
-              <p>Phone Accessories & Technology Solutions</p>
-              <p>Kigali, Rwanda</p>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+        .invoice-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .footer { text-align: center; margin-top: 30px; font-size: 14px; color: #666; }
+        .btn { background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>VEVURN ACCESSORIES</h1>
+            <p>Your Invoice is Ready</p>
+        </div>
+        
+        <div class="content">
+            <h2>Hello ${recipientName},</h2>
+            
+            <p>Thank you for your purchase! Please find your invoice attached to this email.</p>
+            
+            <div class="invoice-details">
+                <h3>Invoice Details:</h3>
+                <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
+                <p><strong>Issue Date:</strong> ${new Date(invoice.issueDate).toLocaleDateString()}</p>
+                <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</p>
+                <p><strong>Total Amount:</strong> RWF ${Number(invoice.totalAmount).toLocaleString()}</p>
+                <p><strong>Amount Due:</strong> RWF ${Number(invoice.amountDue).toLocaleString()}</p>
+                <p><strong>Status:</strong> ${invoice.status}</p>
             </div>
+
+            <p>If you have any questions about this invoice, please don't hesitate to contact us.</p>
             
-            <h2>Invoice #${invoiceData.invoiceNumber}</h2>
-            
-            <p><strong>Issue Date:</strong> ${issueDate}</p>
-            <p><strong>Due Date:</strong> ${dueDate}</p>
-            <p><strong>Bill To:</strong> ${customer.firstName} ${customer.lastName || ''}</p>
-            <p><strong>Amount:</strong> <span class="amount">${invoiceData.totalAmount.toLocaleString()} RWF</span></p>
-            
-            <p>Dear ${customer.firstName},</p>
-            <p>Please find your invoice attached. Payment is due by <strong>${dueDate}</strong>.</p>
-            
-            <div class="payment-info">
-              <h3>Payment Methods:</h3>
-              <p><strong>MTN Mobile Money:</strong> *182*8*1*${invoiceData.totalAmount}#${process.env.MOMO_MERCHANT_NUMBER || 'XXXXXXX'}#</p>
-              <p><strong>Cash:</strong> Visit our store in Kigali</p>
-            </div>
-            
-            <div class="footer">
-              <p>Thank you for your business!</p>
-              <p><strong>Vevurn POS</strong></p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+            <p>Payment can be made via:</p>
+            <ul>
+                <li>Mobile Money (MTN MoMo, Airtel Money)</li>
+                <li>Bank Transfer</li>
+                <li>Cash at our store</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Vevurn Accessories</strong><br>
+            Phone Accessories & Electronics<br>
+            Kigali, Rwanda<br>
+            +250 XXX XXX XXX | support@vevurn.com</p>
+        </div>
+    </div>
+</body>
+</html>`;
   }
 
-  async testConnection(): Promise<boolean> {
+  static async sendPaymentReminderEmail(
+    recipientEmail: string,
+    recipientName: string,
+    invoiceData: any
+  ): Promise<boolean> {
     try {
-      await this.transporter.verify();
-      logger.info('Email service connection verified');
+      const transporter = this.getTransporter();
+      const daysOverdue = Math.floor((Date.now() - new Date(invoiceData.dueDate).getTime()) / (1000 * 60 * 60 * 24));
+      
+      const mailOptions = {
+        from: env.SMTP_FROM || 'noreply@vevurn.com',
+        to: recipientEmail,
+        subject: `Payment Reminder - Invoice ${invoiceData.invoiceNumber}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Payment Reminder</h2>
+            <p>Hello ${recipientName},</p>
+            <p>This is a friendly reminder that invoice ${invoiceData.invoiceNumber} is ${daysOverdue > 0 ? `${daysOverdue} days overdue` : 'due today'}.</p>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p><strong>Invoice:</strong> ${invoiceData.invoiceNumber}</p>
+              <p><strong>Amount Due:</strong> RWF ${Number(invoiceData.amountDue).toLocaleString()}</p>
+              <p><strong>Due Date:</strong> ${new Date(invoiceData.dueDate).toLocaleDateString()}</p>
+            </div>
+            <p>Please arrange payment at your earliest convenience.</p>
+            <p>Thank you,<br>Vevurn Accessories</p>
+          </div>
+        `
+      };
+
+      await transporter.sendMail(mailOptions);
       return true;
     } catch (error) {
-      logger.error('Email service connection failed:', error);
+      logger.error('Failed to send reminder email:', error);
       return false;
     }
   }
 }
-
-export const emailService = new EmailService();

@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { ProductController } from '../controllers/products.controller';
-import { demoDataController } from '../controllers/demo-data.controller';
 import { authMiddleware } from '../middlewares';
 import { validateRequest } from '../middlewares/validation.middleware';
 import { createProductSchema, updateProductSchema } from '../validators/products.schemas';
@@ -8,11 +7,11 @@ import { createProductSchema, updateProductSchema } from '../validators/products
 const router: Router = Router();
 const productController = new ProductController();
 
-// Apply optional auth middleware for testing (disabled for demo)
-// router.use(authMiddleware);
+// Apply optional auth middleware for testing
+router.use(authMiddleware);
 
-// Product CRUD - with demo fallback
-router.get('/', (req, res, next) => demoDataController.getProducts(req, res, next));
+// Product CRUD
+router.get('/', (req, res, next) => productController.getProducts(req, res, next));
 router.get('/:id', (req, res, next) => productController.getProductById(req, res, next));
 router.post('/', validateRequest({ body: createProductSchema }), (req, res, next) => productController.createProduct(req, res, next));
 router.put('/:id', validateRequest({ body: updateProductSchema }), (req, res, next) => productController.updateProduct(req, res, next));

@@ -12,37 +12,109 @@ export class DashboardController {
    */
   async getDashboardStats(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      // Return demo data when database is unavailable
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      // Get today's sales data
+      const [todaySales, paymentMethods, topProducts, inventoryAlerts] = await Promise.all([
+        // Today's sales totals
+        prisma.sale.aggregate({
+          where: {
+            createdAt: {
+              gte: today,
+              lt: tomorrow
+            },
+            status: 'COMPLETED'
+          },
+          _sum: { totalAmount: true },
+          _count: { id: true },
+          _avg: { totalAmount: true }
+        }),
+
+        // Payment methods breakdown - for now return empty array
+        Promise.resolve([]),
+
+        // Top selling products (last 7 days)
+        prisma.saleItem.groupBy({
+          by: ['productId'],
+          where: {
+            sale: {
+              createdAt: {
+                gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+              },
+              status: 'COMPLETED'
+            }
+          },
+          _sum: { quantity: true, totalPrice: true },
+          orderBy: { _sum: { totalPrice: 'desc' } },
+          take: 5
+        }),
+
+        // Low stock alerts
+        prisma.product.findMany({
+          where: {
+            stockQuantity: {
+              lte: 5  // Alert when stock is 5 or below
+            },
+            status: 'ACTIVE',
+            deletedAt: null
+          },
+          select: {
+            id: true,
+            name: true,
+            stockQuantity: true,
+            minStockLevel: true
+          },
+          take: 10
+        })
+      ]);
+
+      // Calculate payment method percentages
+      const paymentMethodsWithPercentage: Array<{
+        method: string;
+        count: number;
+        amount: number;
+        percentage: number;
+      }> = [];
+
+      // Get product details for top products
+      const topProductsWithDetails = await Promise.all(
+        topProducts.map(async (tp) => {
+          const product = await prisma.product.findUnique({
+            where: { id: tp.productId },
+            include: { category: true }
+          });
+          return {
+            id: tp.productId,
+            name: product?.name || 'Unknown Product',
+            quantitySold: tp._sum.quantity || 0,
+            revenue: Number(tp._sum.totalPrice || 0),
+            category: product?.category?.name || 'Unknown'
+          };
+        })
+      );
+
+      // Format inventory alerts
+      const formattedInventoryAlerts = inventoryAlerts.map(item => ({
+        id: item.id,
+        name: item.name,
+        currentStock: item.stockQuantity,
+        minStock: item.minStockLevel,
+        status: item.stockQuantity === 0 ? 'OUT_OF_STOCK' : 'LOW_STOCK'
+      }));
+
       const dashboardStats = {
         todaySales: {
-          totalRevenue: 450000,
-          totalOrders: 12,
-          averageOrderValue: 37500
+          totalRevenue: Number(todaySales._sum.totalAmount || 0),
+          totalOrders: todaySales._count.id || 0,
+          averageOrderValue: Number(todaySales._avg.totalAmount || 0)
         },
-        paymentMethods: [
-          { method: 'CASH', count: 7, amount: 210000, percentage: 46.7 },
-          { method: 'MOBILE_MONEY', count: 4, amount: 180000, percentage: 40.0 },
-          { method: 'BANK_TRANSFER', count: 1, amount: 60000, percentage: 13.3 }
-        ],
-        topProducts: [
-          { id: '1', name: 'iPhone 15 Pro Clear Case', quantitySold: 8, revenue: 144000, category: 'Phone Cases' },
-          { id: '2', name: 'Samsung Galaxy S24 Screen Protector', quantitySold: 15, revenue: 105000, category: 'Screen Protectors' },
-          { id: '3', name: 'USB-C Fast Charger 25W', quantitySold: 6, revenue: 150000, category: 'Chargers' },
-          { id: '4', name: 'Wireless Earbuds Pro', quantitySold: 3, revenue: 225000, category: 'Headphones' },
-          { id: '5', name: '10000mAh Power Bank', quantitySold: 4, revenue: 140000, category: 'Power Banks' }
-        ],
-        inventoryAlerts: [
-          { id: '1', name: 'Samsung Galaxy S24 Screen Protector', currentStock: 5, minStock: 15, status: 'LOW_STOCK' },
-          { id: '2', name: 'Lightning Cable 2M', currentStock: 0, minStock: 15, status: 'OUT_OF_STOCK' },
-          { id: '3', name: 'Wireless Earbuds Pro', currentStock: 3, minStock: 5, status: 'LOW_STOCK' }
-        ],
-        recentActivity: [
-          { id: '1', type: 'SALE', description: 'Sale SALE-20250827-0012 completed', amount: 25000, timestamp: new Date().toISOString() },
-          { id: '2', type: 'SALE', description: 'Sale SALE-20250827-0011 completed', amount: 75000, timestamp: new Date(Date.now() - 1800000).toISOString() },
-          { id: '3', type: 'SALE', description: 'Sale SALE-20250827-0010 completed', amount: 18000, timestamp: new Date(Date.now() - 3600000).toISOString() },
-          { id: '4', type: 'SALE', description: 'Sale SALE-20250827-0009 completed', amount: 35000, timestamp: new Date(Date.now() - 5400000).toISOString() },
-          { id: '5', type: 'SALE', description: 'Sale SALE-20250827-0008 completed', amount: 42000, timestamp: new Date(Date.now() - 7200000).toISOString() }
-        ]
+        paymentMethods: paymentMethodsWithPercentage,
+        topProducts: topProductsWithDetails,
+        inventoryAlerts: formattedInventoryAlerts,
+        recentActivity: []
       };
 
       res.json(ApiResponse.success('Dashboard stats retrieved successfully', dashboardStats));

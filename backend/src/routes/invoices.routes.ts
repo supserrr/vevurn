@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { invoicesController } from '../controllers/invoices.controller';
-import { demoDataController } from '../controllers/demo-data.controller';
 import { requireAuth } from '../middleware/better-auth.middleware';
 import { validateRequest } from '../middlewares/validation.middleware';
 import { 
@@ -21,15 +20,16 @@ import {
 const router: Router = Router();
 
 // Apply authentication to all routes
-// router.use(requireAuth); // Disabled for demo
+router.use(requireAuth);
 
 // ==========================================
 // BASIC CRUD OPERATIONS
 // ==========================================
 
-// List all invoices with demo fallback
+// List all invoices
 router.get('/', 
-  (req, res, next) => demoDataController.getInvoices(req, res, next)
+  validateRequest({ query: invoiceFilterSchema }),
+  (req, res, next) => invoicesController.getAllInvoices(req, res, next)
 );
 
 // Create invoice from sale

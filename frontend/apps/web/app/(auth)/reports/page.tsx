@@ -55,7 +55,7 @@ interface ReportData {
 }
 
 async function fetchReportData(period: string): Promise<ReportData> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const response = await fetch(`${baseUrl}/api/reports?period=${period}`, {
     credentials: 'include',
   });

@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/auth-context';
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -28,6 +29,17 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   return (
     <div className="flex h-screen w-64 flex-col bg-gray-900 text-white">
@@ -62,6 +74,7 @@ export function Sidebar() {
         <Button 
           variant="ghost" 
           className="w-full justify-start text-gray-300 hover:bg-gray-800 hover:text-white h-12"
+          onClick={handleLogout}
         >
           <LogOut className="h-5 w-5 mr-3" />
           Logout

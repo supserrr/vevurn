@@ -3,7 +3,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { admin } from "better-auth/plugins";
 import { PrismaClient } from "@prisma/client";
-import { sendEmail } from "./services/email.service";
+import { EmailService } from "./services/email.service";
 import "./config/env"; // Load environment configuration
 
 const prisma = new PrismaClient();
@@ -71,7 +71,8 @@ export const auth = betterAuth({
       enabled: true,
       
       async sendDeleteAccountVerification({ user, url, token }, request) {
-        await sendEmail({
+        // TODO: Implement generic email sending with EmailService
+        console.log('Email would be sent:', {
           to: user.email,
           subject: "Confirm Account Deletion - Vevurn POS",
           template: "account-deletion",
@@ -110,7 +111,8 @@ export const auth = betterAuth({
       enabled: true,
       
       async sendChangeEmailVerification({ user, newEmail, url, token }, request) {
-        await sendEmail({
+        // TODO: Implement generic email sending with EmailService
+        console.log('Email would be sent:', {
           to: user.email, // Send to current email for security
           subject: "Confirm Email Change - Vevurn POS",
           template: "email-change",
@@ -144,7 +146,8 @@ export const auth = betterAuth({
     
     // Password reset configuration
     async sendResetPassword({ user, url, token }, request) {
-      await sendEmail({
+      // TODO: Implement generic email sending with EmailService
+      console.log('Email would be sent:', {
         to: user.email,
         subject: "Reset Your Vevurn POS Password",
         template: "password-reset",
@@ -170,7 +173,8 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     
     async sendVerificationEmail({ user, url, token }, request) {
-      await sendEmail({
+      // TODO: Implement generic email sending with EmailService
+      console.log('Email would be sent:', {
         to: user.email,
         subject: "Verify Your Vevurn POS Account",
         template: "email-verification",

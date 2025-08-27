@@ -2,13 +2,23 @@
 
 // Service exports
 export { productsService } from './products.service';
-export { emailService } from './email.service';
-export { smsService } from './sms.service';
-export { pdfService } from './pdf.service';
-export { momoService } from './momo.service';
+export { EmailService } from './email.service';
+export { SMSService } from './sms.service';
+export { PDFService } from './pdf.service';
 export { paymentService } from './payment.service';
 export { invoiceService } from './invoices.service';
-export { fileUploadService } from './file-upload.service';
+
+// MTN MoMo service (comment out if not available)
+// export { mtnMomoService } from './mtn-momo.service';
+
+// Dashboard service (comment out if not available)
+// export { dashboardService } from './dashboard.service';
+
+// Sales service 
+export { SalesService } from './sales.service';
+
+// Customers service
+export { CustomersService } from './customers.service';
 
 // Export service types
 export type { 
