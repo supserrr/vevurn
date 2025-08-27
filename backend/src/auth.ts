@@ -36,6 +36,11 @@ export const auth = betterAuth({
         defaultValue: true,
         input: false,
       },
+      businessId: {
+        type: "string",
+        required: false,
+        input: false,
+      },
       employeeId: {
         type: "string",
         required: false,
@@ -146,17 +151,12 @@ export const auth = betterAuth({
     
     // Password reset configuration
     async sendResetPassword({ user, url, token }, request) {
-      // TODO: Implement generic email sending with EmailService
-      console.log('Email would be sent:', {
-        to: user.email,
-        subject: "Reset Your Vevurn POS Password",
-        template: "password-reset",
-        data: {
-          userName: user.name,
-          resetUrl: url,
-          token,
-        },
-      });
+      const { EmailService } = await import('./services/email.service');
+      await EmailService.sendPasswordResetEmail(
+        user.email,
+        user.name || 'User',
+        url
+      );
     },
 
     // Password reset callback
@@ -173,17 +173,12 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     
     async sendVerificationEmail({ user, url, token }, request) {
-      // TODO: Implement generic email sending with EmailService
-      console.log('Email would be sent:', {
-        to: user.email,
-        subject: "Verify Your Vevurn POS Account",
-        template: "email-verification",
-        data: {
-          userName: user.name,
-          verificationUrl: url,
-          token,
-        },
-      });
+      const { EmailService } = await import('./services/email.service');
+      await EmailService.sendEmailVerification(
+        user.email,
+        user.name || 'User',
+        url
+      );
     },
 
     async afterEmailVerification(user, request) {

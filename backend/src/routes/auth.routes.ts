@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { AuthenticatedRequest } from '../middleware/better-auth.middleware';
 import { PrismaClient } from '@prisma/client';
-import { requireAdmin, requireAuth } from '../middleware/better-auth.middleware';
+import { requireAdmin, requireAuth, requireManagerOrAdmin } from '../middleware/better-auth.middleware';
 import { ApiResponse } from '../utils/response';
 import { logger } from '../utils/logger';
-import bcrypt from 'bcryptjs';
+import { EmailService, generateTempPassword } from '../services/email.service';
+import { auth } from '../auth';
 import { z } from 'zod';
 
 const router: Router = Router();
@@ -18,10 +19,219 @@ const createUserSchema = z.object({
   role: z.enum(['ADMIN', 'MANAGER', 'CASHIER']).optional().default('CASHIER')
 });
 
+const createCashierSchema = z.object({
+  email: z.string().email('Valid email is required'),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
+  phoneNumber: z.string().optional()
+});
+
+const businessSetupSchema = z.object({
+  businessName: z.string().min(2, 'Business name is required').max(100),
+  tin: z.string().optional(),
+  logo: z.string().optional() // S3 URL after upload
+});
+
 const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   role: z.enum(['ADMIN', 'MANAGER', 'CASHIER']).optional(),
   isActive: z.boolean().optional()
+});
+
+// Business setup for new managers
+router.post('/business/setup', requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const validatedData = businessSetupSchema.parse(req.body);
+    const userId = req.user!.id;
+
+    // Check if user already has a business
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { business: true }
+    });
+
+    if (user?.businessId) {
+      return res.status(409).json(
+        ApiResponse.error('User already has a business setup', 409)
+      );
+    }
+
+    // Create business and update user
+    const business = await prisma.$transaction(async (tx) => {
+      // Create the business
+      const newBusiness = await tx.business.create({
+        data: {
+          name: validatedData.businessName,
+          tin: validatedData.tin,
+          logo: validatedData.logo,
+          ownerId: userId
+        }
+      });
+
+      // Update user to be a manager and link to business
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          businessId: newBusiness.id,
+          role: 'MANAGER'
+        }
+      });
+
+      return newBusiness;
+    });
+
+    logger.info('Business setup completed', { 
+      userId, 
+      businessId: business.id,
+      businessName: business.name 
+    });
+
+    res.status(201).json(
+      ApiResponse.success('Business setup completed successfully', business)
+    );
+  } catch (error) {
+    logger.error('Error setting up business:', error);
+    next(error);
+  }
+});
+
+// Create cashier account (Manager/Admin only)
+router.post('/create-cashier', requireManagerOrAdmin, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const validatedData = createCashierSchema.parse(req.body);
+    const managerId = req.user!.id;
+    const businessId = req.user!.businessId;
+
+    if (!businessId) {
+      return res.status(400).json(
+        ApiResponse.error('Manager must have a business setup first', 400)
+      );
+    }
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: validatedData.email }
+    });
+
+    if (existingUser) {
+      return res.status(409).json(
+        ApiResponse.error('User with this email already exists', 409)
+      );
+    }
+
+    // Generate temporary password
+    const tempPassword = generateTempPassword();
+
+    try {
+      // Create cashier account using Better Auth
+      const cashierUser = await auth.api.signUpEmail({
+        body: {
+          email: validatedData.email,
+          password: tempPassword,
+          name: validatedData.name
+        }
+      });
+
+      // Update the user record with additional fields
+      const updatedCashier = await prisma.user.update({
+        where: { email: validatedData.email },
+        data: {
+          role: 'CASHIER',
+          businessId,
+          phoneNumber: validatedData.phoneNumber,
+          emailVerified: false, // They need to verify on first login
+          isActive: true
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          phoneNumber: true,
+          businessId: true,
+          createdAt: true
+        }
+      });
+
+      // Send email with credentials
+      try {
+        await EmailService.sendCashierCredentials(validatedData.email, {
+          name: validatedData.name,
+          email: validatedData.email,
+          tempPassword,
+          loginUrl: process.env.FRONTEND_URL || 'http://localhost:3000'
+        });
+      } catch (emailError) {
+        logger.error('Failed to send cashier credentials email:', emailError);
+        // Don't fail the whole operation, just log the error
+      }
+
+      logger.info('Cashier account created', { 
+        managerId, 
+        cashierId: updatedCashier.id,
+        businessId,
+        cashierEmail: updatedCashier.email 
+      });
+
+      res.status(201).json(
+        ApiResponse.success('Cashier account created and email sent with login credentials', {
+          cashier: updatedCashier
+        })
+      );
+
+    } catch (authError: any) {
+      logger.error('Better Auth error creating cashier:', authError);
+      return res.status(500).json(
+        ApiResponse.error('Failed to create cashier account: ' + authError.message, 500)
+      );
+    }
+
+  } catch (error) {
+    logger.error('Error creating cashier:', error);
+    next(error);
+  }
+});
+
+// Get business cashiers (Manager/Admin only)
+router.get('/business/cashiers', requireManagerOrAdmin, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const businessId = req.user!.businessId;
+
+    if (!businessId) {
+      return res.status(400).json(
+        ApiResponse.error('User must have a business setup', 400)
+      );
+    }
+
+    const cashiers = await prisma.user.findMany({
+      where: {
+        businessId,
+        role: 'CASHIER'
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
+        isActive: true,
+        emailVerified: true,
+        createdAt: true,
+        lastLoginAt: true,
+        _count: {
+          select: {
+            sales: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(
+      ApiResponse.success('Cashiers retrieved successfully', { cashiers })
+    );
+  } catch (error) {
+    logger.error('Error fetching business cashiers:', error);
+    next(error);
+  }
 });
 
 // Admin-only user management routes

@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../middleware/better-auth.middleware';
 import { ApiResponse } from '../utils/response';
 import { logger } from '../utils/logger';
 import { generateSKU, generateBarcode, validatePagination } from '../utils/helpers';
+import { NotificationService } from '../services/notification.service';
 import { Decimal } from 'decimal.js';
 
 const prisma = new PrismaClient();
@@ -38,6 +39,11 @@ export class ProductController {
       const where: any = {
         deletedAt: null, // Only active products
       };
+
+      // Filter by business if user is authenticated
+      if (req.user?.businessId) {
+        where.businessId = req.user.businessId;
+      }
 
       if (categoryId) where.categoryId = categoryId;
       if (supplierId) where.supplierId = supplierId;
@@ -113,17 +119,74 @@ export class ProductController {
   }
 
   /**
+   * Search products by query
+   */
+  async searchProducts(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const { q: query, limit = 20 } = req.query as any;
+      
+      if (!query) {
+        return res.json(ApiResponse.success('Search completed', []));
+      }
+
+      const where: any = {
+        deletedAt: null,
+        status: 'ACTIVE',
+      };
+
+      // Filter by business if user is authenticated
+      if (req.user?.businessId) {
+        where.businessId = req.user.businessId;
+      }
+
+      where.OR = [
+        { name: { contains: query, mode: 'insensitive' } },
+        { description: { contains: query, mode: 'insensitive' } },
+        { sku: { contains: query, mode: 'insensitive' } },
+        { barcode: { contains: query, mode: 'insensitive' } },
+        { brand: { contains: query, mode: 'insensitive' } },
+      ];
+
+      const products = await prisma.product.findMany({
+        where,
+        include: {
+          category: true,
+          supplier: true,
+          images: {
+            orderBy: { sortOrder: 'asc' },
+            take: 1,
+          },
+        },
+        orderBy: { name: 'asc' },
+        take: parseInt(limit),
+      });
+
+      res.json(ApiResponse.success('Products search completed', products));
+    } catch (error) {
+      logger.error('Error searching products:', error);
+      next(error);
+    }
+  }
+
+  /**
    * Get product by ID
    */
   async getProductById(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
 
+      const where: any = {
+        id,
+        deletedAt: null,
+      };
+
+      // Filter by business if user is authenticated
+      if (req.user?.businessId) {
+        where.businessId = req.user.businessId;
+      }
+
       const product = await prisma.product.findFirst({
-        where: {
-          id,
-          deletedAt: null,
-        },
+        where,
         include: {
           category: true,
           supplier: true,
@@ -164,8 +227,14 @@ export class ProductController {
   async createProduct(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const productData = req.body;
-      // For testing - use a default user ID if no user is authenticated
-      const userId = req.user?.id || 'cmeos9ien0000u85qv45urgp6'; // Using existing admin user ID
+      const userId = req.user!.id;
+      const businessId = req.user!.businessId;
+
+      if (!businessId) {
+        return res.status(400).json(
+          ApiResponse.error('User must have a business setup to create products', 400)
+        );
+      }
 
       // Generate SKU if not provided
       if (!productData.sku) {
@@ -183,6 +252,7 @@ export class ProductController {
       const product = await prisma.product.create({
         data: {
           ...productData,
+          businessId,
           costPrice: new Decimal(productData.costPrice),
           wholesalePrice: new Decimal(productData.wholesalePrice),
           retailPrice: new Decimal(productData.retailPrice),
@@ -218,9 +288,13 @@ export class ProductController {
         });
       }
 
+      // Send notification to cashiers about new product
+      await NotificationService.notifyNewProduct(businessId, product);
+
       logger.info('Product created:', {
         productId: product.id,
         sku: product.sku,
+        businessId,
         createdBy: userId,
       });
 
@@ -568,6 +642,9 @@ export class ProductController {
           stockQuantity: newStock,
           updatedById: userId,
         },
+        include: {
+          business: true
+        }
       });
 
       // Log inventory movement
@@ -583,6 +660,15 @@ export class ProductController {
           createdBy: userId,
         },
       });
+
+      // Send stock notifications if needed
+      if (updatedProduct.businessId) {
+        if (newStock <= updatedProduct.minStockLevel && newStock > 0) {
+          await NotificationService.notifyLowStock(updatedProduct.businessId, updatedProduct);
+        } else if (newStock === 0) {
+          await NotificationService.notifyOutOfStock(updatedProduct.businessId, updatedProduct);
+        }
+      }
 
       logger.info('Stock updated:', {
         productId: id,

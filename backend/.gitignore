@@ -61,3 +61,5 @@ api.log
 
 # PID files
 *.pid
+
+.mailing

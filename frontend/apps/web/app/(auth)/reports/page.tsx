@@ -56,42 +56,58 @@ interface ReportData {
 
 async function fetchReportData(period: string): Promise<ReportData> {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-  const response = await fetch(`${baseUrl}/api/reports?period=${period}`, {
+  
+  // Get date range based on period
+  const endDate = new Date();
+  let startDate = new Date();
+  
+  switch (period) {
+    case 'week':
+      startDate.setDate(endDate.getDate() - 7);
+      break;
+    case 'month':
+      startDate.setMonth(endDate.getMonth() - 1);
+      break;
+    case 'quarter':
+      startDate.setMonth(endDate.getMonth() - 3);
+      break;
+    case 'year':
+      startDate.setFullYear(endDate.getFullYear() - 1);
+      break;
+    default:
+      startDate.setDate(endDate.getDate() - 7);
+  }
+
+  // Fetch sales report from backend
+  const salesResponse = await fetch(`${baseUrl}/api/reports/sales?dateFrom=${startDate.toISOString()}&dateTo=${endDate.toISOString()}`, {
     credentials: 'include',
   });
 
-  if (!response.ok) {
-    // Return mock data for now
-    return {
-      dailySales: [
-        { date: '2025-08-20', sales: 450000, orders: 23 },
-        { date: '2025-08-21', sales: 380000, orders: 19 },
-        { date: '2025-08-22', sales: 520000, orders: 28 },
-        { date: '2025-08-23', sales: 675000, orders: 35 },
-        { date: '2025-08-24', sales: 590000, orders: 31 },
-        { date: '2025-08-25', sales: 720000, orders: 38 },
-      ],
-      paymentMethods: [
-        { method: 'Cash', amount: 1200000, percentage: 45 },
-        { method: 'Mobile Money', amount: 1000000, percentage: 37 },
-        { method: 'Bank Transfer', amount: 480000, percentage: 18 },
-      ],
-      topProducts: [
-        { name: 'iPhone 15 Case', quantity: 45, revenue: 675000 },
-        { name: 'Samsung Charger', quantity: 38, revenue: 380000 },
-        { name: 'AirPods Case', quantity: 32, revenue: 480000 },
-        { name: 'Phone Stand', quantity: 28, revenue: 210000 },
-      ],
-      topCustomers: [
-        { name: 'MTN Rwanda', totalSpent: 2500000, orders: 15 },
-        { name: 'Airtel Rwanda', totalSpent: 1800000, orders: 12 },
-        { name: 'John Doe', totalSpent: 650000, orders: 8 },
-        { name: 'Jane Smith', totalSpent: 420000, orders: 6 },
-      ]
-    };
+  if (!salesResponse.ok) {
+    throw new Error('Failed to fetch sales report');
   }
 
-  return response.json();
+  const salesData = await salesResponse.json();
+  
+  // Transform backend data to frontend format
+  return {
+    dailySales: salesData.data?.salesByDate?.map((item: any) => ({
+      date: item.date,
+      sales: item.revenue,
+      orders: item.salesCount
+    })) || [],
+    paymentMethods: [
+      { method: 'Cash', amount: 0, percentage: 0 },
+      { method: 'Mobile Money', amount: 0, percentage: 0 },
+      { method: 'Bank Transfer', amount: 0, percentage: 0 },
+    ], // TODO: Add payment method breakdown to backend
+    topProducts: salesData.data?.topProducts?.map((item: any) => ({
+      name: item.name,
+      quantity: item.quantitySold,
+      revenue: item.revenue
+    })) || [],
+    topCustomers: [] // TODO: Add top customers to backend
+  };
 }
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];

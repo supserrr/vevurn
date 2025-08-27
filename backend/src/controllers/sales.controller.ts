@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../middleware/better-auth.middleware';
 import { ApiResponse } from '../utils/response';
 import { logger } from '../utils/logger';
 import { validatePagination, generateSaleNumber } from '../utils/helpers';
+import { NotificationService } from '../services/notification.service';
 import { Decimal } from 'decimal.js';
 
 const prisma = new PrismaClient();
@@ -30,6 +31,11 @@ export class SalesController {
 
       // Build where clause
       const where: any = {};
+
+      // Filter by business if user is authenticated
+      if (req.user?.businessId) {
+        where.businessId = req.user.businessId;
+      }
 
       if (status) where.status = status as SaleStatus;
       if (customerId) where.customerId = customerId;
@@ -138,106 +144,198 @@ export class SalesController {
   }
 
   /**
-   * Create a new sale
+   * Create a new sale (Process POS transaction)
    */
   async createSale(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const { items, customerId, subtotal, taxAmount = 0, discountAmount = 0, totalAmount, notes } = req.body;
+      const { 
+        items, 
+        customerId, 
+        customerName, 
+        paymentMethod = 'CASH', 
+        discount = 0,
+        amountPaid = 0 
+      } = req.body;
       
-      if (!req.user) {
-        return res.status(401).json(ApiResponse.error('User not authenticated'));
+      const cashierId = req.user!.id;
+      const businessId = req.user!.businessId;
+
+      if (!businessId) {
+        return res.status(400).json(
+          ApiResponse.error('User must have a business setup to process sales', 400)
+        );
       }
 
-      // Validate that products exist and calculate prices
-      const productIds = items.map((item: any) => item.productId);
-      const products = await prisma.product.findMany({
-        where: { id: { in: productIds } }
-      });
+      // Calculate totals
+      let subtotal = 0;
+      const saleItems = [];
 
-      if (products.length !== productIds.length) {
-        return res.status(400).json(ApiResponse.error('One or more products not found'));
+      for (const item of items) {
+        const product = await prisma.product.findFirst({
+          where: { 
+            id: item.productId,
+            businessId // Ensure product belongs to the same business
+          }
+        });
+
+        if (!product) {
+          return res.status(400).json(
+            ApiResponse.error(`Product not found: ${item.productId}`, 400)
+          );
+        }
+
+        if (product.stockQuantity < item.quantity) {
+          return res.status(400).json(
+            ApiResponse.error(
+              `Insufficient stock for ${product.name}. Available: ${product.stockQuantity}`, 
+              400
+            )
+          );
+        }
+
+        const itemTotal = item.unitPrice * item.quantity;
+        subtotal += itemTotal;
+
+        saleItems.push({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice: new Decimal(item.unitPrice),
+          discountAmount: new Decimal(item.discount || 0),
+          totalPrice: new Decimal(itemTotal),
+          unitCost: product.costPrice,
+          totalCost: product.costPrice.mul(item.quantity)
+        });
       }
 
-      // Create sale with items in a transaction
+      const total = subtotal - discount;
+      const changeAmount = Math.max(0, amountPaid - total);
+      const saleNumber = generateSaleNumber();
+
+      // Create sale with items in transaction
       const sale = await prisma.$transaction(async (tx) => {
         // Create the sale
         const newSale = await tx.sale.create({
           data: {
-            saleNumber: generateSaleNumber(),
+            saleNumber,
             customerId,
+            businessId,
             subtotal: new Decimal(subtotal),
-            taxAmount: new Decimal(taxAmount),
-            discountAmount: new Decimal(discountAmount),
-            totalAmount: new Decimal(totalAmount),
-            status: 'DRAFT',
-            notes,
-            cashierId: req.user!.id,
+            discountAmount: new Decimal(discount),
+            totalAmount: new Decimal(total),
+            amountPaid: new Decimal(amountPaid),
+            amountDue: new Decimal(Math.max(0, total - amountPaid)),
+            changeAmount: new Decimal(changeAmount),
+            status: 'COMPLETED',
+            cashierId,
+            completedAt: new Date(),
             items: {
-              create: items.map((item: any) => {
-                const product = products.find(p => p.id === item.productId);
-                const unitPrice = new Decimal(item.unitPrice || product!.retailPrice);
-                const discountAmount = new Decimal(item.discountAmount || 0);
-                const totalPrice = unitPrice.mul(item.quantity).sub(discountAmount);
-                
-                return {
-                  productId: item.productId,
-                  productVariationId: item.productVariationId,
-                  quantity: item.quantity,
-                  unitPrice,
-                  discountAmount,
-                  totalPrice,
-                  unitCost: product!.costPrice,
-                  totalCost: product!.costPrice.mul(item.quantity),
-                  notes: item.notes
-                };
-              })
+              create: saleItems
             }
           },
           include: {
             items: {
               include: {
-                product: true,
-                productVariation: true
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true
+                  }
+                }
               }
             },
-            customer: true
+            customer: true,
+            cashier: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
           }
         });
 
-        // Update stock quantities
-        for (const item of items) {
-          await tx.product.update({
-            where: { id: item.productId },
+        // Create payment record
+        if (amountPaid > 0) {
+          await tx.payment.create({
             data: {
-              stockQuantity: {
-                decrement: item.quantity
-              }
+              saleId: newSale.id,
+              amount: new Decimal(amountPaid),
+              method: paymentMethod as PaymentMethod,
+              status: 'COMPLETED',
+              processedAt: new Date(),
+              changeGiven: changeAmount > 0 ? new Decimal(changeAmount) : null,
+              changeMethod: changeAmount > 0 ? 'CASH' : null
             }
           });
+        }
 
-          // Create inventory movement record
+        // Update product stock and create inventory movements
+        for (const item of items) {
+          const product = await tx.product.findUnique({ 
+            where: { id: item.productId } 
+          });
+          
+          if (!product) continue;
+
+          const newStock = product.stockQuantity - item.quantity;
+
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stockQuantity: newStock }
+          });
+
           await tx.inventoryMovement.create({
             data: {
               productId: item.productId,
               type: 'STOCK_OUT',
-              quantity: -item.quantity, // Negative for outgoing stock
+              quantity: item.quantity,
+              stockBefore: product.stockQuantity,
+              stockAfter: newStock,
               referenceType: 'SALE',
               referenceId: newSale.id,
-              reason: 'SALE',
-              notes: `Sale: ${newSale.saleNumber}`,
-              stockBefore: 0, // You'd get this from current stock
-              stockAfter: 0,  // You'd calculate this
-              createdBy: req.user!.id
+              reason: 'Sale transaction',
+              createdBy: cashierId
             }
           });
+
+          // Check for stock alerts and send notifications
+          if (newStock <= product.minStockLevel) {
+            if (newStock === 0) {
+              await NotificationService.notifyOutOfStock(businessId, {
+                ...product,
+                stockQuantity: newStock
+              });
+            } else {
+              await NotificationService.notifyLowStock(businessId, {
+                ...product,
+                stockQuantity: newStock
+              });
+            }
+          }
         }
 
         return newSale;
       });
 
-      res.status(201).json(ApiResponse.success('Sale created successfully', sale));
+      // Send sale alert for large transactions
+      if (total >= 100000) { // 100k RWF or more
+        await NotificationService.notifySaleAlert(businessId, sale, 'large_sale');
+      }
+
+      logger.info('Sale completed:', {
+        saleId: sale.id,
+        saleNumber: sale.saleNumber,
+        businessId,
+        total: sale.totalAmount.toNumber(),
+        cashier: cashierId
+      });
+
+      res.status(201).json(
+        ApiResponse.success('Sale completed successfully', sale)
+      );
     } catch (error) {
-      logger.error('Error creating sale:', error);
+      logger.error('Error processing sale:', error);
       next(error);
     }
   }

@@ -1,29 +1,6 @@
-import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger';
-import { env } from '../config/env';
 
 export class EmailService {
-  private static transporter: nodemailer.Transporter | null = null;
-
-  private static getTransporter(): nodemailer.Transporter {
-    if (!this.transporter) {
-      if (!env.SMTP_HOST) {
-        throw new Error('Email service not configured. Please set SMTP environment variables.');
-      }
-
-      this.transporter = nodemailer.createTransport({
-        host: env.SMTP_HOST,
-        port: env.SMTP_PORT || 587,
-        secure: env.SMTP_SECURE || false,
-        auth: {
-          user: env.SMTP_USER,
-          pass: env.SMTP_PASS,
-        },
-      });
-    }
-    return this.transporter!;
-  }
-
   static async sendInvoiceEmail(
     recipientEmail: string,
     recipientName: string,
@@ -31,13 +8,25 @@ export class EmailService {
     pdfBuffer: Buffer
   ): Promise<boolean> {
     try {
-      const transporter = this.getTransporter();
-      
-      const mailOptions = {
-        from: env.SMTP_FROM || 'noreply@vevurn.com',
+      // Dynamic import to avoid JSX compilation issues in main service
+      const sendMail = (await import('../../emails')).default;
+      const { default: InvoiceEmail } = await import('../../emails/InvoiceEmail');
+      const React = await import('react');
+
+      await sendMail({
         to: recipientEmail,
         subject: `Invoice ${invoiceData.invoiceNumber} from Vevurn Accessories`,
-        html: this.generateInvoiceEmailHTML(recipientName, invoiceData),
+        component: React.createElement(InvoiceEmail, {
+          recipientName: recipientName,
+          invoice: {
+            invoiceNumber: invoiceData.invoiceNumber,
+            issueDate: invoiceData.issueDate,
+            dueDate: invoiceData.dueDate,
+            totalAmount: invoiceData.totalAmount,
+            amountDue: invoiceData.amountDue,
+            status: invoiceData.status,
+          }
+        }),
         attachments: [
           {
             filename: `invoice_${invoiceData.invoiceNumber}.pdf`,
@@ -45,12 +34,9 @@ export class EmailService {
             contentType: 'application/pdf'
           }
         ]
-      };
-
-      const result = await transporter.sendMail(mailOptions);
+      });
       
       logger.info('Invoice email sent successfully', { 
-        messageId: result.messageId,
         invoice: invoiceData.invoiceNumber,
         recipient: recipientEmail 
       });
@@ -62,99 +48,145 @@ export class EmailService {
     }
   }
 
-  private static generateInvoiceEmailHTML(recipientName: string, invoice: any): string {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
-        .invoice-details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        .footer { text-align: center; margin-top: 30px; font-size: 14px; color: #666; }
-        .btn { background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 10px 0; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>VEVURN ACCESSORIES</h1>
-            <p>Your Invoice is Ready</p>
-        </div>
-        
-        <div class="content">
-            <h2>Hello ${recipientName},</h2>
-            
-            <p>Thank you for your purchase! Please find your invoice attached to this email.</p>
-            
-            <div class="invoice-details">
-                <h3>Invoice Details:</h3>
-                <p><strong>Invoice Number:</strong> ${invoice.invoiceNumber}</p>
-                <p><strong>Issue Date:</strong> ${new Date(invoice.issueDate).toLocaleDateString()}</p>
-                <p><strong>Due Date:</strong> ${new Date(invoice.dueDate).toLocaleDateString()}</p>
-                <p><strong>Total Amount:</strong> RWF ${Number(invoice.totalAmount).toLocaleString()}</p>
-                <p><strong>Amount Due:</strong> RWF ${Number(invoice.amountDue).toLocaleString()}</p>
-                <p><strong>Status:</strong> ${invoice.status}</p>
-            </div>
-
-            <p>If you have any questions about this invoice, please don't hesitate to contact us.</p>
-            
-            <p>Payment can be made via:</p>
-            <ul>
-                <li>Mobile Money (MTN MoMo, Airtel Money)</li>
-                <li>Bank Transfer</li>
-                <li>Cash at our store</li>
-            </ul>
-        </div>
-        
-        <div class="footer">
-            <p><strong>Vevurn Accessories</strong><br>
-            Phone Accessories & Electronics<br>
-            Kigali, Rwanda<br>
-            +250 XXX XXX XXX | support@vevurn.com</p>
-        </div>
-    </div>
-</body>
-</html>`;
-  }
-
   static async sendPaymentReminderEmail(
     recipientEmail: string,
     recipientName: string,
     invoiceData: any
   ): Promise<boolean> {
     try {
-      const transporter = this.getTransporter();
+      const sendMail = (await import('../../emails')).default;
+      const { default: PaymentReminderEmail } = await import('../../emails/PaymentReminderEmail');
+      const React = await import('react');
+
       const daysOverdue = Math.floor((Date.now() - new Date(invoiceData.dueDate).getTime()) / (1000 * 60 * 60 * 24));
       
-      const mailOptions = {
-        from: env.SMTP_FROM || 'noreply@vevurn.com',
+      await sendMail({
         to: recipientEmail,
         subject: `Payment Reminder - Invoice ${invoiceData.invoiceNumber}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2>Payment Reminder</h2>
-            <p>Hello ${recipientName},</p>
-            <p>This is a friendly reminder that invoice ${invoiceData.invoiceNumber} is ${daysOverdue > 0 ? `${daysOverdue} days overdue` : 'due today'}.</p>
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p><strong>Invoice:</strong> ${invoiceData.invoiceNumber}</p>
-              <p><strong>Amount Due:</strong> RWF ${Number(invoiceData.amountDue).toLocaleString()}</p>
-              <p><strong>Due Date:</strong> ${new Date(invoiceData.dueDate).toLocaleDateString()}</p>
-            </div>
-            <p>Please arrange payment at your earliest convenience.</p>
-            <p>Thank you,<br>Vevurn Accessories</p>
-          </div>
-        `
-      };
+        component: React.createElement(PaymentReminderEmail, {
+          recipientName: recipientName,
+          invoice: {
+            invoiceNumber: invoiceData.invoiceNumber,
+            dueDate: invoiceData.dueDate,
+            amountDue: invoiceData.amountDue,
+          },
+          daysOverdue: Math.max(0, daysOverdue)
+        }),
+      });
 
-      await transporter.sendMail(mailOptions);
+      logger.info('Payment reminder email sent successfully', { 
+        invoice: invoiceData.invoiceNumber,
+        recipient: recipientEmail,
+        daysOverdue 
+      });
+      
       return true;
     } catch (error) {
       logger.error('Failed to send reminder email:', error);
       return false;
     }
   }
+
+  static async sendCashierCredentials(email: string, data: {
+    name: string;
+    email: string;
+    tempPassword: string;
+    loginUrl: string;
+  }): Promise<boolean> {
+    try {
+      const sendMail = (await import('../../emails')).default;
+      const { default: CashierCredentialsEmail } = await import('../../emails/CashierCredentialsEmail');
+      const React = await import('react');
+
+      await sendMail({
+        to: email,
+        subject: 'Welcome to Vevurn POS - Your Cashier Account',
+        component: React.createElement(CashierCredentialsEmail, {
+          name: data.name,
+          email: data.email,
+          tempPassword: data.tempPassword,
+          loginUrl: data.loginUrl
+        }),
+      });
+      
+      logger.info('Cashier credentials sent successfully', { 
+        recipient: email 
+      });
+      
+      return true;
+    } catch (error) {
+      logger.error('Failed to send cashier credentials:', error);
+      return false;
+    }
+  }
+
+  static async sendPasswordResetEmail(
+    recipientEmail: string,
+    userName: string,
+    resetUrl: string
+  ): Promise<boolean> {
+    try {
+      const sendMail = (await import('../../emails')).default;
+      const { default: PasswordResetEmail } = await import('../../emails/PasswordResetEmail');
+      const React = await import('react');
+
+      await sendMail({
+        to: recipientEmail,
+        subject: 'Reset Your Vevurn POS Password',
+        component: React.createElement(PasswordResetEmail, {
+          userName: userName,
+          resetUrl: resetUrl
+        }),
+      });
+      
+      logger.info('Password reset email sent successfully', { 
+        recipient: recipientEmail 
+      });
+      
+      return true;
+    } catch (error) {
+      logger.error('Failed to send password reset email:', error);
+      return false;
+    }
+  }
+
+  static async sendEmailVerification(
+    recipientEmail: string,
+    userName: string,
+    verificationUrl: string
+  ): Promise<boolean> {
+    try {
+      const sendMail = (await import('../../emails')).default;
+      const { default: EmailVerificationEmail } = await import('../../emails/EmailVerificationEmail');
+      const React = await import('react');
+
+      await sendMail({
+        to: recipientEmail,
+        subject: 'Verify Your Vevurn POS Account',
+        component: React.createElement(EmailVerificationEmail, {
+          userName: userName,
+          verificationUrl: verificationUrl
+        }),
+      });
+      
+      logger.info('Email verification sent successfully', { 
+        recipient: recipientEmail 
+      });
+      
+      return true;
+    } catch (error) {
+      logger.error('Failed to send email verification:', error);
+      return false;
+    }
+  }
+}
+
+// Utility function to generate temporary password
+export function generateTempPassword(): string {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
 }

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MobilePOS } from '@/components/mobile/MobilePOS';
+import realApiService from '@/lib/real-api';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,54 +18,28 @@ interface CartItem {
   quantity: number;
 }
 
-// Mock products data for now
-const mockProducts = [
-  {
-    id: '1',
-    name: 'Coffee',
-    price: 1500,
-    category: 'Beverages',
-    stock: 50,
-    image: undefined
-  },
-  {
-    id: '2',
-    name: 'Tea',
-    price: 1000,
-    category: 'Beverages',
-    stock: 30,
-    image: undefined
-  },
-  {
-    id: '3',
-    name: 'Sandwich',
-    price: 2500,
-    category: 'Food',
-    stock: 20,
-    image: undefined
-  },
-  {
-    id: '4',
-    name: 'Juice',
-    price: 2000,
-    category: 'Beverages',
-    stock: 25,
-    image: undefined
-  },
-  {
-    id: '5',
-    name: 'Pastry',
-    price: 1800,
-    category: 'Food',
-    stock: 15,
-    image: undefined
-  }
-];
-
 export default function MobileSalesPage() {
-  const [products] = useState(mockProducts);
   const [saleStatus, setSaleStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [saleError, setSaleError] = useState<string | null>(null);
+
+  // Fetch products from real API
+  const { data: productsData, isLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const result = await realApiService.getProducts();
+      return result.data || [];
+    }
+  });
+
+  // Transform backend data to component format
+  const products = productsData?.map((product: any) => ({
+    id: product.id,
+    name: product.name,
+    price: product.retailPrice,
+    category: product.category?.name || 'General',
+    stock: product.stockQuantity,
+    image: product.images?.[0]?.url
+  })) || [];
 
   const handleSaleComplete = async (
     items: CartItem[], 
@@ -74,15 +50,22 @@ export default function MobileSalesPage() {
     setSaleError(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log('Sale completed:', {
-        items,
-        total,
+      // Create sale through real API
+      const saleData = {
+        items: items.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          totalPrice: item.price * item.quantity
+        })),
+        totalAmount: total,
         paymentMethod,
-        timestamp: new Date().toISOString()
-      });
+        status: 'COMPLETED'
+      };
+
+      const result = await realApiService.createSale(saleData);
+      
+      console.log('Sale completed:', result);
 
       setSaleStatus('success');
       

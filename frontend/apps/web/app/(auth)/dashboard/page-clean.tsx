@@ -73,25 +73,37 @@ const fetchDashboardStats = async (): Promise<{ data: DashboardStats }> => {
       product.stockQuantity <= product.minStockLevel
     );
 
-    // Mock dashboard stats
-    const mockStats: DashboardStats = {
+    // Get dashboard stats from backend API
+    const dashboardResponse = await fetch(`${API_BASE}/api/dashboard/stats`, {
+      credentials: 'include',
+    });
+
+    if (!dashboardResponse.ok) {
+      throw new Error('Failed to fetch dashboard stats');
+    }
+
+    const dashboardData = await dashboardResponse.json();
+    
+    // Transform backend data to frontend format
+    const dashboardStats: DashboardStats = {
       todaySales: {
-        totalRevenue: 450000,
-        totalOrders: 12,
-        averageOrderValue: 37500,
+        totalRevenue: dashboardData.data?.todaysSales?.totalRevenue || 0,
+        totalOrders: dashboardData.data?.todaysSales?.totalOrders || 0,
+        averageOrderValue: dashboardData.data?.todaysSales?.averageOrderValue || 0,
       },
-      paymentMethods: [
-        { method: 'Cash', count: 7, amount: 210000, percentage: 46.7 },
-        { method: 'Mobile Money', count: 4, amount: 180000, percentage: 40.0 },
-        { method: 'Card', count: 1, amount: 60000, percentage: 13.3 },
-      ],
-      topProducts: products.slice(0, 5).map((product: any) => ({
+      paymentMethods: dashboardData.data?.paymentMethods?.map((pm: any) => ({
+        method: pm.method,
+        count: pm.count,
+        amount: pm.amount,
+        percentage: pm.percentage
+      })) || [],
+      topProducts: dashboardData.data?.topProducts?.map((product: any) => ({
         id: product.id,
         name: product.name,
-        quantitySold: Math.floor(Math.random() * 10) + 1,
-        revenue: parseFloat(product.retailPrice) * (Math.floor(Math.random() * 10) + 1),
-        category: product.category || 'General',
-      })),
+        quantitySold: product.quantitySold,
+        revenue: product.revenue,
+        category: 'General',
+      })) || [],
       inventoryAlerts: lowStockProducts.slice(0, 10).map((product: any) => ({
         id: product.id,
         name: product.name,
@@ -99,32 +111,16 @@ const fetchDashboardStats = async (): Promise<{ data: DashboardStats }> => {
         minStock: product.minStockLevel,
         status: product.stockQuantity === 0 ? 'OUT_OF_STOCK' as const : 'LOW_STOCK' as const,
       })),
-      recentActivity: [
-        {
-          id: '1',
-          type: 'SALE',
-          description: 'Sale #1001 completed',
-          amount: 25000,
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          type: 'PRODUCT_ADDED',
-          description: 'New product "Coffee Beans" added',
-          amount: null,
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: '3',
-          type: 'PAYMENT_RECEIVED',
-          description: 'Payment received for Invoice #INV-1002',
-          amount: 85000,
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-        },
-      ],
+      recentActivity: dashboardData.data?.recentSales?.map((sale: any) => ({
+        id: sale.id,
+        type: 'SALE' as const,
+        description: `Sale to ${sale.customerName || 'Walk-in Customer'}`,
+        amount: sale.amount,
+        timestamp: sale.timestamp
+      })) || [],
     };
 
-    return { data: mockStats };
+    return { data: dashboardStats };
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     throw error;

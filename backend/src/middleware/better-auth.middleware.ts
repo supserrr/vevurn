@@ -22,6 +22,7 @@ export interface AuthenticatedRequest extends Request {
     department?: string | null;
     phoneNumber?: string | null;
     lastLoginAt?: Date | null;
+    businessId?: string | null;
   };
 }
 
@@ -60,6 +61,7 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
         department: session.user.department as string | null,
         phoneNumber: session.user.phoneNumber as string | null,
         lastLoginAt: session.user.lastLoginAt as Date | null,
+        businessId: session.user.businessId as string | null,
       };
 
       logger.info('User authenticated via Better Auth', { 
@@ -270,6 +272,7 @@ export function requireRole(...allowedRoles: string[]) {
         department: session.user.department as string | null,
         phoneNumber: session.user.phoneNumber as string | null,
         lastLoginAt: session.user.lastLoginAt as Date | null,
+        businessId: session.user.businessId as string | null,
       };
 
       logger.info('Role-based access granted', { 
