@@ -9,9 +9,7 @@ const dashboardController = new DashboardController();
 router.use(authMiddleware);
 
 // Dashboard statistics
-router.get('/stats', dashboardController.getStats.bind(dashboardController));
-router.get('/recent-transactions', dashboardController.getRecentTransactions.bind(dashboardController));
-router.get('/low-stock', dashboardController.getLowStock.bind(dashboardController));
-router.get('/payment-status', dashboardController.getPaymentStatus.bind(dashboardController));
+router.get('/stats', dashboardController.getDashboardStats.bind(dashboardController));
+router.get('/sales-analytics', dashboardController.getSalesAnalytics.bind(dashboardController));
 
 export { router as dashboardRoutes };

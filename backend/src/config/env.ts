@@ -59,6 +59,16 @@ const envSchema = z.object({
   SMTP_PASS: z.string().optional(),
   SMTP_FROM: z.string().optional(),
 
+  // SMS Service (Twilio)
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_PHONE_NUMBER: z.string().optional(),
+  SMS_DEFAULT_SENDER: z.string().optional(),
+
+  // Mobile Money
+  MOMO_MERCHANT_NUMBER: z.string().optional(),
+  AIRTEL_MERCHANT_NUMBER: z.string().optional(),
+
   // Redis
   REDIS_URL: z.string().optional(),
   REDIS_HOST: z.string().optional(),

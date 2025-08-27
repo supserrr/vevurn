@@ -1,119 +1,85 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MobileProductManagement } from '@/components/mobile/MobileProductManagement';
-
-// Mock products data
-const mockProducts = [
-  {
-    id: '1',
-    name: 'Coffee',
-    price: 1500,
-    category: 'Beverages',
-    stock: 50,
-    status: 'active' as const,
-    lowStockThreshold: 10,
-    image: undefined
-  },
-  {
-    id: '2',
-    name: 'Tea',
-    price: 1000,
-    category: 'Beverages',
-    stock: 8,
-    status: 'active' as const,
-    lowStockThreshold: 10,
-    image: undefined
-  },
-  {
-    id: '3',
-    name: 'Sandwich',
-    price: 2500,
-    category: 'Food',
-    stock: 0,
-    status: 'active' as const,
-    lowStockThreshold: 5,
-    image: undefined
-  },
-  {
-    id: '4',
-    name: 'Juice',
-    price: 2000,
-    category: 'Beverages',
-    stock: 25,
-    status: 'active' as const,
-    lowStockThreshold: 15,
-    image: undefined
-  },
-  {
-    id: '5',
-    name: 'Pastry',
-    price: 1800,
-    category: 'Food',
-    stock: 3,
-    status: 'active' as const,
-    lowStockThreshold: 5,
-    image: undefined
-  },
-  {
-    id: '6',
-    name: 'Salad',
-    price: 3500,
-    category: 'Food',
-    stock: 12,
-    status: 'active' as const,
-    lowStockThreshold: 8,
-    image: undefined
-  },
-  {
-    id: '7',
-    name: 'Smoothie',
-    price: 2800,
-    category: 'Beverages',
-    stock: 18,
-    status: 'active' as const,
-    lowStockThreshold: 10,
-    image: undefined
-  }
-];
+import realApiService from '@/lib/real-api';
 
 export default function MobileProductsPage() {
-  const [products, setProducts] = useState(mockProducts);
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: productsData, isLoading } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const result = await realApiService.getProducts();
+      return result.data || [];
+    }
+  });
 
-  const handleRefresh = async () => {
-    setIsLoading(true);
-    // Simulate API refresh
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsLoading(false);
+  // Transform backend data to component format
+  const products = productsData?.map((product: any) => ({
+    id: product.id,
+    name: product.name,
+    price: product.retailPrice,
+    category: product.category?.name || 'General',
+    stock: product.stockQuantity,
+    status: product.status?.toLowerCase() === 'active' ? 'active' as const : 'inactive' as const,
+    lowStockThreshold: product.minStockLevel || 10,
+    image: product.images?.[0]?.url
+  })) || [];
+
+  const [productsState, setProducts] = useState(products);
+
+  // Update state when data changes
+  useEffect(() => {
+    if (products.length > 0) {
+      setProducts(products);
+    }
+  }, [products]);
+
+  const handleProductUpdate = async (updatedProduct: any) => {
+    try {
+      if (updatedProduct.id === 'new') {
+        // Create new product
+        await realApiService.createProduct({
+          name: updatedProduct.name,
+          retailPrice: updatedProduct.price,
+          categoryId: updatedProduct.categoryId, // You'll need to map category name to ID
+          stockQuantity: updatedProduct.stock,
+          minStockLevel: updatedProduct.lowStockThreshold,
+          status: updatedProduct.status.toUpperCase()
+        });
+      } else {
+        // Update existing product
+        await realApiService.updateProduct(updatedProduct.id, {
+          name: updatedProduct.name,
+          retailPrice: updatedProduct.price,
+          stockQuantity: updatedProduct.stock,
+          minStockLevel: updatedProduct.lowStockThreshold,
+          status: updatedProduct.status.toUpperCase()
+        });
+      }
+      
+      // Refresh data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating product:', error);
+    }
   };
 
-  const handleEdit = (product: any) => {
-    console.log('Edit product:', product);
-    // TODO: Navigate to edit page or open edit modal
-  };
-
-  const handleDelete = (productId: string) => {
-    console.log('Delete product:', productId);
-    // TODO: Show confirmation dialog and delete product
-    setProducts(prev => prev.filter(p => p.id !== productId));
-  };
-
-  const handleCreate = () => {
-    console.log('Create new product');
-    // TODO: Navigate to create page or open create modal
+  const handleProductDelete = async (productId: string) => {
+    try {
+      await realApiService.deleteProduct(productId);
+      setProducts(productsState.filter(p => p.id !== productId));
+    } catch (error) {
+      console.error('Error deleting product:', error);
+    }
   };
 
   return (
-    <div className="h-screen">
-      <MobileProductManagement
-        products={products}
-        onRefresh={handleRefresh}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        onCreate={handleCreate}
-        isLoading={isLoading}
-      />
-    </div>
+    <MobileProductManagement 
+      products={productsState}
+      isLoading={isLoading}
+      onProductUpdate={handleProductUpdate}
+      onProductDelete={handleProductDelete}
+    />
   );
 }

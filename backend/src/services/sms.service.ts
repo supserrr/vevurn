@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+import twilio from 'twilio';
 import { logger } from '../utils/logger';
 
 export interface SMSMessage {
@@ -28,64 +28,19 @@ export interface BulkSMSResponse {
 }
 
 export class SMSService {
-  private axiosInstance: AxiosInstance;
-  private readonly apiKey: string;
-  private readonly apiSecret: string;
-  private readonly baseURL: string;
+  private client: twilio.Twilio | null;
   private readonly defaultSender: string;
 
   constructor() {
-    // Using a placeholder SMS service configuration
-    // In Rwanda, popular SMS services include: Kwikgate, MSG91, Twilio
-    this.apiKey = process.env.SMS_API_KEY || 'demo-key';
-    this.apiSecret = process.env.SMS_API_SECRET || 'demo-secret';
-    this.baseURL = process.env.SMS_BASE_URL || 'https://api.sms-provider.rw/v1';
     this.defaultSender = process.env.SMS_DEFAULT_SENDER || 'VEVURN-POS';
+    
+    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      this.client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    } else {
+      this.client = null;
+      logger.warn('Twilio credentials not configured - SMS service disabled');
+    }
 
-    this.axiosInstance = axios.create({
-      baseURL: this.baseURL,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-        'X-API-Secret': this.apiSecret
-      },
-      timeout: 30000
-    });
-
-    // Request interceptor for logging
-    this.axiosInstance.interceptors.request.use(
-      (config) => {
-        logger.debug('SMS API Request:', {
-          url: config.url,
-          method: config.method,
-          headers: { ...config.headers, Authorization: '[REDACTED]' }
-        });
-        return config;
-      },
-      (error) => {
-        logger.error('SMS API Request Error:', error);
-        return Promise.reject(error);
-      }
-    );
-
-    // Response interceptor for logging
-    this.axiosInstance.interceptors.response.use(
-      (response) => {
-        logger.debug('SMS API Response:', {
-          status: response.status,
-          data: response.data
-        });
-        return response;
-      },
-      (error) => {
-        logger.error('SMS API Response Error:', {
-          status: error.response?.status,
-          data: error.response?.data,
-          message: error.message
-        });
-        return Promise.reject(error);
-      }
-    );
   }
 
   /**
@@ -93,6 +48,13 @@ export class SMSService {
    */
   async sendSMS(smsData: SMSMessage): Promise<SMSResponse> {
     try {
+      if (!this.client) {
+        return {
+          success: false,
+          message: 'SMS service not configured'
+        };
+      }
+
       // Validate Rwanda phone number format
       if (!this.isValidRwandaPhoneNumber(smsData.to)) {
         return {
@@ -104,25 +66,24 @@ export class SMSService {
       // Format phone number to international format
       const formattedPhone = this.formatRwandaPhoneNumber(smsData.to);
 
-      const payload = {
-        to: formattedPhone,
-        message: smsData.message,
-        sender: smsData.sender || this.defaultSender,
-        type: 'sms',
-        reference: `vevurn_${Date.now()}`
-      };
-
-      // In production, this would call the actual SMS provider API
-      // For demo purposes, we'll simulate the response
-      const response = await this.simulateSMSResponse(payload);
+      const result = await this.client.messages.create({
+        body: smsData.message,
+        from: process.env.TWILIO_PHONE_NUMBER || this.defaultSender,
+        to: formattedPhone
+      });
 
       logger.info('SMS sent successfully', {
         to: formattedPhone,
         messageLength: smsData.message.length,
-        messageId: response.messageId
+        messageId: result.sid
       });
 
-      return response;
+      return {
+        success: true,
+        messageId: result.sid,
+        message: 'SMS sent successfully',
+        cost: 0.05 // Approximate cost in USD
+      };
     } catch (error) {
       logger.error('Failed to send SMS:', error);
       return {
@@ -130,6 +91,65 @@ export class SMSService {
         message: error instanceof Error ? error.message : 'Failed to send SMS'
       };
     }
+  }
+
+  async sendInvoiceSMS(to: string, invoiceData: any) {
+    try {
+      const message = this.generateInvoiceSMSMessage(invoiceData);
+      
+      const result = await this.sendSMS({
+        to,
+        message,
+        sender: this.defaultSender
+      });
+
+      logger.info('Invoice SMS sent successfully', { 
+        to,
+        invoiceNumber: invoiceData.invoiceNumber
+      });
+      
+      return result;
+    } catch (error) {
+      logger.error('Failed to send invoice SMS:', error);
+      throw error;
+    }
+  }
+
+  async sendReminderSMS(to: string, reminderData: any) {
+    try {
+      const message = `
+REMINDER: Invoice ${reminderData.invoiceNumber} 
+Amount: ${reminderData.amountDue.toLocaleString()} RWF
+Due: ${new Date(reminderData.dueDate).toLocaleDateString()}
+
+Please pay to avoid late fees.
+Vevurn POS
+      `.trim();
+
+      const result = await this.sendSMS({
+        to,
+        message,
+        sender: this.defaultSender
+      });
+
+      return result;
+    } catch (error) {
+      logger.error('Failed to send reminder SMS:', error);
+      throw error;
+    }
+  }
+
+  private generateInvoiceSMSMessage(invoiceData: any): string {
+    return `
+Vevurn POS Invoice ${invoiceData.invoiceNumber}
+
+Amount: ${invoiceData.totalAmount.toLocaleString()} RWF
+Due: ${new Date(invoiceData.dueDate).toLocaleDateString()}
+
+Pay via MTN MoMo: *182*8*1*${invoiceData.totalAmount}#${process.env.MOMO_MERCHANT_NUMBER || 'XXXXXXX'}#
+
+Thank you!
+    `.trim();
   }
 
   /**
@@ -318,31 +338,7 @@ export class SMSService {
     return chunks;
   }
 
-  /**
-   * Simulate SMS API response for demo purposes
-   * In production, this would be replaced with actual API calls
-   */
-  private async simulateSMSResponse(payload: any): Promise<SMSResponse> {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
-    
-    // Simulate 95% success rate
-    const isSuccess = Math.random() > 0.05;
-    
-    if (isSuccess) {
-      return {
-        success: true,
-        messageId: `sms_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
-        message: 'SMS sent successfully',
-        cost: 0.05 // 5 RWF per SMS (approximate cost in Rwanda)
-      };
-    } else {
-      return {
-        success: false,
-        message: 'Failed to deliver SMS - network error'
-      };
-    }
-  }
+
 
   /**
    * Get SMS service status and configuration

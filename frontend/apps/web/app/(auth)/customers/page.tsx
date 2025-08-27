@@ -41,41 +41,6 @@ async function fetchCustomers(): Promise<Customer[]> {
   });
 
   if (!response.ok) {
-    // Return mock data for development
-    if (response.status === 404 || !response.ok) {
-      return [
-        {
-          id: '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-          phone: '+250789123456',
-          address: 'Nyarugenge, Kigali',
-          type: 'REGULAR',
-          totalPurchases: 5,
-          lastPurchaseDate: '2024-08-20',
-          createdAt: '2024-07-15T10:00:00Z'
-        },
-        {
-          id: '2',
-          name: 'Jane Smith',
-          email: 'jane@business.com',
-          phone: '+250788654321',
-          address: 'Gasabo, Kigali',
-          type: 'WHOLESALE',
-          totalPurchases: 12,
-          lastPurchaseDate: '2024-08-22',
-          createdAt: '2024-06-10T14:30:00Z'
-        },
-        {
-          id: '3',
-          name: 'Walk-in Customer',
-          type: 'WALK_IN',
-          totalPurchases: 1,
-          lastPurchaseDate: '2024-08-25',
-          createdAt: '2024-08-25T09:15:00Z'
-        }
-      ];
-    }
     throw new Error('Failed to fetch customers');
   }
 

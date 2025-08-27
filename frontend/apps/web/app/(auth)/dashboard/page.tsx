@@ -54,77 +54,19 @@ interface DashboardStats {
 }
 
 const fetchDashboardStats = async (): Promise<{ data: DashboardStats }> => {
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   
   try {
-    const productsResponse = await fetch(`${API_BASE}/api/products`, {
+    const response = await fetch(`${API_BASE}/api/dashboard/stats`, {
       credentials: 'include',
     });
 
-    if (!productsResponse.ok) {
-      throw new Error('Failed to fetch dashboard data');
+    if (!response.ok) {
+      throw new Error('Failed to fetch dashboard stats');
     }
 
-    const productsData = await productsResponse.json();
-    const products = productsData.data || [];
-    
-    const totalProducts = products.length;
-    const lowStockProducts = products.filter((product: any) => 
-      product.stockQuantity <= product.minStockLevel
-    );
-
-    // Mock dashboard stats
-    const mockStats: DashboardStats = {
-      todaySales: {
-        totalRevenue: 450000,
-        totalOrders: 12,
-        averageOrderValue: 37500,
-      },
-      paymentMethods: [
-        { method: 'Cash', count: 7, amount: 210000, percentage: 46.7 },
-        { method: 'Mobile Money', count: 4, amount: 180000, percentage: 40.0 },
-        { method: 'Card', count: 1, amount: 60000, percentage: 13.3 },
-      ],
-      topProducts: products.slice(0, 5).map((product: any) => ({
-        id: product.id,
-        name: product.name,
-        quantitySold: Math.floor(Math.random() * 10) + 1,
-        revenue: parseFloat(product.retailPrice) * (Math.floor(Math.random() * 10) + 1),
-        category: product.category || 'General',
-      })),
-      inventoryAlerts: lowStockProducts.slice(0, 10).map((product: any) => ({
-        id: product.id,
-        name: product.name,
-        currentStock: product.stockQuantity,
-        minStock: product.minStockLevel,
-        status: product.stockQuantity === 0 ? 'OUT_OF_STOCK' as const : 'LOW_STOCK' as const,
-      })),
-      recentActivity: [
-        {
-          id: '1',
-          type: 'SALE',
-          description: 'Sale #1001 completed',
-          amount: 25000,
-          timestamp: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          type: 'PRODUCT_ADDED',
-          description: 'New product "Coffee Beans" added',
-          amount: null,
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: '3',
-          type: 'PAYMENT_RECEIVED',
-          description: 'Payment received for Invoice #INV-1002',
-          amount: 85000,
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-        },
-      ],
-    };
-
-    return { data: mockStats };
+    const result = await response.json();
+    return result;
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     throw error;
