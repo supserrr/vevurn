@@ -297,3 +297,4 @@ When an AI agent is assisting with this project:
 - Document everything with clear examples
 - Consider Rwanda-specific business requirements
 - Ensure invoice system compliance with local practices
+- **Always document what you just did**: Clearly explain changes made, files modified, and the reasoning behind decisions
