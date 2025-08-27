@@ -4,9 +4,12 @@ import { PrismaClient } from '@prisma/client';
 import { requireAdmin, requireAuth, requireManagerOrAdmin } from '../middleware/better-auth.middleware';
 import { ApiResponse } from '../utils/response';
 import { logger } from '../utils/logger';
-import { EmailService, generateTempPassword } from '../services/email.service';
+import { EmailService } from '../services/email.service';
+import { AuthService } from '../services/auth.service';
 import { auth } from '../auth';
 import { z } from 'zod';
+import { validateRequest } from '../middleware/validation.middleware';
+import { createCashierSchema } from '../validators/auth.schemas';
 
 const router: Router = Router();
 const prisma = new PrismaClient();
@@ -95,144 +98,65 @@ router.post('/business/setup', requireAuth, async (req: AuthenticatedRequest, re
 });
 
 // Create cashier account (Manager/Admin only)
-router.post('/create-cashier', requireManagerOrAdmin, async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const validatedData = createCashierSchema.parse(req.body);
-    const managerId = req.user!.id;
-    const businessId = req.user!.businessId;
-
-    if (!businessId) {
-      return res.status(400).json(
-        ApiResponse.error('Manager must have a business setup first', 400)
-      );
-    }
-
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: validatedData.email }
-    });
-
-    if (existingUser) {
-      return res.status(409).json(
-        ApiResponse.error('User with this email already exists', 409)
-      );
-    }
-
-    // Generate temporary password
-    const tempPassword = generateTempPassword();
-
+router.post('/create-cashier', 
+  requireManagerOrAdmin,
+  validateRequest({ body: createCashierSchema }),
+  async (req: AuthenticatedRequest, res, next) => {
     try {
-      // Create cashier account using Better Auth
-      const cashierUser = await auth.api.signUpEmail({
-        body: {
-          email: validatedData.email,
-          password: tempPassword,
-          name: validatedData.name
-        }
-      });
+      const managerId = req.user!.id;
+      const businessId = req.user!.businessId!;
+      const { email, name, phoneNumber } = req.body;
 
-      // Update the user record with additional fields
-      const updatedCashier = await prisma.user.update({
-        where: { email: validatedData.email },
-        data: {
-          role: 'CASHIER',
-          businessId,
-          phoneNumber: validatedData.phoneNumber,
-          emailVerified: false, // They need to verify on first login
-          isActive: true
-        },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          phoneNumber: true,
-          businessId: true,
-          createdAt: true
-        }
-      });
-
-      // Send email with credentials
-      try {
-        await EmailService.sendCashierCredentials(validatedData.email, {
-          name: validatedData.name,
-          email: validatedData.email,
-          tempPassword,
-          loginUrl: process.env.FRONTEND_URL || 'http://localhost:3000'
-        });
-      } catch (emailError) {
-        logger.error('Failed to send cashier credentials email:', emailError);
-        // Don't fail the whole operation, just log the error
-      }
-
-      logger.info('Cashier account created', { 
-        managerId, 
-        cashierId: updatedCashier.id,
-        businessId,
-        cashierEmail: updatedCashier.email 
+      const cashier = await AuthService.createCashier(managerId, businessId, {
+        email,
+        name,
+        phoneNumber
       });
 
       res.status(201).json(
-        ApiResponse.success('Cashier account created and email sent with login credentials', {
-          cashier: updatedCashier
-        })
+        ApiResponse.success('Cashier account created successfully', cashier)
       );
-
-    } catch (authError: any) {
-      logger.error('Better Auth error creating cashier:', authError);
-      return res.status(500).json(
-        ApiResponse.error('Failed to create cashier account: ' + authError.message, 500)
-      );
+    } catch (error) {
+      next(error);
     }
-
-  } catch (error) {
-    logger.error('Error creating cashier:', error);
-    next(error);
   }
-});
+);
 
-// Get business cashiers (Manager/Admin only)
-router.get('/business/cashiers', requireManagerOrAdmin, async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const businessId = req.user!.businessId;
+// Get all cashiers for the business
+router.get('/cashiers',
+  requireManagerOrAdmin,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const businessId = req.user!.businessId!;
+      const cashiers = await AuthService.getCashiers(businessId);
 
-    if (!businessId) {
-      return res.status(400).json(
-        ApiResponse.error('User must have a business setup', 400)
+      res.json(
+        ApiResponse.success('Cashiers retrieved successfully', cashiers)
       );
+    } catch (error) {
+      next(error);
     }
-
-    const cashiers = await prisma.user.findMany({
-      where: {
-        businessId,
-        role: 'CASHIER'
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phoneNumber: true,
-        isActive: true,
-        emailVerified: true,
-        createdAt: true,
-        lastLoginAt: true,
-        _count: {
-          select: {
-            sales: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    res.json(
-      ApiResponse.success('Cashiers retrieved successfully', { cashiers })
-    );
-  } catch (error) {
-    logger.error('Error fetching business cashiers:', error);
-    next(error);
   }
-});
+);
+
+// Deactivate cashier
+router.put('/cashiers/:id/deactivate',
+  requireManagerOrAdmin,
+  async (req: AuthenticatedRequest, res, next) => {
+    try {
+      const cashierId = req.params.id;
+      const businessId = req.user!.businessId!;
+
+      const cashier = await AuthService.deactivateCashier(cashierId, businessId);
+
+      res.json(
+        ApiResponse.success('Cashier deactivated successfully', cashier)
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 // Admin-only user management routes
 router.post('/admin/create-user', requireAdmin, async (req: AuthenticatedRequest, res, next) => {

@@ -1,64 +1,19 @@
 {
   "name": "vevurn-pos",
-  "version": "1.0.0",
-  "description": "Comprehensive point-of-sale system for phone accessories retail business in Rwanda",
   "private": true,
-  "workspaces": [
-    "frontend/apps/web",
-    "frontend/packages/ui",
-    "frontend/packages/eslint-config",
-    "frontend/packages/typescript-config",
-    "backend",
-    "shared"
-  ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "dev:frontend": "npm run dev --workspace=@vevurn/web",
-    "dev:backend": "npm run dev --workspace=backend",
-    "build": "npm run build --workspace=backend && npm run build --workspace=@vevurn/web",
-    "build:frontend": "npm run build --workspace=@vevurn/web",
-    "build:backend": "npm run build --workspace=backend",
-    "test": "npm run test --workspaces",
-    "test:frontend": "npm run test --workspace=@vevurn/web",
-    "test:backend": "npm run test --workspace=backend",
-    "lint": "npm run lint --workspaces",
-    "lint:fix": "npm run lint:fix --workspaces",
-    "type-check": "npm run type-check --workspaces",
-    "clean": "npm run clean --workspaces && rm -rf node_modules",
-    "db:generate": "npm run db:generate --workspace=backend",
-    "db:migrate": "npm run db:migrate --workspace=backend",
-    "db:seed": "npm run db:seed --workspace=backend",
-    "db:studio": "npm run db:studio --workspace=backend",
-    "auth:migrate": "npm run auth:migrate --workspace=backend",
-    "postinstall": "npm run db:generate"
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "test": "node scripts/test-system.js",
+    "setup": "npm run setup:backend && npm run setup:frontend",
+    "setup:backend": "cd backend && npm install && npx prisma generate",
+    "setup:frontend": "cd frontend && npm install"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
-    "concurrently": "^8.2.2",
-    "eslint": "^8.57.0",
-    "prettier": "^3.3.0",
-    "typescript": "^5.5.0"
-  },
-  "engines": {
-    "node": "22.16.0",
-    "npm": ">=10.0.0"
-  },
-  "keywords": [
-    "pos",
-    "point-of-sale",
-    "retail",
-    "rwanda",
-    "mobile-money",
-    "mtn-momo",
-    "phone-accessories"
-  ],
-  "author": "Shima Serein",
-  "license": "MIT",
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "puppeteer": "^24.17.0"
+    "concurrently": "^8.2.0"
   }
 }

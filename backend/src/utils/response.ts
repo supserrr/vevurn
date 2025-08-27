@@ -1,53 +1,34 @@
-export interface ApiResponseData<T = any> {
-  success: boolean;
-  message: string;
-  data?: T;
-  errors?: any;
-  meta?: {
-    page?: number;
-    limit?: number;
-    total?: number;
-    totalPages?: number;
-  };
-}
-
 export class ApiResponse {
-  static success<T>(message: string, data?: T, meta?: any): ApiResponseData<T> {
+  static success(message: string, data?: any, pagination?: any) {
     return {
       success: true,
       message,
       data,
-      meta,
+      ...(pagination && { pagination })
     };
   }
 
-  static error(message: string, errors?: any): ApiResponseData {
+  static error(message: string, error?: any) {
     return {
       success: false,
       message,
-      errors,
+      ...(error && { error })
     };
   }
 
-  static paginated<T>(
-    message: string,
-    data: T[],
-    page: number,
-    limit: number,
-    total: number
-  ): ApiResponseData<T[]> {
-    const totalPages = Math.ceil(total / limit);
-    
+  static paginated(message: string, data: any[], page: number, limit: number, total: number) {
     return {
       success: true,
       message,
       data,
-      meta: {
+      pagination: {
         page,
         limit,
         total,
-        totalPages,
-      },
+        pages: Math.ceil(total / limit),
+        hasNext: page < Math.ceil(total / limit),
+        hasPrev: page > 1
+      }
     };
   }
 }

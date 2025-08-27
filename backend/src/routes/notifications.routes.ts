@@ -1,89 +1,20 @@
 import { Router } from 'express';
-import { AuthenticatedRequest, requireAuth } from '../middleware/better-auth.middleware';
-import { NotificationService } from '../services/notification.service';
-import { ApiResponse } from '../utils/response';
-import { logger } from '../utils/logger';
-import { prisma } from '../config/database';
+import { NotificationsController } from '../controllers/notifications.controller';
+import { requireAuth } from '../middleware/better-auth.middleware';
 
-const router: Router = Router();
+const router = Router();
+const notificationsController = new NotificationsController();
 
-// Get user notifications
-router.get('/', requireAuth, async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const userId = req.user!.id;
-    const { limit = 50 } = req.query as any;
+// Apply auth middleware to all routes
+router.use(requireAuth);
 
-    const result = await NotificationService.getUserNotifications(userId, Number(limit));
+// GET /api/notifications - Get user notifications
+router.get('/', (req, res, next) => notificationsController.getNotifications(req, res, next));
 
-    res.json(
-      ApiResponse.success('Notifications retrieved successfully', result)
-    );
-  } catch (error) {
-    logger.error('Error fetching notifications:', error);
-    next(error);
-  }
-});
+// PATCH /api/notifications/:id/read - Mark notification as read
+router.patch('/:id/read', (req, res, next) => notificationsController.markAsRead(req, res, next));
 
-// Mark notification as read
-router.patch('/:id/read', requireAuth, async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user!.id;
-
-    // Verify notification belongs to user
-    const notification = await prisma.notification.findUnique({
-      where: { id }
-    });
-
-    if (!notification || notification.userId !== userId) {
-      return res.status(404).json(
-        ApiResponse.error('Notification not found', 404)
-      );
-    }
-
-    await NotificationService.markAsRead(id, userId);
-
-    res.json(
-      ApiResponse.success('Notification marked as read')
-    );
-  } catch (error) {
-    logger.error('Error marking notification as read:', error);
-    next(error);
-  }
-});
-
-// Mark all notifications as read
-router.patch('/mark-all-read', requireAuth, async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const userId = req.user!.id;
-
-    await NotificationService.markAllAsRead(userId);
-
-    res.json(
-      ApiResponse.success('All notifications marked as read')
-    );
-  } catch (error) {
-    logger.error('Error marking all notifications as read:', error);
-    next(error);
-  }
-});
-
-// Get unread count
-router.get('/unread-count', requireAuth, async (req: AuthenticatedRequest, res, next) => {
-  try {
-    const userId = req.user!.id;
-
-    const unreadCount = await prisma.notification.count({
-      where: { userId, isRead: false }
-    });
-
-    res.json(
-      ApiResponse.success('Unread count retrieved successfully', { unreadCount })
-    );
-  } catch (error) {
-    logger.error('Error fetching unread count:', error);
-    next(error);
-  }
-});
+// POST /api/notifications/mark-all-read - Mark all notifications as read
+router.post('/mark-all-read', (req, res, next) => notificationsController.markAllAsRead(req, res, next));
 
 export default router;

@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { prisma } from '../config/database';
+import { prisma } from '../lib/prisma';
 import { logger } from '../utils/logger';
 
 interface NotificationData {
@@ -275,58 +275,55 @@ export class NotificationService {
     }
   }
 
-  static async markAsRead(notificationId: string, userId: string) {
-    try {
-      await prisma.notification.updateMany({
-        where: {
-          id: notificationId,
-          userId
-        },
-        data: {
-          isRead: true
-        }
-      });
 
-      logger.info('Notification marked as read', { notificationId, userId });
-    } catch (error) {
-      logger.error('Failed to mark notification as read:', error);
-    }
+
+  static async getUserNotifications(userId: string, page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+
+    const [notifications, total] = await Promise.all([
+      prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.notification.count({
+        where: { userId }
+      })
+    ]);
+
+    const unreadCount = await prisma.notification.count({
+      where: { userId, isRead: false }
+    });
+
+    return {
+      notifications,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      },
+      unreadCount
+    };
+  }
+
+  static async markAsRead(notificationId: string, userId: string) {
+    const notification = await prisma.notification.update({
+      where: { 
+        id: notificationId,
+        userId // Ensure user owns the notification
+      },
+      data: { isRead: true }
+    });
+
+    return notification;
   }
 
   static async markAllAsRead(userId: string) {
-    try {
-      await prisma.notification.updateMany({
-        where: {
-          userId,
-          isRead: false
-        },
-        data: {
-          isRead: true
-        }
-      });
-
-      logger.info('All notifications marked as read', { userId });
-    } catch (error) {
-      logger.error('Failed to mark all notifications as read:', error);
-    }
-  }
-
-  static async getUserNotifications(userId: string, limit = 50) {
-    try {
-      const notifications = await prisma.notification.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        take: limit
-      });
-
-      const unreadCount = await prisma.notification.count({
-        where: { userId, isRead: false }
-      });
-
-      return { notifications, unreadCount };
-    } catch (error) {
-      logger.error('Failed to get user notifications:', error);
-      return { notifications: [], unreadCount: 0 };
-    }
+    await prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true }
+    });
   }
 }
