@@ -63,7 +63,7 @@ Add these environment variables in Render dashboard:
 ```bash
 # Application
 NODE_ENV=production
-PORT=10000
+PORT=8000
 HOSTNAME=0.0.0.0
 
 # Database (use the Internal Database URL from Step 1)

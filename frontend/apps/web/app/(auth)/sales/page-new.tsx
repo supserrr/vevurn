@@ -62,7 +62,7 @@ interface Customer {
 }
 
 async function fetchProducts() {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const response = await fetch(`${baseUrl}/api/products`, {
     credentials: 'include',
     headers: {

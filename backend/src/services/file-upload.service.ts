@@ -29,7 +29,7 @@ export class FileUploadService {
 
   constructor() {
     this.uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
-    this.baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    this.baseUrl = process.env.BASE_URL || 'http://localhost:8000';
     this.maxFileSize = parseInt(process.env.MAX_FILE_SIZE || '10485760'); // 10MB default
     this.allowedMimeTypes = [
       'image/jpeg',

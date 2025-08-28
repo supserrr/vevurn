@@ -4,6 +4,8 @@ This directory contains documentation for deploying the Vevurn POS system to pro
 
 ## Files
 
+- `DEPLOYMENT.md` - Comprehensive deployment guide for Render and Vercel
+- `DEPLOYMENT_CHECKLIST.md` - Step-by-step deployment checklist
 - `PRODUCTION_READY_DOCUMENTATION.md` - Complete production deployment guide
 - `DEMO_REMOVAL_CHECKLIST.md` - Checklist for removing demo/development content
 

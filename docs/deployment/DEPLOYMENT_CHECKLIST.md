@@ -41,7 +41,7 @@ Use this checklist to ensure a successful deployment to production.
 
 ### **Environment Variables Set**
 - [ ] `NODE_ENV=production`
-- [ ] `PORT=10000`
+- [ ] `PORT=8000`
 - [ ] `HOSTNAME=0.0.0.0`
 - [ ] `DATABASE_URL` (internal URL from PostgreSQL)
 - [ ] `BETTER_AUTH_SECRET` (32+ characters)

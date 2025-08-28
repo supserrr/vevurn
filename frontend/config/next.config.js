@@ -22,7 +22,7 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '5000',
+        port: '8000',
       },
     ],
     formats: ['image/webp', 'image/avif'],
@@ -30,8 +30,8 @@ const nextConfig = {
 
   // Environment variables
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
-    NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:5000',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
+    NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:8000',
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   },
 
@@ -52,11 +52,11 @@ const nextConfig = {
       return [
         {
           source: '/api/auth/:path*',
-          destination: 'http://localhost:5000/api/auth/:path*',
+          destination: 'http://localhost:8000/api/auth/:path*',
         },
         {
           source: '/api/:path*',
-          destination: 'http://localhost:5000/api/:path*',
+          destination: 'http://localhost:8000/api/:path*',
         },
       ];
     }

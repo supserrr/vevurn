@@ -10,7 +10,6 @@ export const corsMiddleware = cors({
     
     const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || [
       'http://localhost:3000',
-      'http://localhost:3001',
     ];
     
     // Allow requests with no origin (mobile apps, postman, etc.)

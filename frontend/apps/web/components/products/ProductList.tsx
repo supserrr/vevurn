@@ -29,7 +29,7 @@ async function fetchProducts(search?: string, category?: string): Promise<Produc
   if (search) params.append('search', search);
   if (category) params.append('category', category);
   
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const response = await fetch(`${baseUrl}/api/products?${params.toString()}`, {
     credentials: 'include',
     headers: {
@@ -46,7 +46,7 @@ async function fetchProducts(search?: string, category?: string): Promise<Produc
 }
 
 async function deleteProduct(productId: string): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const response = await fetch(`${baseUrl}/api/products/${productId}`, {
     method: 'DELETE',
     credentials: 'include',

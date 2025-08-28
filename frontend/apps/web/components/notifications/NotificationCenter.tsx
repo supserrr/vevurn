@@ -29,7 +29,7 @@ export function NotificationCenter({ userId }: NotificationCenterProps) {
 
   useEffect(() => {
     // Initialize socket connection
-    const socketInstance = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
+    const socketInstance = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
     setSocket(socketInstance);
     
     // Join user room for targeted notifications

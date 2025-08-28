@@ -38,7 +38,7 @@ interface Customer {
 }
 
 async function fetchCustomers(): Promise<Customer[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const response = await fetch(`${baseUrl}/api/customers`, {
     credentials: 'include',
     headers: {
@@ -55,7 +55,7 @@ async function fetchCustomers(): Promise<Customer[]> {
 }
 
 async function deleteCustomer(customerId: string): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const response = await fetch(`${baseUrl}/api/customers/${customerId}`, {
     method: 'DELETE',
     credentials: 'include',

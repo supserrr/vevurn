@@ -116,7 +116,7 @@ This is a monorepo containing:
    npm run dev
    
    # Or start them separately:
-   npm run dev:backend  # Backend on http://localhost:5000
+   npm run dev:backend  # Backend on http://localhost:8000
    npm run dev:frontend # Frontend on http://localhost:3000
    ```
 
@@ -302,14 +302,14 @@ server {
 
     # Backend API
     location /api {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
 
     # WebSocket
     location /socket.io {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:8000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";

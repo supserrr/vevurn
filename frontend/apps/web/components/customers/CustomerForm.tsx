@@ -27,7 +27,7 @@ interface CustomerFormProps {
 }
 
 async function saveCustomer(customer: Customer): Promise<Customer> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const url = customer.id 
     ? `${baseUrl}/api/customers/${customer.id}` 
     : `${baseUrl}/api/customers`;

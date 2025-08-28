@@ -7,7 +7,7 @@ import { connectDatabase } from './config/database';
 import { NotificationService } from './services/notification.service';
 
 const server = createServer(app);
-const port = env.PORT || 5000;
+const port = env.PORT || 8000;
 const host = env.HOSTNAME || 'localhost';
 
 // Initialize Socket.io

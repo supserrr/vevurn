@@ -16,7 +16,7 @@ export const auth = betterAuth({
 
   // App configuration
   appName: "Vevurn POS",
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:5000",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:8000",
   
   // Security configuration
   secret: process.env.BETTER_AUTH_SECRET!,

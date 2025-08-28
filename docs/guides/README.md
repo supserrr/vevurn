@@ -4,6 +4,7 @@ This directory contains user-friendly guides and references for using and unders
 
 ## Files
 
+- `DEVELOPMENT.md` - Comprehensive development guide for the Vevurn POS system
 - `QUICK_REFERENCE.md` - Quick reference guide for common tasks
 - `NAVIGATION.md` - Navigation guide for the application interface
 

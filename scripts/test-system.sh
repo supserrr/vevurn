@@ -7,7 +7,7 @@ echo "🧪 Vevurn POS - Comprehensive System Test"
 echo "========================================="
 
 BACKEND_URL="http://localhost:8000"
-FRONTEND_URL="http://localhost:3001"
+FRONTEND_URL="http://localhost:3000"
 
 echo ""
 echo "📋 Test Plan:"

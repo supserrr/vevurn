@@ -4,7 +4,7 @@ import { env } from './config/env';
 import { logger } from './utils/logger';
 
 const server = createServer(app);
-const port = env.PORT || 5000;
+const port = env.PORT || 8000;
 const host = env.HOSTNAME || 'localhost';
 
 async function startServer() {
