@@ -3,7 +3,7 @@ import { logger } from '../utils/logger';
 import { env } from '../config/env';
 
 export class EmailService {
-  private static transporter = nodemailer.createTransporter({
+  private static transporter = nodemailer.createTransport({
     service: 'gmail', // or your email service
     auth: {
       user: env.SMTP_USER,

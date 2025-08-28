@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { BusinessController } from '../controllers/business.controller';
 import { requireAuth, requireManagerOrAdmin } from '../middleware/better-auth.middleware';
 import { upload } from '../middleware/upload.middleware';
-import { validateRequest } from '../middleware/validation.middleware';
+import { validateRequest } from '../middlewares/validation.middleware';
 import { businessSetupSchema, businessUpdateSchema } from '../validators/business.schemas';
 
 const router = Router();

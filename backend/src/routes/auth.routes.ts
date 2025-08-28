@@ -8,7 +8,7 @@ import { EmailService } from '../services/email.service';
 import { AuthService } from '../services/auth.service';
 import { auth } from '../auth';
 import { z } from 'zod';
-import { validateRequest } from '../middleware/validation.middleware';
+import { validateRequest } from '../middlewares/validation.middleware';
 import { createCashierSchema } from '../validators/auth.schemas';
 
 const router: Router = Router();
